@@ -48,7 +48,16 @@ $(document).ready(function(){
 </script>-->
 
 
-Consumption for {{ user.user_first_name }} {{ user.user_last_name }}<br>
+Project {{ project.name }}<br>
+{% if authors %}
+    <ul>
+    {% for author in authors %}
+        <li><img src="{% gravatar_url author.gravatar_email %}"> <a href="{% url 'author' author.id %}" >{{ author.firstname }} {{ author.lastname }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No author.</p>
+{% endif %}
 
 
 

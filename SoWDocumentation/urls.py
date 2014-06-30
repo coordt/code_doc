@@ -3,10 +3,14 @@ from django.conf.urls import patterns, include, url
 from django.contrib import admin
 admin.autodiscover()
 
+from code_doc import views
+
+
 urlpatterns = patterns('',
     # Examples:
     # url(r'^$', 'SoWDocumentation.views.home', name='home'),
     # url(r'^blog/', include('blog.urls')),
 
     url(r'^admin/', include(admin.site.urls)),
+    url(r'^code_doc/', include('code_doc.urls')),
 )
