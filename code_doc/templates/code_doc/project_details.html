@@ -1,0 +1,78 @@
+{% load gravatar %}
+{% load staticfiles %}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+<script language="javascript" type="text/javascript" src="{% static "jqplot/jquery.min.js" %}"></script>
+<script language="javascript" type="text/javascript" src="{% static "jqplot/jquery.jqplot.min.js" %}"></script>
+<link rel="stylesheet" type="text/css" href="{% static "jqplot/jquery.jqplot.css" %}"/>
+</head>
+
+<body>
+<!--<script class="code" type="text/javascript">
+$(document).ready(function(){
+  // Our ajax data renderer which here retrieves a text file.
+  // it could contact any source and pull data, however.
+  // The options argument isn't used in this renderer.
+  var ajaxDataRenderer = function(url, plot, options) {
+    var ret = null;
+    $.ajax({
+      // have to use synchronous here, else the function
+      // will return before the data is fetched
+      async: false,
+      url: url,
+      dataType:"json",
+      success: function(data) {
+        ret = data;
+      }
+    });
+    return ret;
+  };
+ 
+  // The url for our json data
+  var jsonurl = "./jsondata.txt";
+ 
+  // passing in the url string as the jqPlot data argument is a handy
+  // shortcut for our renderer.  You could also have used the
+  // "dataRendererOptions" option to pass in the url.
+  var plot2 = $.jqplot('chart2', jsonurl,{
+    title: "AJAX JSON Data Renderer",
+    dataRenderer: ajaxDataRenderer,
+    dataRendererOptions: {
+      unusedOptionalUrl: jsonurl
+    }
+  });
+});
+</script>-->
+
+
+Consumption for {{ user.user_first_name }} {{ user.user_last_name }}<br>
+
+
+
+<div id="chart1" style="margin-top:20px; margin-left:20px; width:200px; height:200px;"></div>
+
+<!--<div id="chart2" style="margin-top:20px; margin-left:20px; width:300px; height:300px;"></div>-->
+
+<script class="code" type="text/javascript">
+$(document).ready(function(){
+  var plot1 = $.jqplot ('chart1', [[3,7,9,1,4,6,8,2,5]]);
+});
+</script>
+
+
+<br>
+User's details
+<ul>
+  <li>{{ user.user_first_name }} {{ user.user_last_name }}</li>
+  <li>Login {{ user.user_campus_login }}</li>
+  <li>Email {{ user.user_email }}</li>
+  <li><img src="{% gravatar_url user.user_gravatar %}"> </li>
+</ul>
+
+
+
+</body>
+</html>
