@@ -1,0 +1,14 @@
+{% extends "code_doc/base_template.html" %}
+
+{% block title %}Topics {{ topic.name }}{% endblock %}
+
+
+{% block content %}
+  <h1>Topic {{ topic.name }}</h1>
+  <p>{{ topic.description|safe }}</p>
+  
+  <h2>Projects</h2>
+  
+  <h2>Related topics</h2>
+
+{% endblock %}

@@ -3,35 +3,52 @@
 <!DOCTYPE html>
 
 <html>
-<head>
+  <head>
+    <link rel="stylesheet" href="{% static "bootstrap-3.2.0-dist/css/bootstrap.min.css"  %}">
+    <link rel="stylesheet" href="{% static "bootstrap-3.2.0-dist/css/bootstrap-theme.min.css" %}">
+    <script language="javascript" type="text/javascript" src="{% static "bootstrap-3.2.0-dist/js/bootstrap.min.js" %}"></script>
+  </head>
 
-<link rel="stylesheet" href="{% static "bootstrap-3.2.0-dist/css/bootstrap.min.css"  %}">
-
-<!-- Optional theme -->
-<link rel="stylesheet" href="{% static "bootstrap-3.2.0-dist/css/bootstrap-theme.min.css" %}">
-
-<script language="javascript" type="text/javascript" src="{% static "bootstrap-3.2.0-dist/js/bootstrap.min.js" %}"></script>
-</head>
-
-<body>
-
-<div class="jumbotron">
-  <h1>Documentation and download center</h1>
-  <h2>Software workshop</h2>
-  <p><a class="btn btn-primary btn-lg" role="button">Learn more</a></p>
-</div>
+  <body>
 
 
-{% if projects_list %}
+
+
+  <div class="jumbotron">
+    <h1>Documentation and download center</h1>
+    <h3>Software workshop</h3>
+    <p>The Max Planck Institute for Intelligent Systems loves softwares, and provides you the best it has from its outstanding research.</p>
+    <p><a class="btn btn-primary btn-lg" role="button">Learn more</a></p>
+  </div>
+
+<div class="container">
+  <h2>Projects</h2>
+  <p>You will find below the list of Softwares and libraries maintained by the Max Planck Institute for Intelligent Systems at Tübingen. Click on the project 
+     for more details.
+  </p>
+  {% if projects_list %}
     <ul>
     {% for project in projects_list %}
         <li><a href="{% url 'project' project.id %}" >{{ project.name }}</a></li>
     {% endfor %}
     </ul>
-{% else %}
+  {% else %}
     <p>No registered project.</p>
-{% endif %}
+  {% endif %}
 
 
-</body>
+  <h2>Topics</h2>
+  {% if topics_list %}
+    <ul>
+    {% for topic in topics_list %}
+        <li><a href="{% url 'topic' topic.id %}" >{{ topic.name }}</a></li>
+    {% endfor %}
+    </ul>
+  {% else %}
+    <p>No registered topic.</p>
+  {% endif %}
+  
+
+</div>
+  </body>
 </html>

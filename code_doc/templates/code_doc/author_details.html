@@ -1,0 +1,33 @@
+{% extends "code_doc/base_template.html" %}
+
+{% block title %}{{ author.firstname }} {{ author.lastname }}{% endblock %}
+
+
+{% block content %}
+<h1>{{ author.firstname }} {{ author.lastname }}</h1>
+  <h2>Contributed projects</h2>
+  {% if project_list %}
+    <ul>
+    {% for project in project_list %}
+        <li><a href="{% url 'project' project.id %}" >{{ project.name }}</a></li>
+    {% endfor %}
+    </ul>
+  {% else %}
+    <p>No known contribution.</p>
+  {% endif %}
+
+  <h2>Co-author</h2>
+  {% if coauthor_list %}
+    <ul>
+    {% for coauthor in coauthor_list %}
+        <li><a href="{% url 'author' coauthor.id %}" >{{ coauthor.lastname }}</a></li>
+    {% endfor %}
+    </ul>
+  {% else %}
+    <p>No known coauthor.</p>
+  {% endif %}
+  
+
+
+  
+{% endblock %}
