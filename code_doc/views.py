@@ -8,7 +8,8 @@ from django.template import RequestContext, loader
 
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.renderers import JSONRenderer
-from rest_framework.parsers import JSONParser
+from rest_framework.parsers import JSONParser, FileUploadParser
+from rest_framework.views import APIView
 
 from code_doc.models import Project, Author
 #from code_doc.serializers import ProjectSerializer
@@ -36,3 +37,23 @@ def detail_author(request, author_id):
     raise Http404
   
   return render(request, 'code_doc/project_details.html', {'project': project, 'authors': author_list})
+
+
+
+class FileUploadView(APIView):
+  # works with 
+  # curl -X PUT --data-binary @manage.py http://localhost:8000/code_doc/api/artifact/1/titi.html
+  parser_classes = (FileUploadParser,)
+
+  def put(self, request, project_version_id, filename, format=None):
+    file_obj = request.FILES['file']
+    # ...
+    # do some staff with uploaded file
+    # ...
+    
+    filecontent = file_obj.read()#self.parse(file_obj)#request.read()#
+    with file('/Users/raffi/tmp/toto.py', 'wb') as f:
+      f.write(filecontent)
+    
+    return HttpResponse("Created file %s with the following content\n<br><br>%s" % (filename, filecontent.replace('\r', '<br>')))
+    return Response(status=204)

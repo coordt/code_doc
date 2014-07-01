@@ -1,3 +1,26 @@
+{% load staticfiles %}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+
+<link rel="stylesheet" href="{% static "bootstrap-3.2.0-dist/css/bootstrap.min.css"  %}">
+
+<!-- Optional theme -->
+<link rel="stylesheet" href="{% static "bootstrap-3.2.0-dist/css/bootstrap-theme.min.css" %}">
+
+<script language="javascript" type="text/javascript" src="{% static "bootstrap-3.2.0-dist/js/bootstrap.min.js" %}"></script>
+</head>
+
+<body>
+
+<div class="jumbotron">
+  <h1>Documentation and download center</h1>
+  <h2>Software workshop</h2>
+  <p><a class="btn btn-primary btn-lg" role="button">Learn more</a></p>
+</div>
+
 
 {% if projects_list %}
     <ul>
@@ -8,3 +31,7 @@
 {% else %}
     <p>No registered project.</p>
 {% endif %}
+
+
+</body>
+</html>
