@@ -27,11 +27,21 @@
      for more details.
   </p>
   {% if projects_list %}
-    <ul>
-    {% for project in projects_list %}
-        <li><a href="{% url 'project' project.id %}" >{{ project.name }}</a> <img class="media-object" src="{% static project.icon.url %}"></li>
-    {% endfor %}
-    </ul>
+  
+    <div class="media">
+      {% for project in projects_list %}
+        <a class="pull-left" href="{% url 'project' project.id %}">
+          <img class="media-object" src="{% static project.icon.url %}" class="img-rounded" width="140" height="140" >  <!-- alt="xxx" -->
+        </a>
+
+        <div class="media-body">
+          <h4 class="media-heading">
+            <a href="{% url 'project' project.id %}" >{{ project.name }}</a>
+          </h4>
+        </div>
+      {% endfor %}
+    </div>
+
   {% else %}
     <p>No registered project.</p>
   {% endif %}
