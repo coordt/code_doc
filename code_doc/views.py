@@ -14,7 +14,7 @@ from rest_framework.views import APIView
 from code_doc.models import Project, Author, Topic
 #from code_doc.serializers import ProjectSerializer
 
-
+from django.contrib.auth.decorators import login_required
 
 
 
@@ -35,13 +35,31 @@ def detail_project(request, project_id):
   return render(
             request, 
             'code_doc/project_details.html', 
-            {'project': project, 'authors': author_list, 'topics': topic_list})
+            {'project': project, 
+             'authors': author_list, 
+             'topics': topic_list})
+
+
+
+class ProjectView(APIView):
+  
+  def get(self, request, project_id):
+    return detail_project(request, project_id)
+    pass
+  
+  @login_required(login_url='/accounts/login/')
+  def post(self):
+    pass
+
+
 
 def detail_author(request, author_id):
   try:
     author = Author.objects.get(pk=author_id)
   except Author.DoesNotExist:
     raise Http404
+  
+  
   
   project_list = Project.objects.filter(authors=author)
   coauthor_list= Author.objects.filter(project__in=project_list).distinct().exclude(pk=author_id)
@@ -99,3 +117,4 @@ class FileUploadView(APIView):
     
     return HttpResponse("Created file %s with the following content\n<br>MD5: %s<br><br>%s" % (filename, m, filecontent.replace('\r', '<br>')))
     return Response(status=204)
+

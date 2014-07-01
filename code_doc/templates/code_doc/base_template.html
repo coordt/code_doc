@@ -12,9 +12,40 @@
   </head>
   
   <body>
+
+  <nav class="navbar navbar-default" role="navigation">
+
+    <div class="navbar-header">
+      <ul class="nav navbar-nav">
+        <li><a class="navbar-brand" href="{% url 'index' %}">Home</button></a></li>
+        <li><a class="navbar-brand" href="{% url 'index' %}">Topics</button></a></li>
+      </ul>
+    </div>
+    <div class="collapse navbar-collapse navbar-right" id="bs-example-navbar-collapse-1">
+      {% if user.is_authenticated %}
+      <ul class="nav navbar-nav">
+        <li class="dropdown">
+          <a class="dropdown-toggle" data-toggle="dropdown" href="#">{{ user.username }} <span class="caret"></span></a>
+          <ul class="dropdown-menu" role="menu">
+            <li><a href="#">Profile</a></li>
+            <li class="divider"></li>
+            <li><a href="#">Log out</a></li>
+          </ul>
+        </li>        
+      </ul>
+       
+      {% else %}
+        <a type="button" class="btn btn-warning navbar-btn"  href="{% url 'login' %}?next={{request.path}}">Log in</a>
+      {% endif %}
+    </div>
+
+  </nav>
+  
+  
   
   <div class="container">
     {% block content %}{% endblock %}
   </div>
+
   </body>
 </html>
