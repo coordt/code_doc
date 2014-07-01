@@ -64,6 +64,8 @@ DATABASES = {
     }
 }
 
+#AUTH_USER_MODEL = 'code_doc.Author'
+
 # Internationalization
 # https://docs.djangoproject.com/en/1.6/topics/i18n/
 
@@ -82,3 +84,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.6/howto/static-files/
 
 STATIC_URL = '/static/'
+
+MEDIA_ROOT = os.path.join(os.path.basename(__file__), 'media') + '/'
+MEDIA_URL  = '/media/'
+

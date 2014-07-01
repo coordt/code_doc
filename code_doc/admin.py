@@ -11,8 +11,9 @@ admin.site.register(Copyright)
 admin.site.register(CopyrightHolder)
 
 class ProjectAdmin(admin.ModelAdmin):
-  list_display = ('name', 'home_page_url', 'description')
-  list_filter = ['name']
+  list_display = ('name', 'home_page_url', 'description_mk')
+  list_filter  = ['name']
+  exclude      = ('description',)
   
 admin.site.register(Project, ProjectAdmin)
 

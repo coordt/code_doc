@@ -1,6 +1,10 @@
 from django.db import models
 import datetime
 
+from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.models import AbstractUser
+from django.conf import settings
+
 # Create your models here.
 
 class Author(models.Model):
@@ -8,10 +12,11 @@ class Author(models.Model):
   lastname        = models.CharField(max_length=50)
   firstname       = models.CharField(max_length=50)
   gravatar_email  = models.CharField(max_length=50)
-  email           = models.EmailField(max_length=50)
+  email           = models.EmailField(max_length=50, unique=True, db_index=True)
   home_page_url   = models.CharField(max_length=250)
+  
   def __unicode__(self):
-    return "%s %s" %(self.firstname, self.lastname)
+    return "%s %s ? %s" %(self.firstname, self.lastname, self.email)
   
 class CopyrightHolder(models.Model):
   name            = models.CharField(max_length=50)
@@ -38,14 +43,20 @@ class Topic(models.Model):
   def save(self):
     import markdown
     self.description = markdown.markdown(self.description_mk)
-    super(Topics, self).save() # Call the "real" save() method.
+    super(Topic, self).save() # Call the "real" save() method.
 
 class Project(models.Model):
   """A project, may contain several authors"""
-  name            = models.CharField(max_length=50)
-  description     = models.TextField(max_length=2500, blank=True, null=True)
+  name            = models.CharField(max_length=50, unique=True)
+  description     = models.TextField('hidden', max_length=2500, blank=True, null=True)
+  description_mk  = models.TextField('text in Markdown', max_length=2500, blank=True, null=True)
+  icon            = models.ImageField(blank=True, null=True, upload_to='project_icons/')
   
   authors         = models.ManyToManyField(Author)
+  
+  # the administrators of the project
+  administrators  = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, null=True)
+  
   home_page_url   = models.CharField(max_length=250, null=True, blank=True)
   code_source_url = models.CharField(max_length=250, null=True, blank=True)
   copyright       = models.ForeignKey(Copyright, null=True, blank=True)
@@ -53,14 +64,15 @@ class Project(models.Model):
 
   topics          = models.ManyToManyField(Topic, null=True, blank=True)
 
-  class Admin:
-    list_display = ('name', 'home_page_url', 'description')
-    fields = (
-              (None, {'fields': ('name', 'home_page_url', 'description')}),
-              )
-
   def __unicode__(self):
     return "%s" %(self.name)
+  
+  
+  def save(self):
+    import markdown
+    self.description = markdown.markdown(self.description_mk)
+    super(Project, self).save() # Call the "real" save() method.
+
   
 
 class ProjectVersion(models.Model):
@@ -68,7 +80,11 @@ class ProjectVersion(models.Model):
   project         = models.ForeignKey(Project)
   version         = models.CharField(max_length=500) # can be a hash
   release_date    = models.DateField('version release date')
-  is_public       = models.BooleanField(default=False) 
+  is_public       = models.BooleanField(default=False)
+  description     = models.TextField('description of the release', max_length=500) # the description of the content
+
+  class Meta:
+    unique_together = (("project", "version"), ) 
 
   def __unicode__(self):
     return "%s - version %s / %s" %(self.project.name, self.version, self.release_date)
@@ -78,7 +94,8 @@ class Artifact(models.Model):
   """An artifact is a downloadable file"""
   project_version = models.ForeignKey(ProjectVersion)
   filename        = models.CharField(max_length=1024)
-  hash            = models.CharField(max_length=1024)
+  md5hash         = models.CharField(max_length=1024) # md5 hash 
+  description     = models.TextField('description of the artifact', max_length=1024)
 
   def __unicode__(self):
     return "%s - version %s / %s" %(self.project_version.project.name, self.project_version.version, self.filename)

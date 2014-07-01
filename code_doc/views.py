@@ -45,9 +45,12 @@ def detail_author(request, author_id):
   
   project_list = Project.objects.filter(authors=author)
   coauthor_list= Author.objects.filter(project__in=project_list).distinct().exclude(pk=author_id)
-  #if author in coauthor_list:
-  #  coauthor_list.remove(author)
-  return render(request, 'code_doc/author_details.html', {'project_list': project_list, 'author': author, 'coauthor_list': coauthor_list})
+  return render(
+            request, 
+            'code_doc/author_details.html', 
+            {'project_list': project_list, 
+             'author': author, 
+             'coauthor_list': coauthor_list})
 
 
 

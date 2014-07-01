@@ -29,7 +29,7 @@
   {% if projects_list %}
     <ul>
     {% for project in projects_list %}
-        <li><a href="{% url 'project' project.id %}" >{{ project.name }}</a></li>
+        <li><a href="{% url 'project' project.id %}" >{{ project.name }}</a> <img class="media-object" src="{% static project.icon.url %}"></li>
     {% endfor %}
     </ul>
   {% else %}
