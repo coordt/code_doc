@@ -1,0 +1,36 @@
+{% extends "code_doc/base_template.html" %}
+{% load gravatar %}
+{% load staticfiles %}
+{% load static %}
+
+{% block title %}Profile of {{ user.username }}{% endblock %}
+
+
+{% block content %}
+  <h1>Profile of {{ user.username }}</h1>
+
+
+  {% if projects %}
+  
+    <h2>Projects</h2>
+    
+    
+    <div class="media">
+      {% for project in projects %}
+        <a class="pull-left" href=href="{% url 'project' project.id %}">
+          <img class="media-object" src="{% get_media_prefix %}{{project.icon}}" class="img-rounded" width="50" height="50" alt="">
+        </a>
+    
+        <div class="media-body">
+          <h4 class="media-heading">
+            <a href="{% url 'project' project.id %}" >{{ project.name }}</a></h4>
+          <p>blablablabla this author</p>
+        </div>
+      {% endfor %}
+    </div>
+  
+  {% else %}
+      <p>No author.</p>
+  {% endif %}
+
+{% endblock %}

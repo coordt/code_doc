@@ -1,5 +1,6 @@
 {% load gravatar %}
 {% load staticfiles %}
+{% load static %}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -7,12 +8,21 @@
   <head>
     <link rel="stylesheet" href="{% static "bootstrap-3.2.0-dist/css/bootstrap.min.css"  %}">
     <link rel="stylesheet" href="{% static "bootstrap-3.2.0-dist/css/bootstrap-theme.min.css" %}">
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+
+
     <script language="javascript" type="text/javascript" src="{% static "bootstrap-3.2.0-dist/js/bootstrap.min.js" %}"></script>
+
+
+
+
     <title>{% block title %}Template title{% endblock %}</title>
   </head>
   
   <body>
-
+    
   <nav class="navbar navbar-default" role="navigation">
 
     <div class="navbar-header">
@@ -27,15 +37,15 @@
         <li class="dropdown">
           <a class="dropdown-toggle" data-toggle="dropdown" href="#">{{ user.username }} <span class="caret"></span></a>
           <ul class="dropdown-menu" role="menu">
-            <li><a href="#">Profile</a></li>
+            <li><a href="{% url 'maintainer' %}">Profile</a></li>
             <li class="divider"></li>
-            <li><a href="#">Log out</a></li>
+            <li><a href="{% url 'logout' %}?next={% url 'index' %}">Log out</a></li>
           </ul>
         </li>        
       </ul>
        
       {% else %}
-        <a type="button" class="btn btn-warning navbar-btn"  href="{% url 'login' %}?next={{request.path}}">Log in</a>
+        <a type="button" class="btn btn-warning navbar-btn" href="{% url 'login' %}?next={{request.path}}">Log in</a>
       {% endif %}
     </div>
 
