@@ -24,8 +24,34 @@ DEBUG = True
 
 TEMPLATE_DEBUG = True
 
-ALLOWED_HOSTS = []
+# to be edited when in production mode
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
+ADMINS = (('Raffi Enficiaud', 'raffi.enficiaud@tuebingen.mpg.de'), )
+
+
+# Email address that error messages come from.
+SERVER_EMAIL = 'root@localhost'
+
+# Default email address to use for various automated correspondence from
+# the site managers.
+DEFAULT_FROM_EMAIL = 'webmaster@codedoc'
+
+# Subject-line prefix for email messages send with django.core.mail.mail_admins
+# or ...mail_managers.  Make sure to include the trailing space.
+EMAIL_SUBJECT_PREFIX = '[CodeDoc] '
+
+
+# Host for sending email.
+EMAIL_HOST = 'localhost'
+
+# Port for sending email.
+EMAIL_PORT = 25
+
+# Optional SMTP authentication information for EMAIL_HOST.
+EMAIL_HOST_USER = ''
+EMAIL_HOST_PASSWORD = ''
+EMAIL_USE_TLS = False
 
 # Application definition
 
