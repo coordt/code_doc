@@ -80,6 +80,25 @@ class ProjectView(View):
   def post(self):
     pass
 
+class TopicView(View):
+  
+  def get(self, request, topic_id):
+    try:
+      topic = Topic.objects.get(pk=topic_id)
+    except Project.DoesNotExist:
+      raise Http404
+    
+    #author_list = project.authors.all()
+    #topic_list  = project.topics.all()
+    return render(
+              request, 
+              'code_doc/topics.html', 
+              {'topic': topic})
+  
+  @login_required(login_url='/accounts/login/')
+  def post(self):
+    pass
+
 
 
 def detail_author(request, author_id):

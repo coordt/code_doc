@@ -13,6 +13,7 @@ urlpatterns = patterns('',
   url(r'^accounts/login/$',  login, name='login'),
   url(r'^accounts/logout/$', logout, name='logout'),  
   url(r'^project/(?P<project_id>\d+)/$', views.ProjectView.as_view(), name='project'),
+  url(r'^topic/(?P<topic_id>\d+)/$', views.TopicView.as_view(), name='topic'),
   
   url(r'^maintainer/$', views.MaintainerProfileView.as_view(), name='maintainer'),
   

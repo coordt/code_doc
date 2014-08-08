@@ -34,8 +34,8 @@ class Copyright(models.Model):
 
 class Topic(models.Model):
   name            = models.CharField(max_length=20)
-  description     = models.TextField(max_length=200)
-  description_mk  = models.TextField(max_length=200)
+  description     = models.TextField(max_length=200, blank=True, null=True)
+  description_mk  = models.TextField('Description in Markdown format', max_length=200, blank=True, null=True)
   
   def __unicode__(self):
     return "%s" %(self.name)
@@ -49,6 +49,7 @@ class Project(models.Model):
   """A project, may contain several authors"""
   name            = models.CharField(max_length=50, unique=True)
   description     = models.TextField('hidden', max_length=2500, blank=True, null=True)
+  short_description = models.TextField('short description of the project (200 chars)', max_length = 200, blank = True, null = True)
   description_mk  = models.TextField('text in Markdown', max_length=2500, blank=True, null=True)
   icon            = models.ImageField(blank=True, null=True, upload_to='project_icons/')
   

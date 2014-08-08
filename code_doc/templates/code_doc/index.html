@@ -39,6 +39,9 @@
           <h4 class="media-heading">
             <a href="{% url 'project' project.id %}" >{{ project.name }}</a>
           </h4>
+          <p>
+            {{ project.short_description }}
+          </P>
         </div>
       {% endfor %}
     </div>
@@ -50,6 +53,19 @@
 
   <h2>Topics</h2>
   {% if topics_list %}
+  
+  <ul class="nav nav-pills nav-stacked">
+  {% for topic in topics_list %}
+  <li class="active">
+    <a href="{% url 'topic' topic.id %}" >
+      <span class="badge pull-right color-red">42</span>
+      {{ topic.name }}
+    </a>
+  </li>
+  {% endfor %}
+  ...
+</ul>
+  
     <ul>
     {% for topic in topics_list %}
         <li><a href="{% url 'topic' topic.id %}" >{{ topic.name }}</a></li>

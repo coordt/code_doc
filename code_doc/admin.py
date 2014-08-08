@@ -2,7 +2,7 @@ from django.contrib import admin
 
 # Register your models here.
 
-from code_doc.models import Author, Project, ProjectVersion, Artifact, Copyright, CopyrightHolder
+from code_doc.models import Author, Project, ProjectVersion, Artifact, Copyright, CopyrightHolder, Topic
 
 admin.site.register(Author)
 admin.site.register(ProjectVersion)
@@ -17,3 +17,8 @@ class ProjectAdmin(admin.ModelAdmin):
   
 admin.site.register(Project, ProjectAdmin)
 
+
+class TopicAdmin(admin.ModelAdmin):
+  exclude      = ('description',)
+
+admin.site.register(Topic, TopicAdmin)
