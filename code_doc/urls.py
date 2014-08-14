@@ -1,8 +1,8 @@
 from django.conf.urls import patterns, url
-
 from django.contrib.auth.views import login, logout
 
 from rest_framework import generics
+
 
 from code_doc import views
 
@@ -10,6 +10,7 @@ from code_doc import views
 
 urlpatterns = patterns('',
   url(r'^$', views.index, name='index'),
+  
   url(r'^accounts/login/$',  login, name='login'),
   url(r'^accounts/logout/$', logout, name='logout'),  
   url(r'^project/(?P<project_id>\d+)/$', views.ProjectView.as_view(), name='project'),

@@ -90,6 +90,10 @@ class ProjectVersionArtifactTest(TestCase):
     self.project.administrators = [self.first_user]
     
     self.new_version            = ProjectVersion.objects.create(version="12345", project = self.project, release_date = datetime.datetime.now())
+    
+    import StringIO
+    self.imgfile      = StringIO.StringIO('GIF87a\x01\x00\x01\x00\x80\x01\x00\x00\x00\x00ccc,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;')
+    self.imgfile.name = 'test_img_file.gif'
 
   def test_uniqueness(self):
     with self.assertRaises(IntegrityError):
@@ -107,19 +111,39 @@ class ProjectVersionArtifactTest(TestCase):
     self.assertEqual(len(response.context['artifacts']), 0)
     
   def test_send_new_artifact_no_login(self):
-    import StringIO
-    imgfile = StringIO.StringIO('GIF87a\x01\x00\x01\x00\x80\x01\x00\x00\x00\x00ccc,\x00'
-                     '\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;')
-    imgfile.name = 'test_img_file.gif'
+    
+    initial_path = reverse(self.path, args=[self.project.id, self.new_version.version])
+    response = self.client.post(initial_path, 
+                     {'name': 'fred', 'attachment': self.imgfile},
+                     follow=True)
 
-    self.client.post(reverse(self.path, args=[self.project.id, self.new_version.version]), 
-                     {'name': 'fred', 'attachment': imgfile})
-
+    #print response
+    #print response.redirect_chain
+    self.assertEqual(response.status_code, 200)
+    self.assertRedirects(response, reverse('login') + '?next=' + initial_path)
     #with open('wishlist.doc') as fp:
     #  self.client.post(self.path, {'name': 'fred', 'attachment': fp})
 
+
+  def test_send_new_artifact_no_login_no_follow(self):
+    
+
+    initial_path = reverse(self.path, args=[self.project.id, self.new_version.version])
+    response = self.client.post(initial_path, 
+                     {'name': 'fred', 'attachment': self.imgfile},
+                     follow=False)
+    self.assertEqual(response.status_code, 302) # redirection status
+
   def test_send_new_artifact_with_login(self):
     response = self.client.login(username='toto', password='titi')
-    self.assertTrue(response)#.status_code, 200)
-    print 'response', response
+    self.assertTrue(response)
 
+    initial_path = reverse(self.path, args=[self.project.id, self.new_version.version])
+    response = self.client.post(initial_path, 
+                     {'name': 'fred', 'attachment': self.imgfile},
+                     follow=False)
+
+    import hashlib
+    self.assertEqual(response.status_code, 200)
+    self.assertEqual(response.content, hashlib.md5(self.imgfile.getvalue()).hexdigest())
+    

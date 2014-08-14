@@ -8,6 +8,8 @@ from django.template import RequestContext, loader
 
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
+
+
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
 
@@ -17,6 +19,10 @@ from rest_framework.renderers import JSONRenderer
 from rest_framework.parsers import JSONParser, FileUploadParser
 from rest_framework.views import APIView
 
+
+from django.core.urlresolvers import reverse, reverse_lazy
+
+import hashlib
 
 
 from code_doc.models import Project, Author, Topic, ProjectVersion
@@ -95,7 +101,8 @@ class ProjectVersionView(View):
   @login_required(login_url='/accounts/login/')
   def post(self):
     pass
-  
+
+
 class ProjectVersionArtifactView(View):
   
   def get_project_version(self, project_id, version_number):
@@ -124,12 +131,28 @@ class ProjectVersionArtifactView(View):
                'current_version':project_version,
                'artifacts' : artifact_list})
   
-  @login_required(login_url='/accounts/login/')
-  def post(self, request, project_id, version_id):
+  @method_decorator(lambda x: login_required(x, login_url=reverse_lazy('login')))
+  def post(self, request, project_id, version_number):
     project, versions_list, project_version = self.get_project_version(project_id, version_number)
 
-    return Response(status=200)
-    pass
+    #print request.DATA
+    #print request.POST
+    #for i, j in request.POST.items():
+    #  print "key %s value %s" % (i, j) 
+    #print request.FILES
+    
+    if request.FILES.has_key('attachment'):
+      fileattached = request.FILES['attachment']
+      filename = fileattached.name
+      m = hashlib.md5()
+      with file('/Users/raffi/tmp/toto.py', 'wb') as f:
+        for chunk in fileattached.chunks():
+          f.write(chunk)
+          m.update(chunk)
+      #m = hashlib.md5(filecontent).hexdigest()
+      #print filename, m.hexdigest()
+
+    return HttpResponse(m.hexdigest(), status=200)
 
 class TopicView(View):
   
@@ -146,7 +169,7 @@ class TopicView(View):
               'code_doc/topics.html', 
               {'topic': topic})
   
-  @login_required(login_url='/accounts/login/')
+  @login_required(login_url=reverse_lazy('login'))
   def post(self):
     pass
 
