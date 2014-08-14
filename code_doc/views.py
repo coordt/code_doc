@@ -19,10 +19,8 @@ from rest_framework.views import APIView
 
 
 
-from code_doc.models import Project, Author, Topic
+from code_doc.models import Project, Author, Topic, ProjectVersion
 #from code_doc.serializers import ProjectSerializer
-
-
 
 
 def index(request):
@@ -79,6 +77,59 @@ class ProjectView(View):
   @login_required(login_url='/accounts/login/')
   def post(self):
     pass
+  
+class ProjectVersionView(View):
+  def get(self, request, project_id):
+    try:
+      project = Project.objects.get(pk=project_id)
+    except Project.DoesNotExist:
+      raise Http404
+    
+    versions_list = project.versions.all()
+    return render(
+              request, 
+              'code_doc/project_details.html', 
+              {'project': project,
+               'versions': versions_list})
+  
+  @login_required(login_url='/accounts/login/')
+  def post(self):
+    pass
+  
+class ProjectVersionArtifactView(View):
+  
+  def get_project_version(self, project_id, version_number):
+    try:
+      project = Project.objects.get(pk=project_id)
+    except Project.DoesNotExist:
+      raise Http404
+
+    versions_list = project.versions.all()
+    try:
+      project_version = project.versions.get(version=version_number)
+    except ProjectVersion.DoesNotExist:
+      raise Http404
+    
+    return project, versions_list, project_version
+      
+  def get(self, request, project_id, version_number):
+
+    project, versions_list, project_version = self.get_project_version(project_id, version_number)
+    artifact_list = project_version.artifacts.all()
+    return render(
+              request, 
+              'code_doc/project_details.html', 
+              {'project': project,
+               'versions': versions_list,
+               'current_version':project_version,
+               'artifacts' : artifact_list})
+  
+  @login_required(login_url='/accounts/login/')
+  def post(self, request, project_id, version_id):
+    project, versions_list, project_version = self.get_project_version(project_id, version_number)
+
+    return Response(status=200)
+    pass
 
 class TopicView(View):
   
@@ -125,7 +176,7 @@ class FileUploadView(APIView):
   # curl -X PUT --data-binary @manage.py http://localhost:8000/code_doc/api/artifact/1/titi.html
   parser_classes = (FileUploadParser,)
 
-  def put(self, request, project_version_id, filename, format=None):
+  def put(self, request, project_id, project_version_id, filename, format=None):
     import hashlib
     file_obj = request.FILES['file']
     # ...
@@ -146,7 +197,7 @@ class FileUploadView(APIView):
   
   # works with 
   # curl -X POST --data filename=toto.yoyo --data-urlencode filecontent@manage.py  http://localhost:8000/code_doc/api/artifact/1/ 
-  def post(self, request, project_version_id, format=None):
+  def post(self, request, project_id, project_version_id, format=None):
     import hashlib
     filename = request.DATA['filename']
     filecontent = request.DATA['filecontent']

@@ -69,16 +69,18 @@ class Project(models.Model):
     return "%s" %(self.name)
   
   
-  def save(self):
+  def save(self, *args, **kwargs):
+    if self.description_mk is None:
+      self.description_mk = ''
     import markdown
     self.description = markdown.markdown(self.description_mk)
-    super(Project, self).save() # Call the "real" save() method.
+    super(Project, self).save(*args, **kwargs) # Call the "real" save() method.
 
   
 
 class ProjectVersion(models.Model):
   """A version of a project comes with several artifacts"""
-  project         = models.ForeignKey(Project)
+  project         = models.ForeignKey(Project, related_name = "versions")
   version         = models.CharField(max_length=500) # can be a hash
   release_date    = models.DateField('version release date')
   is_public       = models.BooleanField(default=False)
@@ -93,7 +95,7 @@ class ProjectVersion(models.Model):
 
 class Artifact(models.Model):
   """An artifact is a downloadable file"""
-  project_version = models.ForeignKey(ProjectVersion)
+  project_version = models.ForeignKey(ProjectVersion, related_name = "artifacts")
   filename        = models.CharField(max_length=1024)
   md5hash         = models.CharField(max_length=1024) # md5 hash 
   description     = models.TextField('description of the artifact', max_length=1024)
