@@ -1,5 +1,6 @@
 from django.db import models
 import datetime
+import os
 
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import AbstractUser
@@ -90,15 +91,27 @@ class ProjectVersion(models.Model):
     unique_together = (("project", "version"), ) 
 
   def __unicode__(self):
-    return "%s - version %s / %s" %(self.project.name, self.version, self.release_date)
+    return "[%s @ %s] [%s]" %(self.project.name, self.version, self.release_date)
+
+
+def get_artifact_location(instance, filename):
+  """An helper function to specify the storage location of an uploaded file"""
+  
+  return os.path.join("artifacts", instance.project_version.project.name, instance.project_version.version, filename)
+  
 
 
 class Artifact(models.Model):
   """An artifact is a downloadable file"""
   project_version = models.ForeignKey(ProjectVersion, related_name = "artifacts")
-  filename        = models.CharField(max_length=1024)
+  #filename        = models.CharField(max_length=1024)
   md5hash         = models.CharField(max_length=1024) # md5 hash 
   description     = models.TextField('description of the artifact', max_length=1024)
+  artifactfile    = models.FileField(upload_to=get_artifact_location)
 
   def __unicode__(self):
-    return "%s - version %s / %s" %(self.project_version.project.name, self.project_version.version, self.filename)
+    return "%s | %s | %s" %(self.project_version, self.artifactfile.name, self.md5hash)
+
+  class Meta:
+    # we allow only one version per project version (we can however have the same file in several versions)
+    unique_together = (("project_version", "md5hash"), ) 
