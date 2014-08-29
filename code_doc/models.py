@@ -42,8 +42,10 @@ class Topic(models.Model):
   def __unicode__(self):
     return "%s" %(self.name)
 
-  def save(self):
+  def save(self, *args, **kwargs):
     import markdown
+    if self.description_mk is None:
+      self.description_mk = ''
     self.description = markdown.markdown(self.description_mk)
     super(Topic, self).save() # Call the "real" save() method.
 
@@ -98,10 +100,12 @@ class ProjectVersion(models.Model):
   def get_absolute_url(self):
     return reverse('project_version', kwargs={'project_id' : self.project.pk})
 
-  def save(self):
+  def save(self, *args, **kwargs):
     import markdown
+    if self.description_mk is None:
+      self.description_mk = ''
     self.description = markdown.markdown(self.description_mk)
-    super(Topic, self).save() # Call the "real" save() method.
+    super(ProjectVersion, self).save() # Call the "real" save() method.
 
 
 def get_artifact_location(instance, filename):

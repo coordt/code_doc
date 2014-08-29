@@ -45,7 +45,7 @@ class ProjectVersionTest(TestCase):
     self.client = Client()
     
     # path for the queries to the project details
-    self.path                   = 'project_version'
+    self.path                   = 'project_version_all'
     
     self.first_user             = User.objects.create(username='toto')
 
