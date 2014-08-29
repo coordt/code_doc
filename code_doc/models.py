@@ -5,6 +5,7 @@ import os
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
+from django.core.urlresolvers import reverse
 
 # Create your models here.
 
@@ -93,10 +94,13 @@ class ProjectVersion(models.Model):
   def __unicode__(self):
     return "[%s @ %s] [%s]" %(self.project.name, self.version, self.release_date)
 
+  def get_absolute_url(self):
+    return reverse('project_version', kwargs={'project_id' : self.project.pk})
+
+
 
 def get_artifact_location(instance, filename):
   """An helper function to specify the storage location of an uploaded file"""
-  
   return os.path.join("artifacts", instance.project_version.project.name, instance.project_version.version, filename)
   
 
@@ -104,7 +108,6 @@ def get_artifact_location(instance, filename):
 class Artifact(models.Model):
   """An artifact is a downloadable file"""
   project_version = models.ForeignKey(ProjectVersion, related_name = "artifacts")
-  #filename        = models.CharField(max_length=1024)
   md5hash         = models.CharField(max_length=1024) # md5 hash 
   description     = models.TextField('description of the artifact', max_length=1024)
   artifactfile    = models.FileField(upload_to=get_artifact_location)

@@ -23,6 +23,8 @@ from rest_framework.views import APIView
 
 from django.core.urlresolvers import reverse, reverse_lazy
 
+from django.views.generic.edit import CreateView, UpdateView, DeleteView
+
 import hashlib
 import tempfile
 import logging
@@ -33,6 +35,7 @@ from django.conf import settings
 
 
 from code_doc.models import Project, Author, Topic, ProjectVersion, Artifact
+from code_doc.forms import ProjectVersionForm
 #from code_doc.serializers import ProjectSerializer
 
 
@@ -80,34 +83,76 @@ class ProjectView(View):
     
     author_list = project.authors.all()
     topic_list  = project.topics.all()
+    version_list  = project.versions.all()
     return render(
               request, 
               'code_doc/project_details.html', 
               {'project': project, 
                'authors': author_list, 
-               'topics': topic_list})
+               'topics': topic_list,
+               'versions' : version_list})
   
   @login_required(login_url='/accounts/login/')
   def post(self):
     pass
   
-class ProjectVersionView(View):
+  
+  
+  
+  
+class ProjectVersionListView(View):
   def get(self, request, project_id):
     try:
       project = Project.objects.get(pk=project_id)
     except Project.DoesNotExist:
       raise Http404
-    
+
     versions_list = project.versions.all()
     return render(
               request, 
-              'code_doc/project_details.html', 
+              'code_doc/project_details.html',  
               {'project': project,
                'versions': versions_list})
   
   @login_required(login_url='/accounts/login/')
   def post(self):
     pass
+
+
+class ProjectVersionView(View):
+  def get(self, request, project_id, version_id):
+    
+    print "project version view artifacts"
+    try:
+      project = Project.objects.get(pk=project_id)
+    except Project.DoesNotExist:
+      raise Http404
+    
+    try:
+      version = project.versions.get(pk=version_id)
+    except ProjectVersion.DoesNotExist:
+      raise Http404
+    
+    print "version found?", version
+    
+    artifacts = version.artifacts.all()
+    print "artifacts", artifacts
+    return render(
+              request, 
+              'code_doc/projectversion_details.html',
+              {'project': project,
+               'version': version,
+               'artifacts': artifacts})
+  
+  @login_required(login_url='/accounts/login/')
+  def post(self):
+    pass
+
+
+class ProjectVersionAddView(CreateView):
+  #form_class = ProjectVersionForm
+  model = ProjectVersion
+  fields = ['project', 'version', 'description', 'release_date']
 
 
 class ProjectVersionArtifactView(View):

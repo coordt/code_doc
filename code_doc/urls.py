@@ -13,8 +13,17 @@ urlpatterns = patterns('',
   
   url(r'^accounts/login/$',  login, name='login'),
   url(r'^accounts/logout/$', logout, name='logout'),  
+  
+  # projects
   url(r'^project/(?P<project_id>\d+)/$', views.ProjectView.as_view(), name='project'),
-  url(r'^project/(?P<project_id>\d+)/version/$', views.ProjectVersionView.as_view(), name='project_version'),
+  
+  # projects versions
+  url(r'^project/(?P<project_id>\d+)/versions/$', views.ProjectVersionListView.as_view(), name='project_version_all'),
+  url(r'^project/(?P<project_id>\d+)/versions/(?P<version_id>\d+)/$', views.ProjectVersionView.as_view(), name='project_version'),
+  url(r'^project/(?P<project_id>\d+)/versions/add/$', views.ProjectVersionAddView.as_view(), name='project_version_add'),
+  #url(r'^project/(?P<project_id>\d+)/versions/add/$', views.ProjectVersionAddView.as_view(), name='project_version_add'),
+  
+  # project version artifacts
   url(r'^project/(?P<project_id>\d+)/(?P<version_number>\w+)/$', views.ProjectVersionArtifactView.as_view(), name='project_artifacts'),
   
   url(r'^topic/(?P<topic_id>\d+)/$', views.TopicView.as_view(), name='topic'),

@@ -10,9 +10,9 @@
 
   {{ project.description|safe }}
 
+  <h3>Authors</h3>
   {% if authors %}
   
-    <h2>Authors</h2>
     <div class="media">
       {% for author in authors %}
         <a class="pull-left" href="#">
@@ -29,5 +29,24 @@
   {% else %}
       <p>No author.</p>
   {% endif %}
+
+
+  <h3>Versions</h3>
+  {% if versions %}
+  
+    <div class="media">
+      {% for version in versions %}
+
+        <div class="media-body">
+          <h4 class="media-heading"><a href="{% url 'project_version' project.id version.id %}" >{{ version.version }} {{ version.release_date }}</a>{{ version.is_public }}</h4>
+          <p>{{ version.description}} </p>
+        </div>
+      {% endfor %}
+    </div>
+  
+  {% else %}
+      <p>No known released versions.</p>
+  {% endif %}
+
 
 {% endblock %}
