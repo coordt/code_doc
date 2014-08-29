@@ -13,6 +13,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
 
+from django.core.files import File
 
 
 from rest_framework.renderers import JSONRenderer
@@ -23,9 +24,15 @@ from rest_framework.views import APIView
 from django.core.urlresolvers import reverse, reverse_lazy
 
 import hashlib
+import tempfile
+import logging
+# logger for this file
+logger = logging.getLogger(__name__)
+
+from django.conf import settings
 
 
-from code_doc.models import Project, Author, Topic, ProjectVersion
+from code_doc.models import Project, Author, Topic, ProjectVersion, Artifact
 #from code_doc.serializers import ProjectSerializer
 
 
@@ -134,23 +141,32 @@ class ProjectVersionArtifactView(View):
   @method_decorator(lambda x: login_required(x, login_url=reverse_lazy('login')))
   def post(self, request, project_id, version_number):
     project, versions_list, project_version = self.get_project_version(project_id, version_number)
-
-    #print request.DATA
-    #print request.POST
-    #for i, j in request.POST.items():
-    #  print "key %s value %s" % (i, j) 
-    #print request.FILES
     
     if request.FILES.has_key('attachment'):
       fileattached = request.FILES['attachment']
       filename = fileattached.name
       m = hashlib.md5()
-      with file('/Users/raffi/tmp/toto.py', 'wb') as f:
+      
+      logger.debug('[fileupload] temporary location %s', settings.USER_UPLOAD_TEMPORARY_STORAGE)
+      with tempfile.NamedTemporaryFile(dir=settings.USER_UPLOAD_TEMPORARY_STORAGE) as f:
         for chunk in fileattached.chunks():
           f.write(chunk)
           m.update(chunk)
-      #m = hashlib.md5(filecontent).hexdigest()
-      #print filename, m.hexdigest()
+        
+        f.seek(0)
+
+        current_artifact, created = Artifact.objects.get_or_create(project_version=project_version, md5hash=m.hexdigest())
+        current_artifact.artifactfile.save(filename, File(f), True)
+        
+        logger.debug('[fileupload] artifact %s - digest is %s', "created" if created else "not created", m.hexdigest())
+        if created:
+          logger.debug('[fileupload] \tlocation %s', current_artifact.artifactfile.name)
+          logger.debug('[fileupload] \turl %s', current_artifact.artifactfile.url)
+        logger.debug('[fileupload] object %s', current_artifact)
+        
+        current_artifact.save()
+        
+        assert hashlib.md5(current_artifact.artifactfile.read()).hexdigest() == m.hexdigest()
 
     return HttpResponse(m.hexdigest(), status=200)
 
