@@ -12,6 +12,24 @@ https://docs.djangoproject.com/en/1.6/ref/settings/
 import os
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/1.6/howto/static-files/
+
+STATIC_URL = '/static/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media') + '/'
+MEDIA_URL  = '/media/'
+
+# path used to upload temporary files
+USER_UPLOAD_TEMPORARY_STORAGE = os.path.join(BASE_DIR, 'temporary', 'django_application_code_doc')
+
+if(not os.path.exists(USER_UPLOAD_TEMPORARY_STORAGE)):
+  os.makedirs(USER_UPLOAD_TEMPORARY_STORAGE)
+
+
+# location where the file logger logs
+FILE_LOGGING_LOCATION = os.path.join(USER_UPLOAD_TEMPORARY_STORAGE, "code_doc.log")
+
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.6/howto/deployment/checklist/
@@ -86,6 +104,40 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.contrib.messages.context_processors.messages',
 )
 
+LOGGING = {
+  'version': 1,
+  'disable_existing_loggers': False,
+  'formatters': {
+      'verbose': {
+          'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
+      },
+      'simple': {
+          'format': '%(levelname)s %(message)s'
+      },
+  },  
+  'handlers': {
+      'file': {
+          'level': 'DEBUG',
+          'class': 'logging.FileHandler',
+          'filename': FILE_LOGGING_LOCATION,
+      },
+        
+      'console':{
+         'level': 'DEBUG',
+         'class': 'logging.StreamHandler',
+         'formatter': 'verbose'
+      },               
+  },
+  'loggers': {
+      'code_doc.views': {
+          'handlers': ['console'],
+          'level': 'DEBUG',
+          'propagate': True,
+      },
+  },
+}
+
+
 
 ROOT_URLCONF = 'SoWDocumentation.urls'
 
@@ -118,11 +170,5 @@ USE_L10N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/1.6/howto/static-files/
 
-STATIC_URL = '/static/'
-
-MEDIA_ROOT = os.path.join(os.path.basename(__file__), 'media') + '/'
-MEDIA_URL  = '/media/'
 
