@@ -24,6 +24,8 @@ from rest_framework.views import APIView
 from django.core.urlresolvers import reverse, reverse_lazy
 
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
+from django.views.generic.detail import SingleObjectMixin
+from django.views.generic import ListView
 
 import hashlib
 import tempfile
@@ -236,7 +238,7 @@ class TopicView(View):
     pass
 
 
-class AuthorListView(View):
+class AuthorListViewOld(View):
   
   def get(self, request):
     
@@ -250,7 +252,21 @@ class AuthorListView(View):
   def post(self):
     pass
 
+class AuthorListView(ListView):
+    paginate_by = 2
+    template_name = "code_doc/author_list.html"
 
+    #def get(self, request, *args, **kwargs):
+    #    self.object = self.get_object(queryset=Author.objects.all())
+    #    return super(AuthorListView, self).get(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+      context = super(AuthorListView, self).get_context_data(**kwargs)
+      context['authors'] = Author.objects.all()
+      return context
+
+    def get_queryset(self):
+      return Author.objects.all()
 
 
 def detail_author(request, author_id):

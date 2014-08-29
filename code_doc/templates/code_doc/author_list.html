@@ -25,11 +25,50 @@
       {% endfor %}
     </div>
   
-  
+    <ul class="pagination">
+
+      {% if page_obj.has_previous %}
+        <li>
+          <a href="?page={{ page_obj.previous_page_number }}">&laquo;</a>
+        </li>
+      {% else %}
+        <li class="disabled"><span>&laquo;</span></li>
+      {% endif %}
+
+
+      {% for p in paginator.page_range %}
+        {% if p == page_obj.number %}
+          <li class="active">
+            <span>{{ p }} <span class="sr-only">(current)</span></span>
+          </li>
+        {% else %}
+          <li>
+            <a href="?page={{ p }}">{{ p }}</a>
+          </li>            
+        {% endif %}
+      {% endfor %}
+
+
+
+      <!--<span class="current">
+          Page {{ page_obj.number }} of {{ paginator.num_pages }}.
+      </span>-->
+
+      {% if page_obj.has_next %}
+        <li>
+          <a href="?page={{ page_obj.next_page_number }}">&raquo;</a>
+        </li>
+      {% else %}
+        <li class="disabled"><span>&raquo;</span></li>
+      {% endif %}
+            
+    </ul>  
   
   {% else %}
       <p>No known author.</p>
   {% endif %}  
+
+
 
 
 
