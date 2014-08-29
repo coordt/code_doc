@@ -38,7 +38,14 @@
       {% for version in versions %}
 
         <div class="media-body">
-          <h4 class="media-heading"><a href="{% url 'project_version' project.id version.id %}" >{{ version.version }} {{ version.release_date }}</a>{{ version.is_public }}</h4>
+          <h4 class="media-heading">
+            <a href="{% url 'project_version' project.id version.id %}" >{{ version.version }} {{ version.release_date }}</a>
+            {% if version.is_public %}
+              <span class="label label-success">Public</span>
+            {% else %}
+              <span class="label label-warning">Restricted</span>
+            {% endif %}
+          </h4>
           <p>{{ version.description}} </p>
         </div>
       {% endfor %}
