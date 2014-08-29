@@ -156,17 +156,18 @@ class ProjectVersionArtifactView(View):
         f.seek(0)
 
         current_artifact, created = Artifact.objects.get_or_create(project_version=project_version, md5hash=m.hexdigest())
-        current_artifact.artifactfile.save(filename, File(f), True)
         
         logger.debug('[fileupload] artifact %s - digest is %s', "created" if created else "not created", m.hexdigest())
         if created:
+          current_artifact.artifactfile.save(filename, File(f), True)
+          current_artifact.save()
+          assert hashlib.md5(current_artifact.artifactfile.read()).hexdigest() == m.hexdigest()
+          
           logger.debug('[fileupload] \tlocation %s', current_artifact.artifactfile.name)
           logger.debug('[fileupload] \turl %s', current_artifact.artifactfile.url)
         logger.debug('[fileupload] object %s', current_artifact)
         
-        current_artifact.save()
         
-        assert hashlib.md5(current_artifact.artifactfile.read()).hexdigest() == m.hexdigest()
 
     return HttpResponse(m.hexdigest(), status=200)
 

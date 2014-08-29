@@ -111,7 +111,7 @@ class ProjectVersionArtifactTest(TestCase):
     self.assertEqual(len(response.context['artifacts']), 0)
     
   def test_send_new_artifact_no_login(self):
-    
+    """This test should redirect to the login page: we cannot upload a file without a proper login"""
     initial_path = reverse(self.path, args=[self.project.id, self.new_version.version])
     response = self.client.post(initial_path, 
                      {'name': 'fred', 'attachment': self.imgfile},
@@ -126,8 +126,7 @@ class ProjectVersionArtifactTest(TestCase):
 
 
   def test_send_new_artifact_no_login_no_follow(self):
-    
-
+    """This test should indicate that no login means redirection"""
     initial_path = reverse(self.path, args=[self.project.id, self.new_version.version])
     response = self.client.post(initial_path, 
                      {'name': 'fred', 'attachment': self.imgfile},
@@ -135,8 +134,11 @@ class ProjectVersionArtifactTest(TestCase):
     self.assertEqual(response.status_code, 302) # redirection status
 
   def test_send_new_artifact_with_login(self):
+    """Testing the upload capabilities. The returned hash should be ok"""
     response = self.client.login(username='toto', password='titi')
     self.assertTrue(response)
+    
+    self.assertEqual(self.new_version.artifacts.count(), 0)
 
     initial_path = reverse(self.path, args=[self.project.id, self.new_version.version])
     response = self.client.post(initial_path, 
@@ -146,4 +148,34 @@ class ProjectVersionArtifactTest(TestCase):
     import hashlib
     self.assertEqual(response.status_code, 200)
     self.assertEqual(response.content, hashlib.md5(self.imgfile.getvalue()).hexdigest())
+    self.assertEqual(self.new_version.artifacts.count(), 1)
     
+  def test_send_new_artifact_with_login_twice(self):
+    """Sending the same file twice should not create a new file"""
+    response = self.client.login(username='toto', password='titi')
+    self.assertTrue(response)
+
+    self.assertEqual(self.new_version.artifacts.count(), 0)
+
+    initial_path = reverse(self.path, args=[self.project.id, self.new_version.version])
+    response = self.client.post(initial_path, 
+                     {'name': 'fred', 'attachment': self.imgfile},
+                     follow=False)
+    
+    import hashlib
+    self.assertEqual(response.status_code, 200)
+    self.assertEqual(response.content, hashlib.md5(self.imgfile.getvalue()).hexdigest())
+    
+    self.assertEqual(self.new_version.artifacts.count(), 1)    
+    
+    # warning, the input file here should be reseted to its origin 
+    self.imgfile.seek(0)
+    
+    # second send should not create a new one for a specific revision
+    response = self.client.post(initial_path, 
+                     {'name': 'fred', 'attachment': self.imgfile},
+                     follow=False)
+    
+    self.assertEqual(response.status_code, 200)
+    self.assertEqual(response.content, hashlib.md5(self.imgfile.getvalue()).hexdigest())
+    self.assertEqual(self.new_version.artifacts.count(), 1)    
