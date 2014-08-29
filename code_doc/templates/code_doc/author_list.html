@@ -1,0 +1,36 @@
+{% extends "code_doc/base_template.html" %}
+{% load gravatar %}
+{% load staticfiles %}
+{% load static %}
+
+
+{% block title %}Author's list{% endblock %}
+
+{% block content %}
+  <h1>Authors</h1>
+
+ {% if authors %}
+  
+    
+    <div class="media">
+      {% for author in authors %}
+        <a class="pull-left" href="#">
+          <img class="media-object" src="{% gravatar_url author.gravatar_email %}" >  <!-- alt="xxx" -->
+        </a>
+    
+        <div class="media-body">
+          <h4 class="media-heading"><a href="{% url 'author' author.id %}" >{{ author.firstname }} {{ author.lastname }}</a></h4>
+          <p>blablablabla this author</p>
+        </div>
+      {% endfor %}
+    </div>
+  
+  
+  
+  {% else %}
+      <p>No known author.</p>
+  {% endif %}  
+
+
+
+{% endblock %}

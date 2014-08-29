@@ -87,6 +87,7 @@ class ProjectVersion(models.Model):
   release_date    = models.DateField('version release date')
   is_public       = models.BooleanField(default=False)
   description     = models.TextField('description of the release', max_length=500) # the description of the content
+  description_mk  = models.TextField('Description in Markdown format', max_length=200, blank=True, null=True)
 
   class Meta:
     unique_together = (("project", "version"), ) 
@@ -97,6 +98,10 @@ class ProjectVersion(models.Model):
   def get_absolute_url(self):
     return reverse('project_version', kwargs={'project_id' : self.project.pk})
 
+  def save(self):
+    import markdown
+    self.description = markdown.markdown(self.description_mk)
+    super(Topic, self).save() # Call the "real" save() method.
 
 
 def get_artifact_location(instance, filename):
@@ -117,4 +122,7 @@ class Artifact(models.Model):
 
   class Meta:
     # we allow only one version per project version (we can however have the same file in several versions)
-    unique_together = (("project_version", "md5hash"), ) 
+    unique_together = (("project_version", "md5hash"), )
+  
+  def filename(self):
+    return os.path.basename(self.artifactfile.name) 

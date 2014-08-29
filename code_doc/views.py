@@ -236,6 +236,22 @@ class TopicView(View):
     pass
 
 
+class AuthorListView(View):
+  
+  def get(self, request):
+    
+    authors = Author.objects.all()
+    return render(
+              request, 
+              'code_doc/author_list.html', 
+              {'authors': authors})
+  
+  @login_required(login_url=reverse_lazy('login'))
+  def post(self):
+    pass
+
+
+
 
 def detail_author(request, author_id):
   try:

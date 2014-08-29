@@ -5,7 +5,6 @@ from django.contrib import admin
 from code_doc.models import Author, Project, ProjectVersion, Artifact, Copyright, CopyrightHolder, Topic
 
 admin.site.register(Author)
-admin.site.register(ProjectVersion)
 admin.site.register(Artifact)
 admin.site.register(Copyright)
 admin.site.register(CopyrightHolder)
@@ -16,6 +15,13 @@ class ProjectAdmin(admin.ModelAdmin):
   exclude      = ('description',)
   
 admin.site.register(Project, ProjectAdmin)
+
+class ProjectVersionAdmin(admin.ModelAdmin):
+  list_display = ('version', 'release_date', 'is_public', 'description_mk')
+  list_filter  = ['version', 'release_date']
+  exclude      = ('description',)
+  
+admin.site.register(ProjectVersion, ProjectVersionAdmin)
 
 
 class TopicAdmin(admin.ModelAdmin):

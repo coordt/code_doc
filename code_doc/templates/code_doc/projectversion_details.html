@@ -1,6 +1,8 @@
 {% extends "code_doc/base_template.html" %}
 {% load gravatar %}
 {% load staticfiles %}
+{% load static %}
+
 
 {% block title %}{{ project.name }}{% endblock %}
 
@@ -13,7 +15,7 @@
 
   <h1>Details for version {{version.version}}</h1>
   
-  {{ version.description }}
+  {{ version.description|safe }}
   
   
   <h3>Artifacts</h3>
@@ -24,7 +26,7 @@
       {% for artifact in artifacts %}
 
         <div class="media-body">
-          <h4 class="media-heading"><a href="{% url 'project_version' project.id version.id %}" >{{ artifact.artifactfile.name }}</a></h4>
+          <h4 class="media-heading"><a href="{% get_media_prefix %}{{artifact.artifactfile}}" >{{ artifact.filename }}</a></h4>
           <p>{{ artifact.md5hash }}</p>
         </div>
       {% endfor %}
