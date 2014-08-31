@@ -13,7 +13,7 @@
   
     
     <div class="media">
-      {% for author, project_counts in projects_count %}
+      {% for author in authors %}
         <a class="pull-left" href="#">
           {% author_image author.id %}
         </a>
@@ -21,7 +21,7 @@
         <div class="media-body">
           <h4 class="media-heading"><a href="{% url 'author' author.id %}" >{{ author.firstname }} {{ author.lastname }}</a></h4>
           <p>{{author.email}}</p>
-          <p># contributed projects: {{project_counts}}</p>
+          <p># contributed projects: {{author.project_set.count}}</p>
         </div>
       {% endfor %}
       
