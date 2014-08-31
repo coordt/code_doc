@@ -263,6 +263,7 @@ class AuthorListView(ListView):
     def get_context_data(self, **kwargs):
       context = super(AuthorListView, self).get_context_data(**kwargs)
       context['authors'] = Author.objects.all()
+      context['projects_count'] = [(author, len(Project.objects.filter(authors=author))) for author in context['authors']]
       return context
 
     def get_queryset(self):

@@ -1,0 +1,17 @@
+{% load gravatar %}
+{% load static %}
+
+<img class="media-object" src="
+ {% if image %}
+    {% get_media_prefix %}{{image}}
+ {% elif email %}
+    {% gravatar_url email %}
+ {% else %}
+    {% get_static_prefix %}1409403675_f121-128.png
+ {% endif %}  
+" class="img-rounded" 
+ {% if size %}
+width="{{ size }}" height="{{ size }}" >
+ {% else %}
+>
+ {% endif %}

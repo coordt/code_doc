@@ -2,7 +2,7 @@
 {% load gravatar %}
 {% load staticfiles %}
 {% load static %}
-
+{% load author_image %}
 
 {% block title %}Author's list{% endblock %}
 
@@ -13,16 +13,19 @@
   
     
     <div class="media">
-      {% for author in authors %}
+      {% for author, project_counts in projects_count %}
         <a class="pull-left" href="#">
-          <img class="media-object" src="{% gravatar_url author.gravatar_email %}" >  <!-- alt="xxx" -->
+          {% author_image author.id %}
         </a>
     
         <div class="media-body">
           <h4 class="media-heading"><a href="{% url 'author' author.id %}" >{{ author.firstname }} {{ author.lastname }}</a></h4>
-          <p>blablablabla this author</p>
+          <p>{{author.email}}</p>
+          <p># contributed projects: {{project_counts}}</p>
         </div>
       {% endfor %}
+      
+
     </div>
   
     <ul class="pagination">
