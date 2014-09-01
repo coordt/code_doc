@@ -14,7 +14,7 @@
     
     <div class="media">
       {% for author in authors %}
-        <a class="pull-left" href="#">
+        <a class="pull-left" href="{% url 'author' author.id %}">
           {% author_image author.id %}
         </a>
     
