@@ -19,7 +19,7 @@ class ProjectTest(TestCase):
     # path for the queries to the project details
     self.path                   = 'project'
     
-    self.first_user             = User.objects.create(username='toto')
+    self.first_user             = User.objects.create_user(username='toto')
 
     self.author1                = Author.objects.create(lastname='1', firstname= '1f', gravatar_email = '', email = '1@1.fr', home_page_url = '')
     self.project                = Project.objects.create(name='test_project')
@@ -42,7 +42,7 @@ class ProjectTest(TestCase):
     """Tests if the admins only have the right to modify the project configuration"""
     
     # user2 is not admin
-    user2 = User.objects.create(username='user2', password='user2')
+    user2 = User.objects.create_user(username='user2', password='user2')
     
     self.assertFalse(self.project.has_version_add_permissions(user2))
     self.assertTrue(self.project.has_version_add_permissions(self.first_user))
