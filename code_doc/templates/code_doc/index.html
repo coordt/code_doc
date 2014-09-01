@@ -23,17 +23,16 @@
     <p><a class="btn btn-primary btn-lg" role="button">Learn more</a></p>
   </div>
 
-<div class="container">
+  <div class="container">
   <h2>Projects</h2>
   <p>You will find below the list of Softwares and libraries maintained by the Max Planck Institute for Intelligent Systems at Tübingen. Click on the project 
      for more details.
   </p>
   {% if projects_list %}
-  
     
-    
-    <div class="media">
+    <ul class="media-list">
       {% for project in projects_list %}
+        <li class="media">
         <a class="pull-left" href="{% url 'project' project.id %}">
           {% project_image project.id 64 %}
         </a>
@@ -44,10 +43,11 @@
           </h4>
           <p>
             {{ project.short_description }}
-          </P>
+          </p>
         </div>
+        </li>
       {% endfor %}
-    </div>
+    </ul>
 
   {% else %}
     <p>No registered project.</p>
@@ -61,7 +61,7 @@
   {% for topic in topics_list %}
   <li class="active">
     <a href="{% url 'topic' topic.id %}" >
-      <span class="badge pull-right color-red">42</span>
+      <span class="badge pull-right color-red"> {{topic.project_set.count}} </span>
       {{ topic.name }}
     </a>
   </li>
@@ -79,6 +79,6 @@
   {% endif %}
   
 
-</div>
+  </div>
   </body>
 </html>
