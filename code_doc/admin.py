@@ -22,9 +22,9 @@ class ProjectAdmin(admin.ModelAdmin):
     qs = super(ProjectAdmin, self).get_queryset(request)
     if request.user.is_superuser:
       return qs
-    filtered_qs = qs.filter(administrators__id__contains=request.user)
+    filtered_qs = qs.filter(administrators__id__contains=request.user.id)
     logger.debug('[admin|project] User %s has the right to edit the following projects %s', request.user, [i.name for i in filtered_qs.all()])
-    return qs.filter(administrators__id__contains=request.user)
+    return filtered_qs
 
   
 admin.site.register(Project, ProjectAdmin)
