@@ -1,6 +1,7 @@
 {% extends "code_doc/base_template.html" %}
 {% load gravatar %}
 {% load staticfiles %}
+{% load author_image %}
 
 {% block title %}{{ project.name }}{% endblock %}
 
@@ -11,17 +12,29 @@
   {{ project.description|safe }}
 
   <h3>Authors</h3>
-  {% if authors %}
+  {% if project.authors %}
+  
+  
+		<div class="row">
+		  <div class="col-xs-6 col-md-1">
+		    {% for author in project.authors.all %}
+        <a href="{% url 'author' author.id %}" class="thumbnail">
+          <img data-src="holder.js/100%x64"> 
+          {% author_image author.id %}
+        </a>
+		    {% endfor %}
+		  </div>
+		  
+		</div>  
   
     <div class="media">
-      {% for author in authors %}
+      {% for author in project.authors.all %}
         <a class="pull-left" href="#">
-          <img class="media-object" src="{% gravatar_url author.gravatar_email %}" >  <!-- alt="xxx" -->
+          {% author_image author.id %}
         </a>
     
         <div class="media-body">
           <h4 class="media-heading"><a href="{% url 'author' author.id %}" >{{ author.firstname }} {{ author.lastname }}</a></h4>
-          <p>blablablabla this author</p>
         </div>
       {% endfor %}
     </div>
@@ -31,6 +44,24 @@
   {% endif %}
 
 
+  
+  <h3>Maintainers</h3>
+  {% if project.administrators.count > 0 %}
+  
+    <ul>
+    {% for maintainer in project.administrators.all %}
+      <li>
+        <a href="mailto:{{maintainer.email}}" >{{ maintainer.firstname }} {{ maintainer.lastname }} / {{maintainer.email}}</a>
+      </li>
+    {% endfor %}
+    </ul>
+  
+  {% else %}
+      <p>No known maintainer.</p>
+  {% endif %}
+ 
+ 
+ 
   <h3>Versions</h3>
   {% if versions %}
   
@@ -39,14 +70,15 @@
 
         <div class="media-body">
           <h4 class="media-heading">
-            <a href="{% url 'project_version' project.id version.id %}" >{{ version.version }} {{ version.release_date }}</a>
+            <a href="{% url 'project_version' project.id version.id %}" >{{ version.version }}</a>
             {% if version.is_public %}
               <span class="label label-success">Public</span>
             {% else %}
               <span class="label label-warning">Restricted</span>
             {% endif %}
           </h4>
-          <p>{{ version.description}} </p>
+          <p>Released {{ version.release_date }} / {{ version.artifacts.count }} file(s)</p>
+          <p>{{ version.description|safe }}</p>
         </div>
       {% endfor %}
     </div>

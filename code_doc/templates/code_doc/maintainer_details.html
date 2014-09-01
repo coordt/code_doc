@@ -9,12 +9,13 @@
 {% block content %}
   <h1>Profile of {{ user.username }}</h1>
 
+  <ul>
+    <li> {{user.firstname}} {{user.lastname}}</li>
+    <li> {{user.email}}</li>
+  </ul>
 
+  <h2>Projects</h2>
   {% if projects %}
-  
-    <h2>Projects</h2>
-    
-    
     <div class="media">
       {% for project in projects %}
         <a class="pull-left" href=href="{% url 'project' project.id %}">
@@ -30,7 +31,7 @@
     </div>
   
   {% else %}
-      <p>No author.</p>
+      <p>No project associated.</p>
   {% endif %}
 
 {% endblock %}

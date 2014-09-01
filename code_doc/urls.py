@@ -27,7 +27,8 @@ urlpatterns = patterns('',
   url(r'^project/(?P<project_id>\d+)/(?P<version_number>\w+)/$', views.ProjectVersionArtifactView.as_view(), name='project_artifacts'),
   
   # topics
-  url(r'^topic/(?P<topic_id>\d+)/$', views.TopicView.as_view(), name='topic'),
+  url(r'^topics/$', views.TopicListView.as_view(), name='topics_list'),
+  url(r'^topics/(?P<topic_id>\d+)/$', views.TopicView.as_view(), name='topic'),
   
   # maintainers
   url(r'^maintainer/$', views.MaintainerProfileView.as_view(), name='maintainer'),
