@@ -78,7 +78,7 @@ class Project(models.Model):
   
   def has_version_add_permissions(self, user):
     """Returns true if the user is able to add version to the current project"""
-    return user in self.administrators.all()
+    return user.is_superuser or user in self.administrators.all()
   
   def save(self, *args, **kwargs):
     if self.description_mk is None:

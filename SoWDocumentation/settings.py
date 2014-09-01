@@ -138,7 +138,13 @@ LOGGING = {
           'handlers': ['console'],
           'level': 'DEBUG',
           'propagate': True,
-      },  },
+      },  
+      'code_doc.templatetags.button_add_with_permission': {
+          'handlers': ['console'],
+          'level': 'DEBUG',
+          'propagate': True,
+      },  
+  },
 }
 
 

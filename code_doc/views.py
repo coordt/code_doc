@@ -93,6 +93,7 @@ class ProjectView(View):
                'authors': author_list, 
                'topics': topic_list,
                'versions' : version_list})
+               #'user_add_version_permission': project.has_version_add_permissions(request.user)})
   
   @login_required(login_url='/accounts/login/')
   def post(self):

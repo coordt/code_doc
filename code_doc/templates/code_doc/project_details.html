@@ -2,6 +2,7 @@
 {% load gravatar %}
 {% load staticfiles %}
 {% load author_image %}
+{% load button_add_version_with_permission %}
 
 {% block title %}{{ project.name }}{% endblock %}
 
@@ -18,8 +19,8 @@
 		<div class="row">
 		  <div class="col-xs-6 col-md-1">
 		    {% for author in project.authors.all %}
-        <a href="{% url 'author' author.id %}" class="thumbnail">
-          <img data-src="holder.js/100%x64"> 
+        <a href="{% url 'author' author.id %}" class="thumbnail" alt="{{author.firstname}} {{author.lastname}}">
+          <img data-src="holder.js/100%x64" > 
           {% author_image author.id %}
         </a>
 		    {% endfor %}
@@ -27,17 +28,6 @@
 		  
 		</div>  
   
-    <div class="media">
-      {% for author in project.authors.all %}
-        <a class="pull-left" href="#">
-          {% author_image author.id %}
-        </a>
-    
-        <div class="media-body">
-          <h4 class="media-heading"><a href="{% url 'author' author.id %}" >{{ author.firstname }} {{ author.lastname }}</a></h4>
-        </div>
-      {% endfor %}
-    </div>
   
   {% else %}
       <p>No author.</p>
@@ -51,7 +41,12 @@
     <ul>
     {% for maintainer in project.administrators.all %}
       <li>
-        <a href="mailto:{{maintainer.email}}" >{{ maintainer.firstname }} {{ maintainer.lastname }} / {{maintainer.email}}</a>
+        {{ maintainer.username }}
+        {% if maintainer.email.size %}
+          <a href="mailto:{{maintainer.email}}" >{{ maintainer.firstname }} {{ maintainer.lastname }} / {{maintainer.email}}</a>
+        {% else %}
+          (no information provided)
+        {% endif %}
       </li>
     {% endfor %}
     </ul>
@@ -62,10 +57,13 @@
  
  
  
-  <h3>Versions</h3>
+  <h3>Versions {% button_add_version_with_permission user project %}
+  </h3>
+
   {% if versions %}
   
     <div class="media">
+      
       {% for version in versions %}
 
         <div class="media-body">
