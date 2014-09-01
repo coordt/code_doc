@@ -2,7 +2,7 @@ from django.shortcuts import render
 
 # Create your views here.
 
-from django.http import Http404
+from django.http import Http404 
 from django.http import HttpResponse
 from django.template import RequestContext, loader
 
@@ -148,13 +148,45 @@ class ProjectVersionView(View):
 
 
 class ProjectVersionAddView(CreateView):
-  #form_class = ProjectVersionForm
+  """Generic view for adding a version into a specific project"""
   model = ProjectVersion
-  fields = ['project', 'version', 'description', 'release_date']
+  template_name = "code_doc/project_version/projectversion_add.html"
+  fields = ['version', 'description', 'release_date']
+  
+  def get_context_data(self, **kwargs):
+    """Method used for populating the template context"""
+    context = super(ProjectVersionAddView, self).get_context_data(**kwargs)
+    return context
 
+  def get(self, request, project_id, **kwargs):
+    """Returning the form"""
+    try:
+      current_project = Project.objects.get(pk=project_id)
+    except Project.DoesNotExist:
+      raise Http404
+
+    if not self.request.user.is_superuser and not current_project.has_version_add_permissions(self.request.user):
+      return HttpResponse('Unauthorized', status=401) 
+    
+    return super(ProjectVersionAddView, self).get(request, project_id, **kwargs)
+
+  def form_valid(self, form):
+    logger.debug('[projectversionadd|form_valid] project version')
+    
+    try:
+      current_project = Project.objects.get(pk=self.kwargs['project_id'])
+    except Project.DoesNotExist:
+      raise Http404
+    
+    if not self.request.user.is_superuser and not current_project.has_version_add_permissions(self.request.user):
+      return HttpResponse('Unauthorized', status=401) 
+    
+    form.instance.created_by = self.request.user
+    return super(AuthorCreate, self).form_valid(form)
 
 class ProjectVersionArtifactView(View):
   """View associated with the artifacts of a project"""
+  
   def get_project_version(self, project_id, version_number):
     try:
       project = Project.objects.get(pk=project_id)
@@ -226,13 +258,24 @@ class TopicView(View):
     #topic_list  = project.topics.all()
     return render(
               request, 
-              'code_doc/topics.html', 
+              'code_doc/topics/topics.html', 
               {'topic': topic})
   
   @login_required(login_url=reverse_lazy('login'))
   def post(self):
     pass
 
+class TopicListView(ListView):
+  paginate_by = 2
+  template_name = "code_doc/topics/topic_list.html"
+
+  def get_context_data(self, **kwargs):
+    context = super(TopicListView, self).get_context_data(**kwargs)
+    context['topics'] = Topic.objects.all()
+    return context
+
+  def get_queryset(self):
+    return Topic.objects.all()
 
 
 class AuthorListView(ListView):
