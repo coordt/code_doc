@@ -1,5 +1,6 @@
 {% load staticfiles %}
 {% load static %}
+{% load project_image %}
 
 <!DOCTYPE html>
 
@@ -34,13 +35,7 @@
     <div class="media">
       {% for project in projects_list %}
         <a class="pull-left" href="{% url 'project' project.id %}">
-          <img class="media-object" src="
-          {% if project.icon %}
-            {% get_media_prefix %}{{project.icon}}
-          {% else %}
-            {% get_static_prefix %}1409403675_f121-128.png
-          {% endif %}  
-          " class="img-rounded" width="64" height="64" >
+          {% project_image project.id 64 %}
         </a>
 
         <div class="media-body">
