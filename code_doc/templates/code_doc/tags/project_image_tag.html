@@ -1,0 +1,13 @@
+{% load static %}
+
+<img class="media-object" src="
+ {% if image %}
+    {% get_media_prefix %}{{image}}
+ {% else %}
+    {% get_static_prefix %}1409403675_f121-128.png
+ {% endif %}  
+" 
+ {% if size %}
+width="{{ size }}" height="{{ size }}"
+ {% endif %}
+class="img-rounded" >
