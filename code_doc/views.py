@@ -138,7 +138,7 @@ class ProjectVersionView(View):
     artifacts = version.artifacts.all()
     return render(
               request, 
-              'code_doc/projectversion_details.html',
+              'code_doc/project_revision/project_revision_details.html',
               {'project': project,
                'version': version,
                'artifacts': artifacts})
@@ -151,7 +151,7 @@ class ProjectVersionView(View):
 class ProjectVersionAddView(CreateView):
   """Generic view for adding a version into a specific project"""
   model = ProjectVersion
-  template_name = "code_doc/project_version/projectversion_add.html"
+  template_name = "code_doc/project_revision/project_revision_add.html"
   fields = ['version', 'description', 'release_date']
   
   def get_context_data(self, **kwargs):
@@ -208,7 +208,7 @@ class ProjectVersionArtifactView(View):
     artifact_list = project_version.artifacts.all()
     return render(
               request, 
-              'code_doc/project_details.html', 
+              'code_doc/project_revision/project_revision_details.html',
               {'project': project,
                'versions': versions_list,
                'current_version':project_version,

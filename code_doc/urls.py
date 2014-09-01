@@ -18,14 +18,14 @@ urlpatterns = patterns('',
   url(r'^project/(?P<project_id>\d+)/$', views.ProjectView.as_view(), name='project'),
   
   # projects versions
-  url(r'^project/(?P<project_id>\d+)/versions/$', views.ProjectVersionListView.as_view(), name='project_version_all'),
-  url(r'^project/(?P<project_id>\d+)/versions/(?P<version_id>\d+)/$', views.ProjectVersionView.as_view(), name='project_version'),
-  url(r'^project/(?P<project_id>\d+)/versions/add/$', views.ProjectVersionAddView.as_view(), name='project_version_add'),
-  #url(r'^project/(?P<project_id>\d+)/versions/add/$', views.ProjectVersionAddView.as_view(), name='project_version_add'),
+  url(r'^project/(?P<project_id>\d+)/revisions/$', views.ProjectVersionListView.as_view(), name='project_revisions_all'),
+  url(r'^project/(?P<project_id>\d+)/revisions/(?P<version_id>\d+)/$', views.ProjectVersionView.as_view(), name='project_revision'),
+  url(r'^project/(?P<project_id>\d+)/revisions/add/$', views.ProjectVersionAddView.as_view(), name='project_revision_add'),
+  #url(r'^project/(?P<project_id>\d+)/versions/add/$', views.ProjectVersionAddView.as_view(), name='project_revision_add'),
   
   # project version artifacts
-  url(r'^project/(?P<project_id>\d+)/versions/(?P<project_version_id>\w+)/$', views.ProjectVersionArtifactView.as_view(), name='project_artifacts'),
-  url(r'^project/(?P<project_id>\d+)/versions/(?P<project_version_id>\w+)/add$', views.ProjectVersionArtifactView.as_view(), name='project_artifacts_add'),
+  url(r'^project/(?P<project_id>\d+)/(?P<version_number>\w+)/$', views.ProjectVersionArtifactView.as_view(), name='project_artifacts'),
+  url(r'^project/(?P<project_id>\d+)/versions/(?P<project_revision_id>\w+)/add$', views.ProjectVersionArtifactView.as_view(), name='project_artifacts_add'),
   
   # topics
   url(r'^topics/$', views.TopicListView.as_view(), name='topics_list'),
@@ -39,8 +39,8 @@ urlpatterns = patterns('',
   url(r'^authors/(?P<author_id>\d+)/$', views.detail_author, name='author'),
   
   
-  url(r'^api/artifact/(?P<project_id>\d+)/(?P<project_version_id>\d+)/(?P<filename>.+)$', views.FileUploadView.as_view(), name='fileupload'),
-  url(r'^api/artifact/(?P<project_version_id>\d+)/$', views.FileUploadView.as_view(), name='fileupload_post'),
+  url(r'^api/artifact/(?P<project_id>\d+)/(?P<project_revision_id>\d+)/(?P<filename>.+)$', views.FileUploadView.as_view(), name='fileupload'),
+  url(r'^api/artifact/(?P<project_revision_id>\d+)/$', views.FileUploadView.as_view(), name='fileupload_post'),
   #url(r'^details/(?P<project_id>\d+)/$', views.detail_project, name='detail_project'),
 
 ) 

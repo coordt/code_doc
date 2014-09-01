@@ -19,7 +19,7 @@ def button_add_version_with_permission(user, project):
   logger.debug('[templatetag|button] User %s ', user)
   return {'permission_ok': project.has_version_add_permissions(user),
           'user': user,
-          'next': 'project_version_add'}
+          'next': 'project_revision_add'}
   
   
 @register.inclusion_tag('code_doc/tags/button_add_with_permission_tag.html')
@@ -28,4 +28,4 @@ def button_add_artifact_with_permission(user, version):
   logger.debug('[templatetag|button] User %s ', user)
   return {'permission_ok': project.has_version_add_permissions(user),
           'user': user,
-          'url' : 'project_version_add'}
+          'url' : 'project_revision_add'}

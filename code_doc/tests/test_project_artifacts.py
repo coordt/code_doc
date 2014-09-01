@@ -39,12 +39,12 @@ class ProjectVersionArtifactTest(TestCase):
     with self.assertRaises(IntegrityError):
       new_version = ProjectVersion.objects.create(version="12345", project = self.project, release_date = datetime.datetime.now())
     
-  def test_project_version_artifact_wrong(self):
+  def test_project_revision_artifact_wrong(self):
     """Test if giving the wrong version yields the proper error""" 
     response = self.client.get(reverse(self.path, args=[self.project.id, self.new_version.version + 'x']))
     self.assertEqual(response.status_code, 404)
   
-  def test_project_version_artifact(self):
+  def test_project_revision_artifact(self):
     """Test the creation of a new project version and its artifacts"""
     response = self.client.get(reverse(self.path, args=[self.project.id, self.new_version.version]))
     self.assertEqual(response.status_code, 200)

@@ -68,7 +68,7 @@
 
         <div class="media-body">
           <h4 class="media-heading">
-            <a href="{% url 'project_version' project.id version.id %}" >{{ version.version }}</a>
+            <a href="{% url 'project_revision' project.id version.id %}" >{{ version.version }}</a>
             {% if version.is_public %}
               <span class="label label-success">Public</span>
             {% else %}

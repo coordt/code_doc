@@ -105,7 +105,7 @@ class ProjectVersion(models.Model):
     return "[%s @ %s] [%s]" %(self.project.name, self.version, self.release_date)
 
   def get_absolute_url(self):
-    return reverse('project_version', kwargs={'project_id' : self.project.pk})
+    return reverse('project_revision', kwargs={'project_id' : self.project.pk})
 
   def save(self, *args, **kwargs):
     import markdown
