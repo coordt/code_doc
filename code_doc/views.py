@@ -276,8 +276,6 @@ def detail_author(request, author_id):
   except Author.DoesNotExist:
     raise Http404
   
-  
-  
   project_list = Project.objects.filter(authors=author)
   coauthor_list= Author.objects.filter(project__in=project_list).distinct().exclude(pk=author_id)
   return render(

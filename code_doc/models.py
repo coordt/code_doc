@@ -10,7 +10,8 @@ from django.core.urlresolvers import reverse
 # Create your models here.
 
 class Author(models.Model):
-  """An author, may appear in several projects"""
+  """An author, may appear in several projects, and is not someone that is allowed to login 
+  (not a user of Django)."""
   lastname        = models.CharField(max_length=50)
   firstname       = models.CharField(max_length=50)
   gravatar_email  = models.CharField(max_length=50)
@@ -18,15 +19,17 @@ class Author(models.Model):
   home_page_url   = models.CharField(max_length=250)
   
   def __unicode__(self):
-    return "%s %s ? %s" %(self.firstname, self.lastname, self.email)
+    return "%s %s (%s)" %(self.firstname, self.lastname, self.email)
   
 class CopyrightHolder(models.Model):
+  """The entity that holds the copyright over a product"""
   name            = models.CharField(max_length=50)
   year            = models.IntegerField(default=datetime.datetime.now().year)
   def __unicode__(self):
     return "%s (%d)" %(self.name, self.year)
 
 class Copyright(models.Model):
+  """The copyright type (BSD + version, MIT + version etc)"""
   name            = models.CharField(max_length=50)
   content         = models.TextField(max_length=2500)
   url             = models.CharField(max_length=50)
@@ -35,6 +38,7 @@ class Copyright(models.Model):
     return "%s @ %s" %(self.name, self.url)
 
 class Topic(models.Model):
+  """A topic associated to a project"""
   name            = models.CharField(max_length=20)
   description     = models.TextField(max_length=200, blank=True, null=True)
   description_mk  = models.TextField('Description in Markdown format', max_length=200, blank=True, null=True)

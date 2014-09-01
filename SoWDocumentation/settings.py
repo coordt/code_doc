@@ -134,7 +134,11 @@ LOGGING = {
           'level': 'DEBUG',
           'propagate': True,
       },
-  },
+      'code_doc.admin': {
+          'handlers': ['console'],
+          'level': 'DEBUG',
+          'propagate': True,
+      },  },
 }
 
 
