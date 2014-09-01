@@ -124,7 +124,6 @@ class ProjectVersionListView(View):
 class ProjectVersionView(View):
   def get(self, request, project_id, version_id):
     
-    print "project version view artifacts"
     try:
       project = Project.objects.get(pk=project_id)
     except Project.DoesNotExist:
@@ -135,10 +134,7 @@ class ProjectVersionView(View):
     except ProjectVersion.DoesNotExist:
       raise Http404
     
-    print "version found?", version
-    
     artifacts = version.artifacts.all()
-    print "artifacts", artifacts
     return render(
               request, 
               'code_doc/projectversion_details.html',
@@ -158,7 +154,7 @@ class ProjectVersionAddView(CreateView):
 
 
 class ProjectVersionArtifactView(View):
-  
+  """View associated with the artifacts of a project"""
   def get_project_version(self, project_id, version_number):
     try:
       project = Project.objects.get(pk=project_id)
@@ -238,36 +234,23 @@ class TopicView(View):
     pass
 
 
-class AuthorListViewOld(View):
-  
-  def get(self, request):
-    
-    authors = Author.objects.all()
-    return render(
-              request, 
-              'code_doc/author_list.html', 
-              {'authors': authors})
-  
-  @login_required(login_url=reverse_lazy('login'))
-  def post(self):
-    pass
 
 class AuthorListView(ListView):
-    paginate_by = 2
-    template_name = "code_doc/author_list.html"
+  """A generic view of the authors in a list"""
+  paginate_by = 2
+  template_name = "code_doc/author_list.html"
 
-    #def get(self, request, *args, **kwargs):
-    #    self.object = self.get_object(queryset=Author.objects.all())
-    #    return super(AuthorListView, self).get(request, *args, **kwargs)
+  #def get(self, request, *args, **kwargs):
+  #    self.object = self.get_object(queryset=Author.objects.all())
+  #    return super(AuthorListView, self).get(request, *args, **kwargs)
 
-    def get_context_data(self, **kwargs):
-      context = super(AuthorListView, self).get_context_data(**kwargs)
-      context['authors'] = Author.objects.all()
-      #context['projects_count'] = [(author, author.project_set.count()) for author in context['authors']]
-      return context
+  def get_context_data(self, **kwargs):
+    context = super(AuthorListView, self).get_context_data(**kwargs)
+    context['authors'] = Author.objects.all()
+    return context
 
-    def get_queryset(self):
-      return Author.objects.all()
+  def get_queryset(self):
+    return Author.objects.all()
 
 
 def detail_author(request, author_id):
