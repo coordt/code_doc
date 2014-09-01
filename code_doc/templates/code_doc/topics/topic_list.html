@@ -1,0 +1,67 @@
+{% extends "code_doc/base_template.html" %}
+{% load gravatar %}
+{% load staticfiles %}
+{% load static %}
+
+
+{% block title %}Topics's list{% endblock %}
+
+{% block content %}
+ 
+
+ {% if topics %}
+   {% for topic in topics %}
+        
+        <div class="media-body">
+          <h4 class="media-heading"><a href="{% url 'author' author.id %}" >{{ author.firstname }} {{ author.lastname }}</a></h4>
+          <p>{{author.email}}</p>
+          <p># contributed projects: {{author.project_set.count}}</p>
+        </div>
+      {% endfor %}
+      
+
+    </div>
+  
+    <ul class="pagination">
+
+      {% if page_obj.has_previous %}
+        <li>
+          <a href="?page={{ page_obj.previous_page_number }}">&laquo;</a>
+        </li>
+      {% else %}
+        <li class="disabled"><span>&laquo;</span></li>
+      {% endif %}
+
+
+      {% for p in paginator.page_range %}
+        {% if p == page_obj.number %}
+          <li class="active">
+            <span>{{ p }} <span class="sr-only">(current)</span></span>
+          </li>
+        {% else %}
+          <li>
+            <a href="?page={{ p }}">{{ p }}</a>
+          </li>            
+        {% endif %}
+      {% endfor %}
+
+
+      {% if page_obj.has_next %}
+        <li>
+          <a href="?page={{ page_obj.next_page_number }}">&raquo;</a>
+        </li>
+      {% else %}
+        <li class="disabled"><span>&raquo;</span></li>
+      {% endif %}
+            
+    </ul>  
+  
+  {% else %}
+      <p>No registered topic.</p>
+  {% endif %}  
+
+
+
+
+
+{% endblock %}
