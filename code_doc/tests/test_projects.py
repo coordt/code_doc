@@ -2,12 +2,13 @@ from django.test import TestCase
 from django.db import IntegrityError
 
 from django.test import Client
-from code_doc.models import Project, Author, ProjectVersion
+from code_doc.models import Project, Author, ProjectVersion, Artifact
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 
 from django.core.urlresolvers import reverse
 
+import datetime
 
 
 class ProjectTest(TestCase):
@@ -48,4 +49,22 @@ class ProjectTest(TestCase):
     self.assertTrue(self.project.has_version_add_permissions(self.first_user))
     
     
+  def test_project_get_number_of_revisions(self):
+    """Number of revisions tests"""
+    self.assertEqual(self.project.get_number_of_revisions(), 0)
     
+    new_version = ProjectVersion.objects.create(version="1234", project = self.project, release_date = datetime.datetime.now())
+    self.assertEqual(self.project.get_number_of_revisions(), 1)
+    
+    
+  def test_project_get_number_of_files(self):
+    """Number of files tests"""
+    self.assertEqual(self.project.get_number_of_files(), 0)
+    
+    new_version = ProjectVersion.objects.create(version="1234", project = self.project, release_date = datetime.datetime.now())
+    new_artifact= Artifact.objects.create(project_version = new_version, md5hash = '0')
+    
+    self.assertEqual(self.project.get_number_of_files(), 1)
+    
+    new_artifact2= Artifact.objects.create(project_version = new_version, md5hash = '1')
+    self.assertEqual(self.project.get_number_of_files(), 2)

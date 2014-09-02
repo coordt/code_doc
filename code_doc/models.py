@@ -79,6 +79,15 @@ class Project(models.Model):
   def has_version_add_permissions(self, user):
     """Returns true if the user is able to add version to the current project"""
     return user.is_superuser or user in self.administrators.all()
+
+  def get_number_of_files(self):
+    """Returns the number of files archived for a project"""
+    artifact_counts = [rev.artifacts.count() for rev in self.versions.all()]
+    return sum(artifact_counts) if len(artifact_counts) > 0 else 0
+
+  def get_number_of_revisions(self):
+    """Returns the number of revisions for a project"""
+    return self.versions.count()
   
   def save(self, *args, **kwargs):
     if self.description_mk is None:
