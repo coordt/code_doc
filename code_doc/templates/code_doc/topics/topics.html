@@ -1,13 +1,36 @@
 {% extends "code_doc/base_template.html" %}
+{% load project_image %}
 
-{% block title %}Topics {{ topic.name }}{% endblock %}
+{% block title %}Topics: {{ topic.name }}{% endblock %}
 
 
 {% block content %}
-  <h1>Topic {{ topic.name }}</h1>
+  <h1>Topic "{{ topic.name|title }}"</h1>
   <p>{{ topic.description|safe }}</p>
   
   <h2>Projects</h2>
+  {% if topic.project_set %}
+    <ul class="media-list">
+      {% for project in topic.project_set.all %}
+        <li class="media">
+        <a class="pull-left" href="{% url 'project' project.id %}">
+          {% project_image project.id 64 %}
+        </a>
+
+        <div class="media-body">
+          <h4 class="media-heading">
+            <a href="{% url 'project' project.id %}" >{{ project.name }}</a>
+          </h4>
+          <p>
+            {{ project.short_description }}
+          </p>
+        </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No associated project</p>
+  {% endif %}
   
   <h2>Related topics</h2>
 
