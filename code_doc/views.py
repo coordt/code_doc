@@ -170,7 +170,7 @@ class ProjectVersionAddView(CreateView):
     try:
       current_project = Project.objects.get(pk=project_id)
     except Project.DoesNotExist:
-      raise Http404
+      return HttpResponse('Unauthorized', status=401) # we can return 404 but it is better to return the same as unauthorized
 
     if not self.request.user.is_superuser and not current_project.has_version_add_permissions(self.request.user):
       return HttpResponse('Unauthorized', status=401) 

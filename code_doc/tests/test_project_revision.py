@@ -63,7 +63,9 @@ class ProjectRevisionsTest(TestCase):
     response = self.client.login(username='test_version_user', password='test_version_user')
     self.assertTrue(response)    
     response = self.client.get(reverse("project_revision_add", args=[self.project.id+1]))
-    self.assertEqual(response.status_code, 404)
+    
+    # returns unauthorized to avoid the distinction between non existing project spoofing and the authorization. 
+    self.assertEqual(response.status_code, 401)
      
   
   def test_project_revision_addview_restrictions(self):
