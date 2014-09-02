@@ -19,9 +19,8 @@
         </a>
     
         <div class="media-body">
-          <h4 class="media-heading"><a href="{% url 'author' author.id %}" >{{ author.firstname }} {{ author.lastname }}</a></h4>
+          <h4 class="media-heading"><a href="{% url 'author' author.id %}" >{{ author.firstname }} {{ author.lastname }}</a> <span class="badge">{{author.project_set.count}}</span> </h4>
           <p>{{author.email}}</p>
-          <p># contributed projects: {{author.project_set.count}}</p>
         </div>
       {% endfor %}
       
