@@ -93,12 +93,18 @@ class ProjectView(View):
                'authors': author_list, 
                'topics': topic_list,
                'versions' : version_list})
-               #'user_add_version_permission': project.has_version_add_permissions(request.user)})
   
   @login_required(login_url='/accounts/login/')
   def post(self):
     pass
   
+class ProjectListView(ListView):
+  paginate_by = 1
+  template_name = "code_doc/project/project_list.html"
+  context_object_name = "projects"
+
+  def get_queryset(self):
+    return Project.objects.all()
   
   
   
@@ -113,7 +119,7 @@ class ProjectVersionListView(View):
     versions_list = project.versions.all()
     return render(
               request, 
-              'code_doc/project_details.html',  
+              'code_doc/project_revision/project_revision_details.html',  
               {'project': project,
                'versions': versions_list})
   
@@ -248,32 +254,22 @@ class ProjectVersionArtifactView(View):
     return HttpResponse(m.hexdigest(), status=200)
 
 class TopicView(View):
-  
   def get(self, request, topic_id):
     try:
       topic = Topic.objects.get(pk=topic_id)
     except Project.DoesNotExist:
       raise Http404
     
-    #author_list = project.authors.all()
-    #topic_list  = project.topics.all()
     return render(
               request, 
               'code_doc/topics/topics.html', 
               {'topic': topic})
   
-  @login_required(login_url=reverse_lazy('login'))
-  def post(self):
-    pass
 
 class TopicListView(ListView):
   paginate_by = 2
   template_name = "code_doc/topics/topic_list.html"
-
-  def get_context_data(self, **kwargs):
-    context = super(TopicListView, self).get_context_data(**kwargs)
-    context['topics'] = Topic.objects.all()
-    return context
+  context_object_name = "topics"
 
   def get_queryset(self):
     return Topic.objects.all()
@@ -283,15 +279,7 @@ class AuthorListView(ListView):
   """A generic view of the authors in a list"""
   paginate_by = 2
   template_name = "code_doc/author_list.html"
-
-  #def get(self, request, *args, **kwargs):
-  #    self.object = self.get_object(queryset=Author.objects.all())
-  #    return super(AuthorListView, self).get(request, *args, **kwargs)
-
-  def get_context_data(self, **kwargs):
-    context = super(AuthorListView, self).get_context_data(**kwargs)
-    context['authors'] = Author.objects.all()
-    return context
+  context_object_name = "authors"
 
   def get_queryset(self):
     return Author.objects.all()

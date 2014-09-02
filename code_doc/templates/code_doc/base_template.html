@@ -6,14 +6,14 @@
 <html lang="en">
 
   <head>
-    <link rel="stylesheet" href="{% static "bootstrap-3.2.0-dist/css/bootstrap.min.css"  %}">
+    <link rel="stylesheet" href="{% static "bootstrap-3.2.0-dist/css/bootstrap.css"  %}">
     <link rel="stylesheet" href="{% static "bootstrap-3.2.0-dist/css/bootstrap-theme.min.css" %}">
 
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
 
 
-    <script language="javascript" type="text/javascript" src="{% static "bootstrap-3.2.0-dist/js/bootstrap.min.js" %}"></script>
+    <script language="javascript" type="text/javascript" src="{% static "bootstrap-3.2.0-dist/js/bootstrap.js" %}"></script>
 
 
 
@@ -28,6 +28,7 @@
     <div class="navbar-header">
       <ul class="nav navbar-nav">
         <li><a class="navbar-brand" href="{% url 'index' %}">Home</button></a></li>
+        <li><a class="navbar-brand" href="{% url 'project_list' %}">Projects</button></a></li>
         <li><a class="navbar-brand" href="{% url 'topics_list' %}">Topics</button></a></li>
         <li><a class="navbar-brand" href="{% url 'authors_list' %}">Authors</button></a></li>
       </ul>

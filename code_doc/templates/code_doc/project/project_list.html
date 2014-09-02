@@ -1,0 +1,22 @@
+{% extends "code_doc/templates/paginated_list_view.html" %}
+
+
+{% block title %}Projects list{% endblock %}
+
+{% block paginated_content %}
+ 
+
+ {% if projects %}
+   {% for project in projects %}
+        
+     <div class="media-body">
+       <h4 class="media-heading">
+         <a href="{% url 'project' project.id %}" >{{ project.name|title }}</a> <span class="badge">{{project.topics_set.count}}</span> </h4>
+       <p>{{project.description|safe}} {{project.topics_set.count}}</p>
+     </div>
+   {% endfor %}
+ {% else %}
+   <p>No registered topic.</p>
+ {% endif %}  
+
+{% endblock %}
