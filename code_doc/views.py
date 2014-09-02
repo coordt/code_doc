@@ -88,7 +88,7 @@ class ProjectView(View):
     version_list  = project.versions.all()
     return render(
               request, 
-              'code_doc/project_details.html', 
+              'code_doc/project_revision/project_revision_details.html', 
               {'project': project, 
                'authors': author_list, 
                'topics': topic_list,
