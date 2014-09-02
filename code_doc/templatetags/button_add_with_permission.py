@@ -13,19 +13,16 @@ logger = logging.getLogger(__name__)
 @register.inclusion_tag('code_doc/tags/button_add_with_permission_tag.html')
 def button_add_version_with_permission(user, project):
   #project = Project.objects.get(pk=project_id)
-  print user
-  print project
-  
-  logger.debug('[templatetag|button] User %s ', user)
+  logger.debug('[templatetag|button version] User %s ', user)
   return {'permission_ok': project.has_version_add_permissions(user),
           'user': user,
-          'next': 'project_revision_add'}
+          'next': reverse_lazy('project_revision_add', args=[project.id])}
   
   
 @register.inclusion_tag('code_doc/tags/button_add_with_permission_tag.html')
-def button_add_artifact_with_permission(user, version):
-  project = version.project
-  logger.debug('[templatetag|button] User %s ', user)
+def button_add_artifact_with_permission(user, revision):
+  project = revision.project
+  logger.debug('[templatetag|button artifact] User %s ', user)
   return {'permission_ok': project.has_version_add_permissions(user),
           'user': user,
-          'url' : 'project_revision_add'}
+          'url' : reverse_lazy('project_revision_add', args=[project.id, revision.id])}
