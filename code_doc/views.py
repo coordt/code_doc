@@ -159,10 +159,25 @@ class ProjectVersionAddView(CreateView):
   model = ProjectVersion
   template_name = "code_doc/project_revision/project_revision_add.html"
   fields = ['version', 'description', 'release_date']
+  #context_object_name = "project_version"
+  
+  #def dispatch(self, *args, **kwargs):
+  #  from django.shortcuts import get_object_or_404
+  #  self.project = get_object_or_404(Project, pk=kwargs['project_id'])
+  #  return super(ProjectVersionAddView, self).dispatch(*args, **kwargs)
   
   def get_context_data(self, **kwargs):
     """Method used for populating the template context"""
+    logger.debug('[projectversionadd|context] project version')
     context = super(ProjectVersionAddView, self).get_context_data(**kwargs)
+    try:
+      current_project = Project.objects.get(pk=self.kwargs['project_id'])
+      #assert(current_project.pk == self.project.pk)
+    except Project.DoesNotExist:
+      raise Http404
+    logger.debug('[projectversionadd|context] project version context %s, project %s', context, current_project)
+    context['project'] = current_project
+    context['project_id'] = current_project.id       
     return context
 
   def get(self, request, project_id, **kwargs):
@@ -178,18 +193,33 @@ class ProjectVersionAddView(CreateView):
     return super(ProjectVersionAddView, self).get(request, project_id, **kwargs)
 
   def form_valid(self, form):
+    from django.http import HttpResponseRedirect
     logger.debug('[projectversionadd|form_valid] project version')
     
     try:
       current_project = Project.objects.get(pk=self.kwargs['project_id'])
+      #assert(current_project.pk == self.project.pk)
     except Project.DoesNotExist:
       raise Http404
     
     if not self.request.user.is_superuser and not current_project.has_version_add_permissions(self.request.user):
       return HttpResponse('Unauthorized', status=401) 
     
-    form.instance.created_by = self.request.user
-    return super(AuthorCreate, self).form_valid(form)
+    #self.object = form.save(commit=False)
+    #self.object.project = self.project
+    #self.object.save()
+    #return HttpResponseRedirect(self.get_success_url())    
+    
+    #form.instance.created_by = self.request.user
+    form.instance.project =current_project 
+    #self.object.project = current_project
+    #form.object.project = form.object.context['project']
+    assert(not form.instance.project is None)
+    #assert(not form.instance.project.pk == self.project.pk)
+    return super(ProjectVersionAddView, self).form_valid(form)
+  
+  def get_success_url(self):
+    return self.object.get_absolute_url()
 
 class ProjectVersionArtifactView(View):
   """View associated with the artifacts of a project"""
