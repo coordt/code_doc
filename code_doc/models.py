@@ -80,6 +80,10 @@ class Project(models.Model):
     """Returns true if the user is able to add version to the current project"""
     return user.is_superuser or user in self.administrators.all()
 
+  def has_artifact_add_permissions(self, user):
+    """Returns true if the user is able to add version to the current project"""
+    return user.is_superuser or user in self.administrators.all()
+
   def get_number_of_files(self):
     """Returns the number of files archived for a project"""
     artifact_counts = [rev.artifacts.count() for rev in self.versions.all()]
@@ -137,6 +141,10 @@ class Artifact(models.Model):
   description     = models.TextField('description of the artifact', max_length=1024)
   artifactfile    = models.FileField(upload_to=get_artifact_location)
 
+  def get_absolute_url(self):
+    return reverse('project_revision', kwargs={'project_id' : self.project_version.project.pk, 'version_id': self.project_version.pk})
+
+
   def __unicode__(self):
     return "%s | %s | %s" %(self.project_version, self.artifactfile.name, self.md5hash)
 
@@ -146,3 +154,15 @@ class Artifact(models.Model):
   
   def filename(self):
     return os.path.basename(self.artifactfile.name) 
+  
+  def save(self, *args, **kwargs):
+    import hashlib
+    m = hashlib.md5()
+    if not self.md5hash:
+      for chunk in self.artifactfile.chunks():
+        m.update(chunk)
+        
+      self.md5hash = m.hexdigest()
+    super(Artifact, self).save(*args, **kwargs) # Call the "real" save() method.  
+  
+  

@@ -15,29 +15,34 @@ urlpatterns = patterns('',
   url(r'^accounts/logout/$', logout, name='logout'),  
   
   # projects
-  url(r'^project/$', views.ProjectListView.as_view(), name='project_list'),
+  # lists all projects
+  url(r'^project/$', views.ProjectListView.as_view(), name='project_list'), 
+  # details of a particular project
   url(r'^project/(?P<project_id>\d+)/$', views.ProjectView.as_view(), name='project'),
   
-  # projects versions
-  url(r'^project/(?P<project_id>\d+)/revisions/$', views.ProjectVersionListView.as_view(), name='project_revisions_all'),
-  url(r'^project/(?P<project_id>\d+)/revisions/(?P<version_id>\d+)/$', views.ProjectVersionView.as_view(), name='project_revision'),
-  url(r'^project/(?P<project_id>\d+)/revisions/add/$', views.ProjectVersionAddView.as_view(), name='project_revision_add'),
-  #url(r'^project/(?P<project_id>\d+)/versions/add/$', views.ProjectVersionAddView.as_view(), name='project_revision_add'),
+  # revisions
+  # lists all revisions of a project
+  url(r'^revisions/(?P<project_id>\d+)/$', views.ProjectView.as_view(), name='project_revisions_all'),
+  # details about a particular revision of a project
+  url(r'^revisions/(?P<project_id>\d+)/(?P<version_id>\d+)/$', views.ProjectVersionDetailsView.as_view(), name='project_revision'),
+  # form for adding a revision to a project
+  url(r'^revisions/(?P<project_id>\d+)/add/$', views.ProjectVersionAddView.as_view(), name='project_revision_add'),
+  # @todo update and delete of a revision
   
   # project version artifacts
-  url(r'^project/(?P<project_id>\d+)/(?P<version_number>\w+)/$', views.ProjectVersionArtifactView.as_view(), name='project_artifacts'),
-  url(r'^project/(?P<project_id>\d+)/versions/(?P<project_revision_id>\w+)/add$', views.ProjectVersionArtifactView.as_view(), name='project_artifacts_add'),
+  url(r'^project/(?P<project_id>\d+)/(?P<version_number>[\d\w\s]+)/$', views.ProjectVersionArtifactView.as_view(), name='project_artifacts'),
+  url(r'^project/(?P<project_id>\d+)/(?P<version_id>\w+)/add$', views.ProjectVersionArtifactAddView.as_view(), name='project_artifacts_add'),
   
   # topics
-  url(r'^topics/$', views.TopicListView.as_view(), name='topics_list'),
-  url(r'^topics/(?P<topic_id>\d+)/$', views.TopicView.as_view(), name='topic'),
+  url(r'^topics/$', views.TopicListView.as_view(), name='topics_list'),  # lists all topics
+  url(r'^topics/(?P<topic_id>\d+)/$', views.TopicView.as_view(), name='topic'), # gives details on a specific topic
   
   # maintainers
   url(r'^maintainer/$', views.MaintainerProfileView.as_view(), name='maintainer'),
   
   # Authors
-  url(r'^authors/$', views.AuthorListView.as_view(), name='authors_list'),
-  url(r'^authors/(?P<author_id>\d+)/$', views.detail_author, name='author'),
+  url(r'^authors/$', views.AuthorListView.as_view(), name='authors_list'), # lists all authors
+  url(r'^authors/(?P<author_id>\d+)/$', views.detail_author, name='author'), # details about an author
   
   
   url(r'^api/artifact/(?P<project_id>\d+)/(?P<project_revision_id>\d+)/(?P<filename>.+)$', views.FileUploadView.as_view(), name='fileupload'),

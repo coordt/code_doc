@@ -25,4 +25,4 @@ def button_add_artifact_with_permission(user, revision):
   logger.debug('[templatetag|button artifact] User %s ', user)
   return {'permission_ok': project.has_version_add_permissions(user),
           'user': user,
-          'url' : reverse_lazy('project_revision_add', args=[project.id, revision.id])}
+          'next' : reverse_lazy('project_artifacts_add', args=[project.id, revision.id])}

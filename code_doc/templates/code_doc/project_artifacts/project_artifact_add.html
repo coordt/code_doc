@@ -1,0 +1,24 @@
+{% extends "code_doc/base_template.html" %}
+{% load gravatar %}
+{% load staticfiles %}
+{% load author_image %}
+{% load button_add_with_permission %}
+
+{% block title %}{{ project.name }}{% endblock %}
+
+
+{% block content %}
+  <h1>{{ project.name }}</h1>
+
+  <p>You are uploading a file for the version "{{version.version|title}}". This version contains already the following files:</p> 
+  {% if form.errors %} 
+    <div class="alert alert-danger" role="alert">Sorry, that's not a valid blablabla {{form.errors}}</div>
+  {% endif %}
+
+<form enctype="multipart/form-data" action="" method="post">{% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Create" />
+</form>
+
+
+{% endblock %}

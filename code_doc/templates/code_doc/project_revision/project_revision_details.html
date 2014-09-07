@@ -10,79 +10,25 @@
 {% block content %}
   <h1>{{ project.name }}</h1>
 
-  {{ project.description|safe }}
-
-  <h3>Authors</h3>
-  {% if project.authors %}
-  
-  
-		<div class="row">
-		  <div class="col-xs-6 col-md-1">
-		    {% for author in project.authors.all %}
-        <a href="{% url 'author' author.id %}" class="thumbnail" alt="{{author.firstname}} {{author.lastname}}">
-          <img data-src="holder.js/100%x64" > 
-          {% author_image author.id %}
-        </a>
-		    {% endfor %}
-		  </div>
-		  
-		</div>  
-  
-  
-  {% else %}
-      <p>No author.</p>
-  {% endif %}
-
-
-  
-  <h3>Maintainers</h3>
-  {% if project.administrators.count > 0 %}
-  
-    <ul>
-    {% for maintainer in project.administrators.all %}
-      <li>
-        {{ maintainer.username }}
-        {% if maintainer.email.size %}
-          <a href="mailto:{{maintainer.email}}" >{{ maintainer.firstname }} {{ maintainer.lastname }} / {{maintainer.email}}</a>
-        {% else %}
-          (no information provided)
-        {% endif %}
-      </li>
-    {% endfor %}
-    </ul>
-  
-  {% else %}
-      <p>No known maintainer.</p>
-  {% endif %}
- 
- 
- 
-  <h3>Versions {% button_add_version_with_permission user project %}
+  <h3>Artifacts for revision {{version.version}} {% button_add_artifact_with_permission user version %}
   </h3>
 
-  {% if versions %}
+  {% if artifacts %}
   
     <div class="media">
       
-      {% for version in versions %}
-
+      {% for artifact in artifacts %}
         <div class="media-body">
           <h4 class="media-heading">
-            <a href="{% url 'project_revision' project.id version.id %}" >{{ version.version }}</a>
-            {% if version.is_public %}
-              <span class="label label-success">Public</span>
-            {% else %}
-              <span class="label label-warning">Restricted</span>
-            {% endif %}
-          </h4>
-          <p>Released {{ version.release_date }} / {{ version.artifacts.count }} file(s)</p>
-          <p>{{ version.description|safe }}</p>
+          {{artifact.artifactfile.name}}</h4>
+        <p>MD5 {{artifact.md5hash}}</p>
+        <p>{{artifact.artifactfile.url}}</p>
         </div>
       {% endfor %}
     </div>
   
   {% else %}
-      <p>No known released versions.</p>
+      <p>No artifacts for this revision {{ version.version }}.</p>
   {% endif %}
 
 
