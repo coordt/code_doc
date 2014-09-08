@@ -184,7 +184,7 @@ class ProjectVersionDetailsView(View):
 
 
 class ProjectVersionDetailsShortcutView(RedirectView):
-  """A shotcut for being able to reach a project and a version with only their respective name"""
+  """A shortcut for being able to reach a project and a version with only their respective name"""
   permanent = False
   query_string = True
   pattern_name = 'project_revision'
@@ -194,7 +194,6 @@ class ProjectVersionDetailsShortcutView(RedirectView):
     project = get_object_or_404(Project, name=kwargs['project_name'])
     version = get_object_or_404(ProjectVersion, version=kwargs['version_number'], project=project)
     return reverse('project_revision', args=[project.id, version.id])
-    #return super(ProjectVersionDetailsShortcutView, self).get_redirect_url(*args, **kwargs)
 
 
 class ProjectVersionArtifactView(View):
@@ -306,6 +305,7 @@ class ProjectVersionArtifactAddView(CreateView):
     try:
       current_project = Project.objects.get(pk=self.kwargs['project_id'])
     except Project.DoesNotExist:
+      logger.warning('[fileupload] formvalid project does not exist')
       raise Http404
     
     if not self.request.user.is_superuser and not current_project.has_artifact_add_permissions(self.request.user):
@@ -315,10 +315,20 @@ class ProjectVersionArtifactAddView(CreateView):
     try:
       current_version = current_project.versions.get(pk=self.kwargs['version_id'])
     except ProjectVersion.DoesNotExist:
+      logger.warning('[fileupload] formvalid version does not exist')
       return HttpResponse('Unauthorized', status=401) # we can return 404 but it is better to return the same as unauthorized
 
     form.instance.project_version =current_version 
-    return super(ProjectVersionArtifactAddView, self).form_valid(form)
+    
+    try:
+      return super(ProjectVersionArtifactAddView, self).form_valid(form)
+    except Exception, e:
+      logging.error("[fileupload] error during the save %s", e)
+    
+    return HttpResponse('Conflict %s' % form.instance.md5hash, status=409)
+    
+    
+    
   
   def get_success_url(self):
     return self.object.get_absolute_url()  
