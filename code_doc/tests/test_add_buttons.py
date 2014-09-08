@@ -32,6 +32,7 @@ class TemplateAddButtonTest(TestCase):
     
 
   def test_add_version_button_enabled(self):
+    """Tests the button is enabled for maintainer"""
     from django.template import Context, Template
     
     response = self.client.login(username='toto', password='titi')
@@ -47,6 +48,7 @@ class TemplateAddButtonTest(TestCase):
     
     
   def test_add_version_button_disabled(self):
+    """Tests the button is disabled for non maintainer"""
     from django.template import Context, Template
     
     not_allowed_for_project = User.objects.create_user(username='not', password='allowed')
