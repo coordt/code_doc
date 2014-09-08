@@ -1,7 +1,5 @@
 {% extends "code_doc/base_template.html" %}
-{% load gravatar %}
-{% load staticfiles %}
-{% load author_image %}
+{% load static %}
 {% load button_add_with_permission %}
 
 {% block title %}{{ project.name }}{% endblock %}
@@ -15,17 +13,27 @@
 
   {% if artifacts %}
   
-    <div class="media">
-      
-      {% for artifact in artifacts %}
-        <div class="media-body">
-          <h4 class="media-heading">
-          {{artifact.artifactfile.name}}</h4>
-        <p>MD5 {{artifact.md5hash}}</p>
-        <p>{{artifact.artifactfile.url}}</p>
-        </div>
-      {% endfor %}
-    </div>
+	  <table class="table table-hover">
+	      <thead>
+	        <tr>
+	          <th>Id</th>
+	          <th>Name</th>
+	          <th>MD5</th>
+	          <th>Description</th>
+	        </tr>
+	      </thead>
+	
+	    {% for artifact in artifacts %}
+	    
+	      <tbody>
+	        <tr>
+	          <td>{{artifact.pk}}</td>
+	          <th class="text-nowrap"><a href="{%get_media_prefix%}{{artifact.artifactfile}}">{{artifact.filename}}</a></th>
+	          <td><span style="font-family:monospace;">{{artifact.md5hash|upper}}</span></td>
+	          <td colspan="3">{{artifact.description}}</td>
+	        </tr>
+	    {%endfor%}
+	  </table>  
   
   {% else %}
       <p>No artifacts for this revision {{ version.version }}.</p>
