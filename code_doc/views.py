@@ -202,10 +202,10 @@ class ProjectVersionArtifactView(View):
   """Adds an artifact"""
   
       
-  def get(self, request, project_id, version_id):
+  def get(self, request, project_id, version_number):
 
     try:
-      project_version = ProjectVersion.objects.get(pk=version_id)
+      project_version = ProjectVersion.objects.get(version=version_number)
     except ProjectVersion.DoesNotExist:
       raise Http404
 
@@ -220,9 +220,9 @@ class ProjectVersionArtifactView(View):
                'artifacts' : artifact_list})
   
   @method_decorator(lambda x: login_required(x, login_url=reverse_lazy('login')))
-  def post(self, request, project_id, version_id):
+  def post(self, request, project_id, version_number):
     try:
-      project_version = ProjectVersion.objects.get(pk=version_id)
+      project_version = ProjectVersion.objects.get(version=version_number)
     except ProjectVersion.DoesNotExist:
       raise Http404
 
