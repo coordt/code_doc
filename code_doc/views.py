@@ -276,16 +276,10 @@ class ProjectVersionArtifactAddView(CreateView):
       raise Http404
 
     context['project'] = current_project
-    context['version'] = current_version
-    context['project_id'] = current_project.id       
+    context['version'] = current_version       
     return context
 
-  #def dispatch(self, request, *args, **kwargs):
-  #  logger.warning('[fileupload] dispatch %s, %s', args, kwargs)
-  #  return super(ProjectVersionArtifactAddView, self).dispatch(request, *args, **kwargs)
-    
-
-  #@method_decorator(lambda x: login_required(x, login_url=reverse_lazy('login')))
+  @method_decorator(lambda x: login_required(x, login_url=reverse_lazy('login')))
   def get(self, request, project_id, version_id, *args, **kwargs):
     """Returning the form"""
     logger.warning('[fileupload] dispatch %s, %s, %s', project_id, version_id, kwargs)
@@ -305,11 +299,7 @@ class ProjectVersionArtifactAddView(CreateView):
 
     return super(ProjectVersionArtifactAddView, self).get(request, project_id, version_id, *args, **kwargs)
 
-  #def post(self, request, *args, **kwargs):
-  #  logger.warning('[fileupload] post %s, %s, %s', args, kwargs, request)
-  #  return super(ProjectVersionArtifactAddView, self).post(request, *args, **kwargs)
-
-
+  
   #@method_decorator(lambda x: login_required(x, login_url=reverse_lazy('login')))
   def form_valid(self, form):    
     logger.warning('[fileupload] form valid')
@@ -327,9 +317,6 @@ class ProjectVersionArtifactAddView(CreateView):
     except ProjectVersion.DoesNotExist:
       return HttpResponse('Unauthorized', status=401) # we can return 404 but it is better to return the same as unauthorized
 
-    logger.debug('[fileupload] instance %s', form.instance)
-    #print form.instance
-    #print form.instance.artifactfile
     form.instance.project_version =current_version 
     return super(ProjectVersionArtifactAddView, self).form_valid(form)
   
