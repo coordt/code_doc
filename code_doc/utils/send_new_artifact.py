@@ -18,7 +18,6 @@ def get_csrf_token(content, cookies):
   pos = content.find('csrfmiddlewaretoken')
   if pos > -1:
     for c in cookies: 
-      print c.name
       if c.name == 'csrftoken':
         token = c.value
         break
@@ -32,6 +31,22 @@ def get_csrf_token(content, cookies):
   return token
 
 
+class MyHTTPRedirectHandler(urllib2.HTTPRedirectHandler):
+  
+  
+  def __init__(self, instance_name = None, *args, **kwargs):
+    
+    #super(MyHTTPRedirectHandler, self).__init__(*args, **kwargs) # not working, not subclass of object
+    self.instance_name = instance_name
+    
+  
+  def http_error_302(self, req, fp, code, msg, headers):
+    print "Redirection intercepted", self.instance_name
+    return urllib2.HTTPRedirectHandler.http_error_302(self, req, fp, code, msg, headers)
+
+  http_error_301 = http_error_303 = http_error_307 = http_error_302    
+
+
 def post_multipart(host, selector, page, fields, files):
     """
     Post fields and files to an http host as multipart/form-data.
@@ -39,6 +54,8 @@ def post_multipart(host, selector, page, fields, files):
     files is a sequence of (name, filename, value) elements for data to be uploaded as files
     Return the server's response page.
     """
+    
+    
     server_url = "http://%s:%s%s" % (host, selector, page)
     username = 'User2'
     password = 'user2'
@@ -46,19 +63,19 @@ def post_multipart(host, selector, page, fields, files):
 
     # cookie jar
     cookies = cookielib.CookieJar()
-    opener_cookie = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookies))
-    
-    
-    # password authentication
-    password_manager = urllib2.HTTPPasswordMgrWithDefaultRealm()
-    password_manager.add_password(None, server_url, username, password)
-    authentication_handler = urllib2.HTTPBasicAuthHandler(password_manager)
-    opener_basic_auth = urllib2.build_opener(authentication_handler)
     
     
     # opener
-    opener = opener_cookie
+    opener = urllib2.build_opener(MyHTTPRedirectHandler("blablablabal"), urllib2.HTTPCookieProcessor(cookies))
     urllib2.install_opener(opener)
+
+
+    #import httplib
+    #conn = httplib.HTTPConnection("%s:%s" % (host, selector))
+    #conn.request("GET", page)
+    #r1 = conn.getresponse()
+    #print r1.status, r1.reason
+    #print 'Redirection location', r1.getheader('Location')
     
     
     
@@ -67,17 +84,16 @@ def post_multipart(host, selector, page, fields, files):
     response= opener.open(request)
     content = response.read()
     
+    
     print 'URL is', response.geturl()
     print 'Status is', response.getcode()
-    #print 'Content is', content
-    
-    print 'Cookies', cookies
+    print 'Info', response.info()
     
     
     # csrf token needed for the login forms
     token = get_csrf_token(content, cookies)
     
-    print 'token', token
+    #print 'token', token
     
     login_data = dict(username=username, password=password, csrfmiddlewaretoken=token)
     request = urllib2.Request(response.geturl(), data=urllib.urlencode(login_data))
@@ -87,7 +103,8 @@ def post_multipart(host, selector, page, fields, files):
     
     print 'URL is', response.geturl()
     print 'Status is', response.getcode()
-    print 'Content (login) is', content
+    print 'Info', response.info()
+    #print 'Content (login) is', content
         
         
     
@@ -100,15 +117,7 @@ def post_multipart(host, selector, page, fields, files):
       fields_with_token['csrfmiddlewaretoken'] = token    
 
     content_type, body = encode_multipart_formdata(fields_with_token, files)
-
-    headers = {'Content-Type': content_type,
-               'Content-Length': str(len(body))}
-        
-    
-    print 'body, headers'
-    print headers
-    print body[:1000]
-    
+    headers = {'Content-Type': content_type, 'Content-Length': str(len(body))}
     request = urllib2.Request(response.geturl(), data=body, headers=headers)
         
     try:
@@ -163,4 +172,4 @@ if __name__ == '__main__':
   files.append(('artifactfile', r'D:\Personal\Dropbox\Maitre Mohr.docx'))
   
   ret = post_multipart('localhost', 8000, '/code_doc/project/1/1/add', fields, files)
-  print ret
+  
