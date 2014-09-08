@@ -1,17 +1,26 @@
-from django.shortcuts import render
 
-# Create your views here.
+from django.shortcuts import render
+from django.shortcuts import get_object_or_404
 
 from django.http import Http404 
 from django.http import HttpResponse
 from django.template import RequestContext, loader
+from django.core.urlresolvers import reverse, reverse_lazy
+
 
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 
 
-from django.views.decorators.csrf import csrf_exempt
+from django.views.generic.base import RedirectView
 from django.views.generic.base import View
+from django.views.generic.edit import CreateView, UpdateView, DeleteView
+from django.views.generic.detail import SingleObjectMixin
+from django.views.generic import ListView
+
+
+from django.views.decorators.csrf import csrf_exempt
+
 
 from django.core.files import File
 
@@ -21,11 +30,9 @@ from rest_framework.parsers import JSONParser, FileUploadParser
 from rest_framework.views import APIView
 
 
-from django.core.urlresolvers import reverse, reverse_lazy
 
-from django.views.generic.edit import CreateView, UpdateView, DeleteView
-from django.views.generic.detail import SingleObjectMixin
-from django.views.generic import ListView
+
+
 
 import hashlib
 import tempfile
@@ -152,26 +159,6 @@ class ProjectVersionAddView(CreateView):
     return self.object.get_absolute_url()  
   
 
-if 0:  
-  # NOT USED
-  class ProjectVersionListView(View):
-    def get(self, request, project_id):
-      try:
-        project = Project.objects.get(pk=project_id)
-      except Project.DoesNotExist:
-        raise Http404
-  
-      versions_list = project.versions.all()
-      return render(
-                request, 
-                'code_doc/project_revision/project_revision_details.html',  
-                {'project': project,
-                 'versions': versions_list})
-    
-    @login_required(login_url='/accounts/login/')
-    def post(self):
-      pass
-
 
 class ProjectVersionDetailsView(View):
   """Details the content of a specific version. Contains all the artifacts"""
@@ -196,10 +183,23 @@ class ProjectVersionDetailsView(View):
                'artifacts': artifacts})
 
 
+class ProjectVersionDetailsShortcutView(RedirectView):
+  """A shotcut for being able to reach a project and a version with only their respective name"""
+  permanent = False
+  query_string = True
+  pattern_name = 'project_revision'
+
+  def get_redirect_url(self, *args, **kwargs):
+    logger.debug('[project_version_redirection] %s', kwargs)
+    project = get_object_or_404(Project, name=kwargs['project_name'])
+    version = get_object_or_404(ProjectVersion, version=kwargs['version_number'], project=project)
+    return reverse('project_revision', args=[project.id, version.id])
+    #return super(ProjectVersionDetailsShortcutView, self).get_redirect_url(*args, **kwargs)
 
 
 class ProjectVersionArtifactView(View):
-  """Adds an artifact"""
+  """Adds an artifact.
+  deprecated, to be removed"""
   
       
   def get(self, request, project_id, version_number):

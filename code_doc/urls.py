@@ -33,6 +33,9 @@ urlpatterns = patterns('',
   url(r'^project/(?P<project_id>\d+)/(?P<version_number>[\d\w\s]+)/$', views.ProjectVersionArtifactView.as_view(), name='project_artifacts'),
   url(r'^project/(?P<project_id>\d+)/(?P<version_id>\w+)/add$', views.ProjectVersionArtifactAddView.as_view(), name='project_artifacts_add'),
   
+  # shortcuts
+  url(r'^s/(?P<project_name>[\d\w\s]+)/(?P<version_number>[\d\w\s]+)/$', views.ProjectVersionDetailsShortcutView.as_view(), name='project_shortcuts'),
+  
   # topics
   url(r'^topics/$', views.TopicListView.as_view(), name='topics_list'),  # lists all topics
   url(r'^topics/(?P<topic_id>\d+)/$', views.TopicView.as_view(), name='topic'), # gives details on a specific topic
