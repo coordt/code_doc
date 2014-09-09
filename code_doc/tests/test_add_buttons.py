@@ -17,7 +17,6 @@ from django.core.urlresolvers import reverse
 
 class TemplateAddButtonTest(TestCase):
   def setUp(self):
-    # Every test needs a client.
     self.client = Client()
     
     # path for the queries to the project details
