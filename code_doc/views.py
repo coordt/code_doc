@@ -37,6 +37,8 @@ from rest_framework.views import APIView
 import hashlib
 import tempfile
 import logging
+import json
+
 # logger for this file
 logger = logging.getLogger(__name__)
 
@@ -78,7 +80,20 @@ class MaintainerProfileView(View):
   def post(self, request):
     pass
 
+class GetProjectRevisionIds(View):
 
+  def render_to_json_response(self, context, **response_kwargs):
+    data = json.dumps(context)
+    response_kwargs['content_type'] = 'application/json'
+    return HttpResponse(data, **response_kwargs)
+
+  @method_decorator(lambda x: login_required(x, login_url=reverse_lazy('login')))
+  def get(self, request, project_name, version_number):
+    
+    logger.debug('[GetProjectRevisionIds.get]')
+    project = get_object_or_404(Project, name=project_name)
+    version = get_object_or_404(ProjectVersion, version=version_number, project=project)
+    return self.render_to_json_response({'project_id': project.id, 'version_id': version.id})
 
 
 
@@ -328,8 +343,6 @@ class ProjectVersionArtifactAddView(CreateView):
     return HttpResponse('Conflict %s' % form.instance.md5hash, status=409)
     
     
-    
-  
   def get_success_url(self):
     return self.object.get_absolute_url()  
 
@@ -386,49 +399,49 @@ def detail_author(request, author_id):
 
 
 
-class FileUploadView(APIView):
-  # works with 
-  # curl -X PUT --data-binary @manage.py http://localhost:8000/code_doc/api/artifact/1/titi.html
-  parser_classes = (FileUploadParser,)
-
-  def put(self, request, project_id, project_version_id, filename, format=None):
-    import hashlib
-    file_obj = request.FILES['file']
-    # ...
-    # do some staff with uploaded file
-    # ...
-    
-    
-    
-    filecontent = file_obj.read()#self.parse(file_obj)#request.read()#
-    with file('/Users/raffi/tmp/toto.py', 'wb') as f:
-      f.write(filecontent)
-
-    m = hashlib.md5(filecontent).hexdigest()
-
-    
-    return HttpResponse("Created file %s with the following content\n<br>MD5: %s<br><br>%s" % (filename, m, filecontent.replace('\r', '<br>')))
-    return Response(status=204)
-  
-  # works with 
-  # curl -X POST --data filename=toto.yoyo --data-urlencode filecontent@manage.py  http://localhost:8000/code_doc/api/artifact/1/ 
-  def post(self, request, project_id, project_version_id, format=None):
-    import hashlib
-    filename = request.DATA['filename']
-    filecontent = request.DATA['filecontent']
-    # ...
-    # do some staff with uploaded file
-    # ...
-    
-    
-    
-    #filecontent = file_obj.read()#self.parse(file_obj)#request.read()#
-    with file('/Users/raffi/tmp/toto.py', 'wb') as f:
-      f.write(filecontent)
-
-    m = hashlib.md5(filecontent).hexdigest()
-
-    
-    return HttpResponse("Created file %s with the following content\n<br>MD5: %s<br><br>%s" % (filename, m, filecontent.replace('\r', '<br>')))
-    return Response(status=204)
+# class FileUploadView(APIView):
+#   # works with 
+#   # curl -X PUT --data-binary @manage.py http://localhost:8000/code_doc/api/artifact/1/titi.html
+#   parser_classes = (FileUploadParser,)
+# 
+#   def put(self, request, project_id, project_version_id, filename, format=None):
+#     import hashlib
+#     file_obj = request.FILES['file']
+#     # ...
+#     # do some staff with uploaded file
+#     # ...
+#     
+#     
+#     
+#     filecontent = file_obj.read()#self.parse(file_obj)#request.read()#
+#     with file('/Users/raffi/tmp/toto.py', 'wb') as f:
+#       f.write(filecontent)
+# 
+#     m = hashlib.md5(filecontent).hexdigest()
+# 
+#     
+#     return HttpResponse("Created file %s with the following content\n<br>MD5: %s<br><br>%s" % (filename, m, filecontent.replace('\r', '<br>')))
+#     return Response(status=204)
+#   
+#   # works with 
+#   # curl -X POST --data filename=toto.yoyo --data-urlencode filecontent@manage.py  http://localhost:8000/code_doc/api/artifact/1/ 
+#   def post(self, request, project_id, project_version_id, format=None):
+#     import hashlib
+#     filename = request.DATA['filename']
+#     filecontent = request.DATA['filecontent']
+#     # ...
+#     # do some staff with uploaded file
+#     # ...
+#     
+#     
+#     
+#     #filecontent = file_obj.read()#self.parse(file_obj)#request.read()#
+#     with file('/Users/raffi/tmp/toto.py', 'wb') as f:
+#       f.write(filecontent)
+# 
+#     m = hashlib.md5(filecontent).hexdigest()
+# 
+#     
+#     return HttpResponse("Created file %s with the following content\n<br>MD5: %s<br><br>%s" % (filename, m, filecontent.replace('\r', '<br>')))
+#     return Response(status=204)
 

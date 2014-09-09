@@ -9,6 +9,7 @@ from code_doc.utils.send_new_artifact import post_multipart, PostMultipartWithSe
 import tempfile
 import datetime
 import os
+import json
 
 class ProjectLiveSendArtifactTest(LiveServerTestCase):
   """Testing the project version functionality"""
@@ -50,7 +51,12 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
                            password = 'test_version_user')
       
       self.assertEqual(len(self.version.artifacts.all()), 1)
-
+      artifact = self.version.artifacts.all()[0]
+      self.assertEqual(artifact.filename(), os.path.basename(f.name))
+      
+      import hashlib
+      f.seek(0)
+      self.assertEqual(artifact.md5hash, hashlib.md5(f.read()).hexdigest())
 
   def test_send_new_file_new_api(self):
     """In this test, we know in advance the login url"""
@@ -103,10 +109,25 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
     
     post_url = '/code_doc/s/%s/%s/' % (self.project.name, self.version.version)
     response = instance.get(post_url)
-    print response
+    #print response
     redir = instance.get_redirection(post_url)
     self.assertEqual(redir, reverse('project_revision', args=[self.project.id, self.version.id]))
 
+
+  def test_get_json_for_project_id(self):
+    """Tests if the json mapping the name of project/version to ids is ok"""
+    
+    instance = PostMultipartWithSession(host=self.live_server_url)
+    instance.login(login_page = "/code_doc/accounts/login/", 
+                     username = self.first_user.username,
+                     password = 'test_version_user')
+    
+    post_url = '/code_doc/api/%s/%s/' % (self.project.name, self.version.version)
+    response = instance.get(post_url)
+    #print response.read()
+    dic_ids = json.loads(response.read())
+    self.assertEquals(dic_ids['project_id'], self.project.id)
+    self.assertEquals(dic_ids['version_id'], self.version.id)
 
 
 

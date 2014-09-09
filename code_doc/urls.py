@@ -25,8 +25,8 @@ urlpatterns = patterns('',
   url(r'^revisions/(?P<project_id>\d+)/$', views.ProjectView.as_view(), name='project_revisions_all'),
   # details about a particular revision of a project
   url(r'^revisions/(?P<project_id>\d+)/(?P<version_id>\d+)/$', views.ProjectVersionDetailsView.as_view(), name='project_revision'),
-  # form for adding a revision to a project
   url(r'^revisions/(?P<project_id>\d+)/add/$', views.ProjectVersionAddView.as_view(), name='project_revision_add'),
+  # form for adding a revision to a project
   # @todo update and delete of a revision
   
   # project version artifacts
@@ -35,6 +35,7 @@ urlpatterns = patterns('',
   
   # shortcuts
   url(r'^s/(?P<project_name>[\d\w\s]+)/(?P<version_number>[\d\w\s]+)/$', views.ProjectVersionDetailsShortcutView.as_view(), name='project_shortcuts'),
+  url(r'^api/(?P<project_name>[\d\w\s]+)/(?P<version_number>[\d\w\s]+)/$', views.GetProjectRevisionIds.as_view(), name='api_get_ids'),
   
   # topics
   url(r'^topics/$', views.TopicListView.as_view(), name='topics_list'),  # lists all topics
@@ -48,8 +49,8 @@ urlpatterns = patterns('',
   url(r'^authors/(?P<author_id>\d+)/$', views.detail_author, name='author'), # details about an author
   
   
-  url(r'^api/artifact/(?P<project_id>\d+)/(?P<project_revision_id>\d+)/(?P<filename>.+)$', views.FileUploadView.as_view(), name='fileupload'),
-  url(r'^api/artifact/(?P<project_revision_id>\d+)/$', views.FileUploadView.as_view(), name='fileupload_post'),
+  #url(r'^api/artifact/(?P<project_id>\d+)/(?P<project_revision_id>\d+)/(?P<filename>.+)$', views.FileUploadView.as_view(), name='fileupload'),
+  #url(r'^api/artifact/(?P<project_revision_id>\d+)/$', views.FileUploadView.as_view(), name='fileupload_post'),
   #url(r'^details/(?P<project_id>\d+)/$', views.detail_project, name='detail_project'),
 
 ) 

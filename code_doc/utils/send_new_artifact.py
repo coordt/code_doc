@@ -17,23 +17,7 @@ import StringIO
 import types
 
 
-def get_csrf_token(content, cookies):
-  """Returns the csrf token put (hidden) into a form"""
-  token = None
-  pos = content.find('csrfmiddlewaretoken')
-  if pos > -1:
-    for c in cookies: 
-      if c.name == 'csrftoken':
-        token = c.value
-        break
-    else:
-      print 'Cookie not found'
-      pos = content.find('value', pos)
-      m = re.match('value=\'([\w\d]+?)\'', content[pos:])
-      if not m is None:
-        token = m.group(1)
-  
-  return token
+
 
 
 
@@ -81,8 +65,9 @@ class PostMultipartWithSession(object):
     self.opener = urllib2.build_opener(self.redirection_intercepter, urllib2.HTTPCookieProcessor(self.cookies))
     #self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(self.cookies))
     urllib2.install_opener(self.opener)
-    
     self.host = host
+    
+    
     
   def get_redirection(self, initial_page):
     """Returns the redirection from one page to another if it exists, None otherwise"""
@@ -230,6 +215,25 @@ class PostMultipartWithSession(object):
     
 
 
+def get_csrf_token(content, cookies):
+  """Returns the csrf token put (hidden) into a form"""
+  token = None
+  pos = content.find('csrfmiddlewaretoken')
+  if pos > -1:
+    for c in cookies: 
+      if c.name == 'csrftoken':
+        token = c.value
+        break
+    else:
+      print 'Cookie not found'
+      pos = content.find('value', pos)
+      m = re.match('value=\'([\w\d]+?)\'', content[pos:])
+      if not m is None:
+        token = m.group(1)
+  
+  return token
+
+
 def post_multipart(host, page, form_fields, form_files, username = None, password = None):
     """
     Post form_fields and form_files to an http host as multipart/form-data.
@@ -240,7 +244,6 @@ def post_multipart(host, page, form_fields, form_files, username = None, passwor
     
     
     server_url = "%s%s" % (host, page)
-    print 'type host', type(host)
 
 
     # cookie jar
