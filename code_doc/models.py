@@ -3,7 +3,7 @@ import datetime
 import os
 
 from django.contrib.auth.admin import UserAdmin
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, Group
 from django.conf import settings
 from django.core.urlresolvers import reverse
 
@@ -63,7 +63,7 @@ class Project(models.Model):
   
   authors         = models.ManyToManyField(Author)
   
-  # the administrators of the project
+  # the administrators of the project, have the rights to edit the 
   administrators  = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, null=True)
   
   home_page_url   = models.CharField(max_length=250, null=True, blank=True)
@@ -75,14 +75,26 @@ class Project(models.Model):
 
   def __unicode__(self):
     return "%s" %(self.name)
+
+  class Meta:
+    permissions = (
+      ("project_view",  "Can see the project"),
+      ("project_administrate",  "Can administrate the project"),
+      ) 
+
+  def has_project_administrate_permissions(self, user):
+    """Returns true if the user is able to administrate a project"""
+    return user.is_superuser or user in self.administrators.all()
+
   
   def has_version_add_permissions(self, user):
     """Returns true if the user is able to add version to the current project"""
-    return user.is_superuser or user in self.administrators.all()
+    return self.has_project_administrate_permissions(user)
 
   def has_artifact_add_permissions(self, user):
     """Returns true if the user is able to add version to the current project"""
-    return user.is_superuser or user in self.administrators.all()
+    return self.has_project_administrate_permissions(user)
+  
 
   def get_number_of_files(self):
     """Returns the number of files archived for a project"""
@@ -111,14 +123,31 @@ class ProjectVersion(models.Model):
   description     = models.TextField('description of the release', max_length=500) # the description of the content
   description_mk  = models.TextField('Description in Markdown format', max_length=200, blank=True, null=True)
 
+  # the users and groups allowed to view the artifacts of the revision and also this project version
+  view_users   = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, null=True)
+  view_groups  = models.ManyToManyField(Group, blank=True, null=True)
+
   class Meta:
-    unique_together = (("project", "version"), ) 
+    unique_together = (("project", "version"), )
+    permissions = (
+      ("version_view",  "Can see stored artifacts"),
+      ("version_artifacts_view",    "Can see the content of the revision"),
+      ) 
 
   def __unicode__(self):
     return "[%s @ %s] [%s]" %(self.project.name, self.version, self.release_date)
 
   def get_absolute_url(self):
     return reverse('project_revision', kwargs={'project_id' : self.project.pk, 'version_id': self.pk})
+  
+  def has_user_view_permission(self, userobj):
+    """Returns true if the user has view permission on this version, False otherwise"""
+    
+    return True
+  
+  def has_user_artifact_view_permission(self, userobj):
+    """Returns True if the user can see the list of artifacts and the artifacts themselves for a specific version, False otherwise"""
+    return True
 
   def save(self, *args, **kwargs):
     import markdown
@@ -131,15 +160,17 @@ class ProjectVersion(models.Model):
 def get_artifact_location(instance, filename):
   """An helper function to specify the storage location of an uploaded file"""
   return os.path.join("artifacts", instance.project_version.project.name, instance.project_version.version, filename)
-  
 
 
 class Artifact(models.Model):
   """An artifact is a downloadable file"""
-  project_version = models.ForeignKey(ProjectVersion, related_name = "artifacts")
-  md5hash         = models.CharField(max_length=1024) # md5 hash 
-  description     = models.TextField('description of the artifact', max_length=1024)
-  artifactfile    = models.FileField(upload_to=get_artifact_location)
+  project_version           = models.ForeignKey(ProjectVersion, related_name = "artifacts")
+  md5hash                   = models.CharField(max_length=1024) # md5 hash 
+  description               = models.TextField('description of the artifact', max_length=1024)
+  artifactfile              = models.FileField(upload_to=get_artifact_location)
+  is_documentation          = models.BooleanField(default=False, help_text="Set to true if the artifact contains a documentation that should be processed by the server")
+  documentation_entry_file  = models.CharField(max_length=255, null=True, blank=True, 
+                                               help_text="the documentation entry file if the artifact is documentation type, relative to the root of the deflated package")
 
   def get_absolute_url(self):
     return reverse('project_revision', kwargs={'project_id' : self.project_version.project.pk, 'version_id': self.project_version.pk})
@@ -163,6 +194,7 @@ class Artifact(models.Model):
         m.update(chunk)
         
       self.md5hash = m.hexdigest()
+    
     super(Artifact, self).save(*args, **kwargs) # Call the "real" save() method.  
   
   

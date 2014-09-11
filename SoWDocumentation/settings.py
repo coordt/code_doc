@@ -48,6 +48,7 @@ ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 ADMINS = (('Raffi Enficiaud', 'raffi.enficiaud@tuebingen.mpg.de'), )
 
 
+LOGIN_REDIRECT_URL = "/code_doc/accounts/login/"
 LOGIN_REDIRECT_URL = "/code_doc"
 
 # Email address that error messages come from.
