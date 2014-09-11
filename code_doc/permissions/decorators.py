@@ -2,9 +2,9 @@
 from functools import wraps, partial
 
 from django.conf import settings
-from django.core.exceptions import PermissionDenied, DoesNotExist
+from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
 from django.utils.decorators import available_attrs
-
+from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.utils.encoding import force_str
 from django.shortcuts import resolve_url
 from django.utils.six.moves.urllib.parse import urlparse
@@ -24,7 +24,7 @@ def _user_passes_test_with_object_getter(test_func, object_getter, login_url=Non
       obj = object_getter(**kwargs)
       
       if obj is None and raise_exception:
-        raise DoesNotExist
+        raise ObjectDoesNotExist
       
       if not obj is None:
         if test_func(request.user, obj):

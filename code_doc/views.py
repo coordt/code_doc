@@ -15,6 +15,7 @@ from django.utils.decorators import method_decorator
 from django.views.generic.base import RedirectView
 from django.views.generic.base import View
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
+from django.views.generic.detail import DetailView
 from django.views.generic.detail import SingleObjectMixin
 from django.views.generic import ListView
 
