@@ -30,7 +30,7 @@ from rest_framework.parsers import JSONParser, FileUploadParser
 from rest_framework.views import APIView
 
 
-
+from code_doc.permissions.decorators import permission_required_on_object
 
 
 
@@ -81,7 +81,7 @@ class MaintainerProfileView(View):
     pass
 
 class GetProjectRevisionIds(View):
-
+  """A view returning a json definition of the project"""
   def render_to_json_response(self, context, **response_kwargs):
     data = json.dumps(context)
     response_kwargs['content_type'] = 'application/json'
@@ -97,24 +97,48 @@ class GetProjectRevisionIds(View):
 
 
 
-class ProjectView(View):
+# just an attempt to do something 
+class PermissionOnObjectViewMixin(object):
+  @classmethod
+  def as_view(cls, **initkwargs):
+    view = super(PermissionOnObjectViewMixin, cls).as_view(**initkwargs)
+    return permission_required_on_object(view)
+
+
+class ProjectView(DetailView):
   """Detailed view of a specific project. The view contains all revisions."""
-  def get(self, request, project_id):
-    try:
-      project = Project.objects.get(pk=project_id)
-    except Project.DoesNotExist:
-      raise Http404
+  
+  model         = Project
+  pk_url_kwarg  = 'project_id'
+  template_name = 'code_doc/project_revision/project_details.html'
+  
+  def get_context_data(self, **kwargs):
+    context = super(ProjectView, self).get_context_data(**kwargs)
     
-    author_list = project.authors.all()
-    topic_list  = project.topics.all()
-    version_list  = project.versions.all()
-    return render(
-              request, 
-              'code_doc/project_revision/project_details.html', 
-              {'project': project, 
-               'authors': author_list, 
-               'topics': topic_list,
-               'versions' : version_list})
+    project = self.object
+    
+    context['authors']  = project.authors.all()
+    context['topics']   = project.topics.all()
+    context['versions'] = [v for v in project.versions.all() if v.has_user_view_permission(self.request.user)]
+    
+    return context  
+  
+#   def get(self, request, project_id):
+#     try:
+#       project = Project.objects.get(pk=project_id)
+#     except Project.DoesNotExist:
+#       raise Http404
+#     
+#     author_list = project.authors.all()
+#     topic_list  = project.topics.all()
+#     version_list  = project.versions.all()
+#     return render(
+#               request, 
+#               'code_doc/project_revision/project_details.html', 
+#               {'project': project, 
+#                'authors': author_list, 
+#                'topics': topic_list,
+#                'versions' : version_list})
 
   
 class ProjectListView(ListView):
@@ -129,7 +153,7 @@ class ProjectListView(ListView):
   
   
 
-class ProjectVersionAddView(CreateView):
+class ProjectVersionAddView(PermissionOnObjectViewMixin, CreateView):
   """Generic view for adding a version into a specific project"""
   model = ProjectVersion
   template_name = "code_doc/project_revision/project_revision_add.html"

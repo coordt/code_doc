@@ -19,8 +19,8 @@ class CodedocPermissionBackend(object):
     _project_permission_prefix + '.project_administrate' : 'has_project_administrate_permissions',}
   
   
-  def _manage_permissions(self, user, perm, obj, permission_map):
-    """Manages the permissions for a project version, per instance of ProjectVersion"""
+  def _manage_has_permissions(self, user, perm, obj, permission_map):
+    """Manages the permissions for a specific type of object"""
     
     
     # the backend does not manage this kind of permissions
@@ -37,12 +37,22 @@ class CodedocPermissionBackend(object):
     # returning False will continue the iteration over the permission backends
     raise PermissionDenied
   
-  def _populate_permissions(self,user, perm, obj, permission_map):
-    return set()
+  def _populate_permissions(self, user, obj, permission_map):
+    
+    permission_set = set()
+    
+    for codename, object_attribute in permission_map.items():
+      
+      func = getattr(obj, object_attribute, None)
+      if func is None:
+        continue
+    
+      if(func(user_obj)):
+        permission_set.add(codename)
+        
+    return permission_set
   
   
-  def _manage_project_permissions(self, user, perm, obj):
-    """Manages the permissions of a specific project."""
   
   def has_perm(self, user_obj, perm, obj=None):
     if(obj is None):
@@ -53,15 +63,11 @@ class CodedocPermissionBackend(object):
     
     # manage the permission for a specific project version
     if(type(obj) is ProjectVersion):
-      return self._manage_permissions(user_obj, perm, obj, version_permission_map)
-      
-      
-      
-    
+      return self._manage_has_permissions(user_obj, perm, obj, version_permission_map)
     
     # manage the permission for a specific project
     if(type(obj) is Project):
-      return self._manage_permissions(user_obj, perm, obj, project_permission_map)
+      return self._manage_has_permissions(user_obj, perm, obj, project_permission_map)
     
     
     # we do not manage permission for other type of objects
@@ -73,6 +79,8 @@ class CodedocPermissionBackend(object):
     if(obj is None):
       return set()
     
+    permissions = set()
+    for map_perms in [self.version_permission_map, self.project_permission_map]:
+      permissions.update(self._populate_permissions(user, obj, map_perms))
     
-    
-    return set()
+    return permissions

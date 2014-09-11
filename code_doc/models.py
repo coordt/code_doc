@@ -7,6 +7,9 @@ from django.contrib.auth.models import AbstractUser, Group
 from django.conf import settings
 from django.core.urlresolvers import reverse
 
+from django.template.defaultfilters import slugify
+
+
 # Create your models here.
 
 class Author(models.Model):
@@ -60,6 +63,7 @@ class Project(models.Model):
   short_description = models.TextField('short description of the project (200 chars)', max_length = 200, blank = True, null = True)
   description_mk  = models.TextField('text in Markdown', max_length=2500, blank=True, null=True)
   icon            = models.ImageField(blank=True, null=True, upload_to='project_icons/')
+  slug            = models.SlugField()
   
   authors         = models.ManyToManyField(Author)
   
@@ -110,6 +114,7 @@ class Project(models.Model):
       self.description_mk = ''
     import markdown
     self.description = markdown.markdown(self.description_mk)
+    self.slug = slugify(self.name)
     super(Project, self).save(*args, **kwargs) # Call the "real" save() method.
 
   
