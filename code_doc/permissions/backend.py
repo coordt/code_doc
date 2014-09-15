@@ -18,6 +18,11 @@ class CodedocPermissionBackend(object):
     #_project_permission_prefix + '.project_view' : 'project_view',
     _project_permission_prefix + '.project_administrate' : 'has_project_administrate_permissions',}
   
+  
+  def authenticate(self, **credentials):
+    """Does not manage any authentication"""
+    return None
+  
   def _manage_has_permissions(self, user, perm, obj, permission_map):
     """Manages the permissions for a specific type of object"""
     
@@ -32,7 +37,8 @@ class CodedocPermissionBackend(object):
       return True
     
     # returning False will continue the iteration over the permission backends
-    raise PermissionDenied
+    return False
+    #raise PermissionDenied
   
   def _populate_permissions(self, user, obj, permission_map):
     
@@ -44,7 +50,7 @@ class CodedocPermissionBackend(object):
       if func is None:
         continue
     
-      if(func(user_obj)):
+      if(func(user)):
         permission_set.add(codename)
         
     return permission_set
@@ -53,7 +59,7 @@ class CodedocPermissionBackend(object):
   
   def has_perm(self, user_obj, perm, obj=None):
     if(obj is None):
-      raise PermissionDenied
+      return False
     
     if not user_obj.is_active:
       return False

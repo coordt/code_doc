@@ -64,7 +64,7 @@ class DecoratorSimpleTest(TestCase):
     # user2 is not admin of this project
     user2 = User.objects.create_user(username='user2', password='user2')
     
-    @permission_required_on_object(('code_doc.project_administrate',), self.project_getter)
+    @permission_required_on_object(('code_doc.project_administrate',), self.project_getter, raise_exception = True)
     def toto_func(request):
       return True
     

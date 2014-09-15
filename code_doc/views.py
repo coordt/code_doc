@@ -103,10 +103,11 @@ class PermissionOnObjectViewMixin(object):
   @classmethod
   def as_view(cls, **initkwargs):
     view = super(PermissionOnObjectViewMixin, cls).as_view(**initkwargs)
+    print "as view", cls, initkwargs
     return view#permission_required_on_object(view, lambda x: True)
 
 
-class ProjectView(DetailView):
+class ProjectView(PermissionOnObjectViewMixin, DetailView):
   """Detailed view of a specific project. The view contains all revisions."""
   
   model         = Project

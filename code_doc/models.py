@@ -56,6 +56,20 @@ class Topic(models.Model):
     self.description = markdown.markdown(self.description_mk)
     super(Topic, self).save() # Call the "real" save() method.
 
+def manage_permission_on_object(userobj, user_permissions, group_permissions):
+  # no permission has been set, so no restriction by default
+  if user_permissions.count() == 0 and group_permissions.count() == 0:
+    return True
+    
+  if user_permissions.filter(id=userobj.id).count() > 0:
+    print userobj, "permissions", user_permissions.filter(id=userobj.id).all()
+    return True
+  
+  print 'group permissions', group_permissions.filter(id__in=[g.id for g in userobj.groups.all()]).all()
+  return group_permissions.filter(id__in=[g.id for g in userobj.groups.all()]).count() > 0
+  #return len(set(userobj.groups) & set(group_permissions.all())) > 0
+
+
 class Project(models.Model):
   """A project, may contain several authors"""
   name            = models.CharField(max_length=50, unique=True)
@@ -117,8 +131,9 @@ class Project(models.Model):
     self.slug = slugify(self.name)
     super(Project, self).save(*args, **kwargs) # Call the "real" save() method.
 
-  
 
+
+ 
 class ProjectVersion(models.Model):
   """A version of a project comes with several artifacts"""
   project         = models.ForeignKey(Project, related_name = "versions")
@@ -129,14 +144,17 @@ class ProjectVersion(models.Model):
   description_mk  = models.TextField('Description in Markdown format', max_length=200, blank=True, null=True)
 
   # the users and groups allowed to view the artifacts of the revision and also this project version
-  view_users   = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, null=True)
-  view_groups  = models.ManyToManyField(Group, blank=True, null=True)
+  view_users   = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, null=True, related_name = 'view_users')
+  view_groups  = models.ManyToManyField(Group, blank=True, null=True, related_name = 'view_groups')
+
+  view_artifacts_users = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, null=True, related_name = 'view_artifact_users')
+  view_artifacts_groups = models.ManyToManyField(Group, blank=True, null=True, related_name = 'view_artifact_groups')
 
   class Meta:
     unique_together = (("project", "version"), )
     permissions = (
-      ("version_view",  "Can see stored artifacts"),
-      ("version_artifacts_view",    "Can see the content of the revision"),
+      ("version_view",  "User of group has access to this revision"),
+      ("version_artifacts_view",    "User or group has access to the artifacts of this revision. This is a refinement of version_view"),
       ) 
 
   def __unicode__(self):
@@ -147,12 +165,13 @@ class ProjectVersion(models.Model):
   
   def has_user_view_permission(self, userobj):
     """Returns true if the user has view permission on this version, False otherwise"""
-    
-    return True
+    return manage_permission_on_object(userobj, self.view_users, self.view_groups)
   
   def has_user_artifact_view_permission(self, userobj):
     """Returns True if the user can see the list of artifacts and the artifacts themselves for a specific version, False otherwise"""
-    return True
+    return self.has_user_view_permission(userobj) and \
+            manage_permission_on_object(userobj, self.view_artifacts_users, self.view_artifacts_groups)
+
 
   def save(self, *args, **kwargs):
     import markdown

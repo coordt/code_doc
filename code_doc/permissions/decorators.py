@@ -1,5 +1,6 @@
 
 from functools import wraps, partial
+import logging
 
 from django.conf import settings
 from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
@@ -9,6 +10,7 @@ from django.utils.encoding import force_str
 from django.shortcuts import resolve_url
 from django.utils.six.moves.urllib.parse import urlparse
 
+logger = logging.getLogger(__name__)
 
 def _user_passes_test_with_object_getter(test_func, object_getter, login_url=None, raise_exception = False, redirect_field_name=REDIRECT_FIELD_NAME):
   """
@@ -25,7 +27,8 @@ def _user_passes_test_with_object_getter(test_func, object_getter, login_url=Non
       obj = object_getter(**kwargs)
       
       if obj is None and raise_exception:
-        raise ObjectDoesNotExist
+        logger.debug('[permission decorator] object not found but PermissionDenied raised')
+        raise PermissionDenied
       
       if not obj is None:
         if test_func(request.user, obj):
