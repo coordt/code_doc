@@ -21,6 +21,7 @@ def _user_passes_test_with_object_getter(test_func, object_getter, login_url=Non
     @wraps(view_func, assigned=available_attrs(view_func))
     def _wrapped_view(request, *args, **kwargs):
       
+    
       obj = object_getter(**kwargs)
       
       if obj is None and raise_exception:

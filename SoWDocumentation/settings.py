@@ -107,6 +107,11 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.contrib.messages.context_processors.messages',
 )
 
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+    'code_doc.permissions.backend.CodedocPermissionBackend',
+    )
+
 LOGGING = {
   'version': 1,
   'disable_existing_loggers': False,

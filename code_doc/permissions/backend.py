@@ -18,20 +18,17 @@ class CodedocPermissionBackend(object):
     #_project_permission_prefix + '.project_view' : 'project_view',
     _project_permission_prefix + '.project_administrate' : 'has_project_administrate_permissions',}
   
-  
   def _manage_has_permissions(self, user, perm, obj, permission_map):
     """Manages the permissions for a specific type of object"""
     
-    
     # the backend does not manage this kind of permissions
-    if(not permission_map.has_key(perm.codename)):
+    if(not permission_map.has_key(perm)):
       return False
     
-    #assert(hasattr(obj, permission_map[perm.name]))
-    func = getattr(obj, permission_map[perm.codename], None)
+    func = getattr(obj, permission_map[perm], None)
     assert(not func is None)
     
-    if(func(user_obj)):
+    if(func(user)):
       return True
     
     # returning False will continue the iteration over the permission backends
@@ -63,11 +60,11 @@ class CodedocPermissionBackend(object):
     
     # manage the permission for a specific project version
     if(type(obj) is ProjectVersion):
-      return self._manage_has_permissions(user_obj, perm, obj, version_permission_map)
+      return self._manage_has_permissions(user_obj, perm, obj, self.version_permission_map)
     
     # manage the permission for a specific project
     if(type(obj) is Project):
-      return self._manage_has_permissions(user_obj, perm, obj, project_permission_map)
+      return self._manage_has_permissions(user_obj, perm, obj, self.project_permission_map)
     
     
     # we do not manage permission for other type of objects
