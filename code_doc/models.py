@@ -18,6 +18,7 @@ import markdown
 import tarfile
 import tempfile
 import logging
+import urllib
 
 # logger for this file
 logger = logging.getLogger(__name__)
@@ -248,6 +249,11 @@ class Artifact(models.Model):
   
   def filename(self):
     return os.path.basename(self.artifactfile.name) 
+  
+  def get_documentation_url(self):
+    """Returns the entry point of the documentation, relative to the media_root"""
+    deflate_directory = os.path.join(os.path.split(self.artifactfile.name)[0], 'deflate')
+    return urllib.pathname2url(os.path.join(deflate_directory, self.documentation_entry_file))
   
   def save(self, *args, **kwargs):
     import hashlib

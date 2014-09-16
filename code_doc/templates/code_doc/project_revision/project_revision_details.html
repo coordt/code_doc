@@ -20,6 +20,7 @@
 	        <tr>
 	          <th>Id</th>
 	          <th>Name</th>
+	          <th>Label</th>
 	          <th>MD5</th>
 	          <th>Description</th>
 	          <th>Uploaded</th>
@@ -32,9 +33,20 @@
 	        <tr>
 	          <td>{{artifact.pk}}</td>
 	          <th class="text-nowrap"><a href="{%get_media_prefix%}{{artifact.artifactfile}}">{{artifact.filename}}</a></th>
-	          <td><span style="font-family:monospace;">{{artifact.md5hash|upper}}</span></td>
+	          
+            <td>
+            {% if artifact.is_documentation %}
+              <span class="label label-info">doc</span>
+            {% endif %}
+              {% if artifact.documentation_entry_file %}
+              <a href="{%get_media_prefix%}{{artifact.get_documentation_url}}">read online</a>
+              {% endif %}
+            </td>
+            <td><small><span style="font-family:monospace;">{{artifact.md5hash|upper}}</span></small></td>
 	          <td>{{artifact.description}}</td>
 	          <td>{{artifact.upload_date|date}}</td>
+	          
+	          
 	        </tr>
 	    {%endfor%}
 	  </table>  
