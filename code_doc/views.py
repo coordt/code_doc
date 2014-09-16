@@ -100,10 +100,13 @@ class GetProjectRevisionIds(View):
 
 # just an attempt to do something 
 class PermissionOnObjectViewMixin(object):
+  
+  
+  
   @classmethod
   def as_view(cls, **initkwargs):
     view = super(PermissionOnObjectViewMixin, cls).as_view(**initkwargs)
-    print "as view", cls, initkwargs
+    #print "as view", cls, initkwargs
     return view#permission_required_on_object(view, lambda x: True)
 
 
@@ -116,31 +119,25 @@ class ProjectView(PermissionOnObjectViewMixin, DetailView):
   
   def get_context_data(self, **kwargs):
     context = super(ProjectView, self).get_context_data(**kwargs)
-    
     project = self.object
     
     context['authors']  = project.authors.all()
     context['topics']   = project.topics.all()
-    context['versions'] = [v for v in project.versions.all() if v.has_user_view_permission(self.request.user)]
+    context['versions'] = [v for v in project.versions.all() if self.request.user.has_perm('code_doc.version_view', v)]
     
+    last_update = {}
+    for v in context['versions']:
+      if not self.request.user.has_perm('code_doc.version_view', v):
+        continue
+      current_update = Artifact.objects.filter(project_version=v).order_by('upload_date').last()
+      if(not current_update is None):
+        last_update[v] = current_update.upload_date
+      else:
+        last_update[v] = None
+    
+    context['last_update'] = last_update
     return context  
-  
-#   def get(self, request, project_id):
-#     try:
-#       project = Project.objects.get(pk=project_id)
-#     except Project.DoesNotExist:
-#       raise Http404
-#     
-#     author_list = project.authors.all()
-#     topic_list  = project.topics.all()
-#     version_list  = project.versions.all()
-#     return render(
-#               request, 
-#               'code_doc/project_revision/project_details.html', 
-#               {'project': project, 
-#                'authors': author_list, 
-#                'topics': topic_list,
-#                'versions' : version_list})
+
 
   
 class ProjectListView(ListView):
@@ -159,7 +156,7 @@ class ProjectVersionAddView(PermissionOnObjectViewMixin, CreateView):
   """Generic view for adding a version into a specific project"""
   model = ProjectVersion
   template_name = "code_doc/project_revision/project_revision_add.html"
-  fields = ['version', 'description', 'release_date']
+  fields = ['version', 'description', 'release_date', 'is_public', 'view_users', 'view_groups']
   
   def get_context_data(self, **kwargs):
     """Method used for populating the template context"""
@@ -301,7 +298,7 @@ class ProjectVersionArtifactAddView(CreateView):
   """Generic view for adding a version into a specific project"""
   model = Artifact
   template_name = "code_doc/project_artifacts/project_artifact_add.html"
-  fields = ['description', 'artifactfile']
+  fields = ['description', 'artifactfile', 'is_documentation', 'documentation_entry_file', 'upload_date']
   
   def get_context_data(self, **kwargs):
     """Method used for populating the template context"""
@@ -316,7 +313,8 @@ class ProjectVersionArtifactAddView(CreateView):
       raise Http404
 
     context['project'] = current_project
-    context['version'] = current_version       
+    context['version'] = current_version
+    context['artifacts'] = current_version.artifacts.all()
     return context
 
   @method_decorator(lambda x: login_required(x, login_url=reverse_lazy('login')))

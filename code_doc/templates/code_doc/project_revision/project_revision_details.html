@@ -8,8 +8,10 @@
 {% block content %}
   <h1>{{ project.name }}</h1>
 
+  {{version.description|safe}}
   <h3>Artifacts for revision {{version.version}} {% button_add_artifact_with_permission user version %}
   </h3>
+  
 
   {% if artifacts %}
   
@@ -20,6 +22,7 @@
 	          <th>Name</th>
 	          <th>MD5</th>
 	          <th>Description</th>
+	          <th>Uploaded</th>
 	        </tr>
 	      </thead>
 	
@@ -30,7 +33,8 @@
 	          <td>{{artifact.pk}}</td>
 	          <th class="text-nowrap"><a href="{%get_media_prefix%}{{artifact.artifactfile}}">{{artifact.filename}}</a></th>
 	          <td><span style="font-family:monospace;">{{artifact.md5hash|upper}}</span></td>
-	          <td colspan="3">{{artifact.description}}</td>
+	          <td>{{artifact.description}}</td>
+	          <td>{{artifact.upload_date|date}}</td>
 	        </tr>
 	    {%endfor%}
 	  </table>  

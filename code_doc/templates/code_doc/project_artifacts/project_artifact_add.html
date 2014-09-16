@@ -1,6 +1,6 @@
 {% extends "code_doc/base_template.html" %}
 {% load gravatar %}
-{% load staticfiles %}
+{% load static %}
 {% load author_image %}
 {% load button_add_with_permission %}
 
@@ -8,12 +8,49 @@
 
 
 {% block content %}
+
+  {% if form.errors %} 
+    <div class="alert alert-danger" role="alert">The following error occurred with your submission {{form.errors}}</div>
+  {% endif %}
+
+
   <h1>{{ project.name }}</h1>
 
-  <p>You are uploading a file for the version "{{version.version|title}}". This version contains already the following files:</p> 
-  {% if form.errors %} 
-    <div class="alert alert-danger" role="alert">Sorry, that's not a valid blablabla {{form.errors}}</div>
+  <p>You are uploading a file for the version "{{version.version|title}}".</p>
+  {% if artifacts %}
+    <p>This version contains already the following artifacts:</p>
+    <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Visibility</th>
+            <th>Uploaded</th>
+          </tr>
+        </thead>
+  
+      {% for artifact in artifacts %}
+      
+        <tbody>
+          <tr>
+            <th class="text-nowrap"><a href="{%get_media_prefix%}{{artifact.artifactfile}}">{{artifact.filename}}</a></th>
+            <td>
+            {% if version.is_public %}
+              <span class="label label-success">Public</span>
+            {% else %}
+              <span class="label label-warning">Restricted</span>
+            {% endif %}</td>
+            <td>{{artifact.upload_date|date}}</td>
+          </tr>
+      {%endfor%}
+    </table>    
+  
+
+  
+  {% else %}
+      <p>This version contains no artifacts.</p>
   {% endif %}
+  
+   
 
 <form enctype="multipart/form-data" action="" method="post">{% csrf_token %}
     {{ form.as_p }}

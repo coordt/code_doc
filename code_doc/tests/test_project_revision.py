@@ -40,13 +40,23 @@ class ProjectRevisionsTest(TestCase):
     self.assertEqual(response.status_code, 200)
     self.assertEqual(len(response.context['versions']), 0)
     
-  def test_project_revision_create_new(self):
-    """Test the creation of a new project version"""
+  def test_project_revision_create_new_no_public(self):
+    """Test the creation of a new project version, with non public visibility"""
     
     new_version = ProjectVersion.objects.create(version="1234", project = self.project, release_date = datetime.datetime.now())    
     response = self.client.get(reverse(self.path, args=[self.project.id]))
     self.assertEqual(response.status_code, 200)
+    self.assertEqual(len(response.context['versions']), 0)
+    self.assertEqual(len(response.context['versions']), len(response.context['last_update']))
+
+  def test_project_revision_create_new_public(self):
+    """Test the creation of a new project version, with public visibility"""
+    
+    new_version = ProjectVersion.objects.create(version="1234", project = self.project, release_date = datetime.datetime.now(), is_public=True)    
+    response = self.client.get(reverse(self.path, args=[self.project.id]))
+    self.assertEqual(response.status_code, 200)
     self.assertEqual(len(response.context['versions']), 1)
+    self.assertEqual(len(response.context['versions']), len(response.context['last_update']))
   
   
   def test_project_revision_addview(self):
@@ -83,7 +93,7 @@ class ProjectRevisionsTest(TestCase):
   def test_version_view_no_restricted_version(self):
     """Test permission on versions that has no restriction"""
     
-    new_version = ProjectVersion.objects.create(version="1234", project = self.project, release_date = datetime.datetime.now())    
+    new_version = ProjectVersion.objects.create(version="1234", project = self.project, release_date = datetime.datetime.now(), is_public=True)    
     current_permission = 'code_doc.version_view'
     
     

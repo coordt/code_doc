@@ -72,22 +72,23 @@
   <h3>Versions {% button_add_version_with_permission user project %}
   </h3>
 
-  {% if versions %}
+  {% if last_update %}
   
     <table class="table table-hover">
         <thead>
           <tr>
             <th>Version</th>
-            <th>Visbility</th>
+            <th>Visibility</th>
             <th>Release date</th>
             <th># files</th>
+            <th>Last updated</th>
             <th>Description</th>
             
           </tr>
         </thead>
   
-      {% for version in versions %}
-      
+      {% for version, current_last_update in last_update.items %}
+
         <tbody>
           <tr>
             <th class="text-nowrap"><a href="{% url 'project_revision' project.id version.id %}" >{{ version.version }}</a></th>
@@ -99,9 +100,13 @@
             {% endif %}</td>
             <td>{{ version.release_date }}</td>
             <td>{{ version.artifacts.count }}</td>
+            <td>{{ current_last_update|date }}</td>
             <td>{{ version.description|safe }}</td>
           </tr>
+         <tbody>
+
       {%endfor%}
+      
     </table>    
   
 

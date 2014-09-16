@@ -5,10 +5,10 @@
 
 
 {% block content %}
-  <h1>Topic "{{ topic.name|title }}"</h1>
+  <h1>{{ topic.name|title }}</h1>
   <p>{{ topic.description|safe }}</p>
   
-  <h2>Projects</h2>
+  <h3>Projects</h3>
   {% if topic.project_set %}
     <ul class="media-list">
       {% for project in topic.project_set.all %}
@@ -32,6 +32,6 @@
     <p>No associated project</p>
   {% endif %}
   
-  <h2>Related topics</h2>
+  <h3>Related topics</h3>
 
 {% endblock %}

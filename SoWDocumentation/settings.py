@@ -152,6 +152,11 @@ LOGGING = {
           'level': 'DEBUG',
           'propagate': True,
       },  
+      'code_doc.models': {
+          'handlers': ['console'],
+          'level': 'DEBUG',
+          'propagate': True,
+      },  
   },
 }
 

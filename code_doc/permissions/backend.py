@@ -61,8 +61,10 @@ class CodedocPermissionBackend(object):
     if(obj is None):
       return False
     
-    if not user_obj.is_active:
-      return False
+    # This is delegated to the object itself, otherwise anonymous users won't get access to public objects
+    #if not user_obj.is_active:
+    #  print "User not active"
+    #  return False
     
     # manage the permission for a specific project version
     if(type(obj) is ProjectVersion):

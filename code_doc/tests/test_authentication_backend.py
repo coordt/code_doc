@@ -13,6 +13,7 @@ from code_doc.models import Project, Author, ProjectVersion
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 from django.contrib.auth.models import Group
+from django.contrib.auth.models import AnonymousUser
 
 from django.core.urlresolvers import reverse
 
@@ -79,7 +80,25 @@ class PermissionBackendTest(TestCase):
     self.assertNotIn('code_doc.project_administrate', user2.get_all_permissions(self.project))
     self.assertNotIn('code_doc.project_administrate', user2.get_all_permissions())
     
+  def test_anonymous_user_permission_non_public_object(self):
+    anon_user = AnonymousUser()
+    
+    # anon user cannot administrate
+    self.assertFalse(anon_user.has_perm('code_doc.project_administrate', self.project))
+    
+    # anon user cannot access non-public versions
+    self.assertFalse(anon_user.has_perm('code_doc.version_view', self.new_version))
 
+
+  def test_anonymous_user_permission_public_object(self):
+    anon_user = AnonymousUser()
+    
+    public_version = ProjectVersion.objects.create(version="public", 
+                                                   project = self.project, 
+                                                   release_date = datetime.datetime.now(), 
+                                                   is_public = True)
+    # anon user cannot access non-public versions
+    self.assertTrue(anon_user.has_perm('code_doc.version_view', public_version))
 
     
 
