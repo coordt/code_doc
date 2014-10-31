@@ -2,7 +2,7 @@ from django.db import models
 import datetime
 import os
 
-from django.contrib.auth.admin import UserAdmin
+#from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import AbstractUser, Group
 
 from django.core.urlresolvers import reverse
@@ -168,7 +168,7 @@ class ProjectVersion(models.Model):
     unique_together = (("project", "version"), )
     permissions = (
       ("version_view",  "User of group has access to this revision"),
-      ("version_artifacts_view",    "User or group has access to the artifacts of this revision. This is a refinement of version_view"),
+      ("version_artifacts_view",  "Access to the artifacts of this revision"), #. This is a refinement of version_view
       ) 
 
   def __unicode__(self):
