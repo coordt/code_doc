@@ -37,7 +37,7 @@
       {% if user.is_authenticated %}
       <ul class="nav navbar-nav">
         <li class="dropdown">
-          <a class="dropdown-toggle" data-toggle="dropdown" href="#">{{ user.username }} <span class="caret"></span></a>
+          <a class="dropdown-toggle" data-toggle="dropdown" href="#">{{ user.username | title}} <span class="caret"></span></a>
           <ul class="dropdown-menu" role="menu">
             <li><a href="{% url 'maintainer' %}">Profile</a></li>
             <li class="divider"></li>
