@@ -1,9 +1,6 @@
 from django.conf.urls import patterns, url
 from django.contrib.auth.views import login, logout
 
-from rest_framework import generics
-
-
 from code_doc import views
 
 

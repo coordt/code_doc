@@ -41,7 +41,7 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
       fields['description'] = "revision from client based application"
   
       files = []
-      files.append(('artifactfile', f.name))
+      files.append(('artifactfile', f)) # send the descriptor as in Windows it is not possible to reopen a temporary file based on its name
   
       ret = post_multipart(self.live_server_url, 
                            '/code_doc/project/%d/%d/add' % (self.project.id, self.version.id), 
@@ -70,7 +70,9 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
       fields['description'] = "revision from client based application"
   
       files = []
-      files.append(('artifactfile', f.name))
+      
+      # see remarks in test test_send_new_file
+      files.append(('artifactfile', f))
       
       instance = PostMultipartWithSession(host=self.live_server_url)
       

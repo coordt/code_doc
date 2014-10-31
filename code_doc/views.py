@@ -15,6 +15,7 @@ from django.utils.decorators import method_decorator
 from django.views.generic.base import RedirectView
 from django.views.generic.base import View
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
+from django.views.generic.detail import DetailView
 from django.views.generic.detail import SingleObjectMixin
 from django.views.generic import ListView
 
@@ -24,13 +25,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from django.core.files import File
 
-
-from rest_framework.renderers import JSONRenderer
-from rest_framework.parsers import JSONParser, FileUploadParser
-from rest_framework.views import APIView
-
-
-
+from code_doc.permissions.decorators import permission_required_on_object
 
 
 
@@ -81,7 +76,7 @@ class MaintainerProfileView(View):
     pass
 
 class GetProjectRevisionIds(View):
-
+  """A view returning a json definition of the project"""
   def render_to_json_response(self, context, **response_kwargs):
     data = json.dumps(context)
     response_kwargs['content_type'] = 'application/json'
@@ -97,24 +92,46 @@ class GetProjectRevisionIds(View):
 
 
 
-class ProjectView(View):
+# just an attempt to do something 
+class PermissionOnObjectViewMixin(object):
+  
+  
+  
+  @classmethod
+  def as_view(cls, **initkwargs):
+    view = super(PermissionOnObjectViewMixin, cls).as_view(**initkwargs)
+    #print "as view", cls, initkwargs
+    return view#permission_required_on_object(view, lambda x: True)
+
+
+class ProjectView(PermissionOnObjectViewMixin, DetailView):
   """Detailed view of a specific project. The view contains all revisions."""
-  def get(self, request, project_id):
-    try:
-      project = Project.objects.get(pk=project_id)
-    except Project.DoesNotExist:
-      raise Http404
+  
+  model         = Project
+  pk_url_kwarg  = 'project_id'
+  template_name = 'code_doc/project_revision/project_details.html'
+  
+  def get_context_data(self, **kwargs):
+    context = super(ProjectView, self).get_context_data(**kwargs)
+    project = self.object
     
-    author_list = project.authors.all()
-    topic_list  = project.topics.all()
-    version_list  = project.versions.all()
-    return render(
-              request, 
-              'code_doc/project_revision/project_details.html', 
-              {'project': project, 
-               'authors': author_list, 
-               'topics': topic_list,
-               'versions' : version_list})
+    context['authors']  = project.authors.all()
+    context['topics']   = project.topics.all()
+    context['versions'] = [v for v in project.versions.all() if self.request.user.has_perm('code_doc.version_view', v)]
+    
+    last_update = {}
+    for v in context['versions']:
+      if not self.request.user.has_perm('code_doc.version_view', v):
+        continue
+      current_update = Artifact.objects.filter(project_version=v).order_by('upload_date').last()
+      if(not current_update is None):
+        last_update[v] = current_update.upload_date
+      else:
+        last_update[v] = None
+    
+    context['last_update'] = last_update
+    return context  
+
 
   
 class ProjectListView(ListView):
@@ -129,11 +146,11 @@ class ProjectListView(ListView):
   
   
 
-class ProjectVersionAddView(CreateView):
+class ProjectVersionAddView(PermissionOnObjectViewMixin, CreateView):
   """Generic view for adding a version into a specific project"""
   model = ProjectVersion
   template_name = "code_doc/project_revision/project_revision_add.html"
-  fields = ['version', 'description', 'release_date']
+  fields = ['version', 'description', 'release_date', 'is_public', 'view_users', 'view_groups']
   
   def get_context_data(self, **kwargs):
     """Method used for populating the template context"""
@@ -275,7 +292,7 @@ class ProjectVersionArtifactAddView(CreateView):
   """Generic view for adding a version into a specific project"""
   model = Artifact
   template_name = "code_doc/project_artifacts/project_artifact_add.html"
-  fields = ['description', 'artifactfile']
+  fields = ['description', 'artifactfile', 'is_documentation', 'documentation_entry_file', 'upload_date']
   
   def get_context_data(self, **kwargs):
     """Method used for populating the template context"""
@@ -290,7 +307,8 @@ class ProjectVersionArtifactAddView(CreateView):
       raise Http404
 
     context['project'] = current_project
-    context['version'] = current_version       
+    context['version'] = current_version
+    context['artifacts'] = current_version.artifacts.all()
     return context
 
   @method_decorator(lambda x: login_required(x, login_url=reverse_lazy('login')))
@@ -397,51 +415,4 @@ def detail_author(request, author_id):
              'author': author, 
              'coauthor_list': coauthor_list})
 
-
-
-# class FileUploadView(APIView):
-#   # works with 
-#   # curl -X PUT --data-binary @manage.py http://localhost:8000/code_doc/api/artifact/1/titi.html
-#   parser_classes = (FileUploadParser,)
-# 
-#   def put(self, request, project_id, project_version_id, filename, format=None):
-#     import hashlib
-#     file_obj = request.FILES['file']
-#     # ...
-#     # do some staff with uploaded file
-#     # ...
-#     
-#     
-#     
-#     filecontent = file_obj.read()#self.parse(file_obj)#request.read()#
-#     with file('/Users/raffi/tmp/toto.py', 'wb') as f:
-#       f.write(filecontent)
-# 
-#     m = hashlib.md5(filecontent).hexdigest()
-# 
-#     
-#     return HttpResponse("Created file %s with the following content\n<br>MD5: %s<br><br>%s" % (filename, m, filecontent.replace('\r', '<br>')))
-#     return Response(status=204)
-#   
-#   # works with 
-#   # curl -X POST --data filename=toto.yoyo --data-urlencode filecontent@manage.py  http://localhost:8000/code_doc/api/artifact/1/ 
-#   def post(self, request, project_id, project_version_id, format=None):
-#     import hashlib
-#     filename = request.DATA['filename']
-#     filecontent = request.DATA['filecontent']
-#     # ...
-#     # do some staff with uploaded file
-#     # ...
-#     
-#     
-#     
-#     #filecontent = file_obj.read()#self.parse(file_obj)#request.read()#
-#     with file('/Users/raffi/tmp/toto.py', 'wb') as f:
-#       f.write(filecontent)
-# 
-#     m = hashlib.md5(filecontent).hexdigest()
-# 
-#     
-#     return HttpResponse("Created file %s with the following content\n<br>MD5: %s<br><br>%s" % (filename, m, filecontent.replace('\r', '<br>')))
-#     return Response(status=204)
 

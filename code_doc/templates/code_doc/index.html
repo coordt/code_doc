@@ -1,21 +1,14 @@
+{% extends "code_doc/base_template.html" %}
+{% load gravatar %}
 {% load staticfiles %}
 {% load static %}
 {% load project_image %}
 
-<!DOCTYPE html>
-
-<html>
-  <head>
-    <link rel="stylesheet" href="{% static "bootstrap-3.2.0-dist/css/bootstrap.min.css"  %}">
-    <link rel="stylesheet" href="{% static "bootstrap-3.2.0-dist/css/bootstrap-theme.min.css" %}">
-    <script language="javascript" type="text/javascript" src="{% static "bootstrap-3.2.0-dist/js/bootstrap.min.js" %}"></script>
-  </head>
-
-  <body>
+{% block title %}MPI.IS documentation and download center{% endblock %}
 
 
 
-
+{% block content %}
   <div class="jumbotron">
     <h1>Documentation and download center</h1>
     <h3>Software workshop</h3>
@@ -80,5 +73,6 @@
   
 
   </div>
-  </body>
-</html>
+  
+
+{% endblock %}

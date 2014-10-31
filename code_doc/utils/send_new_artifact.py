@@ -136,10 +136,16 @@ class PostMultipartWithSession(object):
         buf.write('--%s\r\n' % BOUNDARY)
         buf.write('Content-Disposition: form-data; name="%s"' % key)
         buf.write('\r\n\r\n' + value + '\r\n')
-      for (key, filename_to_add) in files:
-        fd = open(filename_to_add, 'rb')
-        filename = os.path.basename(filename_to_add)
-        contenttype = mimetypes.guess_type(filename_to_add)[0] or 'application/octet-stream'
+      for (key, filename_to_add_or_file_descriptor) in files:
+        
+        if(type(filename_to_add_or_file_descriptor) is types.StringType or type(filename_to_add_or_file_descriptor) is types.UnicodeType):  
+          fd = open(filename_to_add_or_file_descriptor, 'rb')
+          filename = os.path.basename(filename_to_add_or_file_descriptor)
+          contenttype = mimetypes.guess_type(filename_to_add_or_file_descriptor)[0] or 'application/octet-stream'
+        else:
+          fd = filename_to_add_or_file_descriptor
+          filename = filename_to_add_or_file_descriptor.name
+          contenttype = 'application/octet-stream' # we cannot be more precise here
         buf.write('--%s\r\n' % BOUNDARY)
         buf.write('Content-Disposition: form-data; name="%s"; filename="%s"\r\n' % (key, filename))
         buf.write('Content-Type: %s\r\n' % contenttype)
@@ -317,10 +323,17 @@ def encode_multipart_formdata(fields, files):
       buf.write('--%s\r\n' % BOUNDARY)
       buf.write('Content-Disposition: form-data; name="%s"' % key)
       buf.write('\r\n\r\n' + value + '\r\n')
-    for (key, filename_to_add) in files:
-      fd = open(filename_to_add, 'rb')
-      filename = os.path.basename(filename_to_add)
-      contenttype = mimetypes.guess_type(filename_to_add)[0] or 'application/octet-stream'
+    for (key, filename_to_add_or_file_descriptor) in files:
+      
+      if(type(filename_to_add_or_file_descriptor) is types.StringType or type(filename_to_add_or_file_descriptor) is types.UnicodeType):  
+        fd = open(filename_to_add_or_file_descriptor, 'rb')
+        filename = os.path.basename(filename_to_add_or_file_descriptor)
+        contenttype = mimetypes.guess_type(filename_to_add_or_file_descriptor)[0] or 'application/octet-stream'
+      else:
+        fd = filename_to_add_or_file_descriptor
+        filename = filename_to_add_or_file_descriptor.name
+        contenttype = 'application/octet-stream' # we cannot be more precise here
+
       buf.write('--%s\r\n' % BOUNDARY)
       buf.write('Content-Disposition: form-data; name="%s"; filename="%s"\r\n' % (key, filename))
       buf.write('Content-Type: %s\r\n' % contenttype)

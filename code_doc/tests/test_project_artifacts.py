@@ -1,17 +1,23 @@
 from django.test import TestCase
 from django.db import IntegrityError
 
-import datetime
+
 
 # Create your tests here.
 from django.test import Client
-from code_doc.models import Project, Author, ProjectVersion
+from code_doc.models import Project, Author, ProjectVersion, Artifact
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
+from django.core.files import File
 
 from django.core.urlresolvers import reverse
 
+from django.conf import settings
 
+import tempfile
+import tarfile
+import os
+import datetime
 
 
 class ProjectVersionArtifactTest(TestCase):
@@ -35,7 +41,7 @@ class ProjectVersionArtifactTest(TestCase):
     self.imgfile      = StringIO.StringIO('GIF87a\x01\x00\x01\x00\x80\x01\x00\x00\x00\x00ccc,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;')
     self.imgfile.name = 'test_img_file.gif'
 
-  def test_uniqueness(self):
+  def test_version_uniqueness(self):
     with self.assertRaises(IntegrityError):
       new_version = ProjectVersion.objects.create(version="12345", project = self.project, release_date = datetime.datetime.now())
     
@@ -119,3 +125,31 @@ class ProjectVersionArtifactTest(TestCase):
     self.assertEqual(response.status_code, 200)
     self.assertEqual(response.content, hashlib.md5(self.imgfile.getvalue()).hexdigest())
     self.assertEqual(self.new_version.artifacts.count(), 1)    
+
+
+  def test_create_documentation_artifact(self):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+    
+    with tempfile.NamedTemporaryFile(dir=settings.USER_UPLOAD_TEMPORARY_STORAGE, suffix='.tar.bz2') as f:
+      # create a temporary tar object
+      tar = tarfile.open(fileobj=f, mode='w:bz2')
+      
+      from inspect import getsourcefile
+      source_file = getsourcefile(lambda _: None)
+      
+      tar.add(os.path.abspath(source_file), arcname=os.path.basename(source_file))
+      tar.close()
+      
+      f.seek(0)
+      test_file = SimpleUploadedFile('filename.tar.bz2', f.read())
+      
+      
+      new_artifact = Artifact.objects.create(
+                        project_version=self.new_version,
+                        md5hash = '1',
+                        description = 'test artifact',
+                        is_documentation = True,
+                        documentation_entry_file = os.path.basename(__file__),
+                        artifactfile = test_file)
+      
+      new_artifact.save()

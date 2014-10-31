@@ -48,6 +48,7 @@ ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 ADMINS = (('Raffi Enficiaud', 'raffi.enficiaud@tuebingen.mpg.de'), )
 
 
+LOGIN_URL = "/code_doc/accounts/login/"
 LOGIN_REDIRECT_URL = "/code_doc"
 
 # Email address that error messages come from.
@@ -83,7 +84,6 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'code_doc',
-    'rest_framework',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -105,6 +105,11 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.core.context_processors.request', # this one is missing by default
     'django.contrib.messages.context_processors.messages',
 )
+
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+    'code_doc.permissions.backend.CodedocPermissionBackend',
+    )
 
 LOGGING = {
   'version': 1,
@@ -142,6 +147,11 @@ LOGGING = {
           'propagate': True,
       },  
       'code_doc.templatetags.button_add_with_permission': {
+          'handlers': ['console'],
+          'level': 'DEBUG',
+          'propagate': True,
+      },  
+      'code_doc.models': {
           'handlers': ['console'],
           'level': 'DEBUG',
           'propagate': True,

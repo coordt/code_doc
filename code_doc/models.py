@@ -2,12 +2,27 @@ from django.db import models
 import datetime
 import os
 
-from django.contrib.auth.admin import UserAdmin
-from django.contrib.auth.models import AbstractUser
-from django.conf import settings
+#from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.models import AbstractUser, Group
+
 from django.core.urlresolvers import reverse
 
-# Create your models here.
+from django.template.defaultfilters import slugify
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+
+from django.conf import settings
+
+import markdown
+import tarfile
+import tempfile
+import logging
+import urllib
+
+# logger for this file
+logger = logging.getLogger(__name__)
+
 
 class Author(models.Model):
   """An author, may appear in several projects, and is not someone that is allowed to login 
@@ -47,11 +62,28 @@ class Topic(models.Model):
     return "%s" %(self.name)
 
   def save(self, *args, **kwargs):
-    import markdown
     if self.description_mk is None:
       self.description_mk = ''
     self.description = markdown.markdown(self.description_mk)
     super(Topic, self).save() # Call the "real" save() method.
+
+def manage_permission_on_object(userobj, user_permissions, group_permissions, default = None):
+  if userobj.is_superuser:
+    return True
+  
+  if not userobj.is_active:
+    return default if not default is None else True
+  
+  # no permission has been set, so no restriction by default
+  if user_permissions.count() == 0 and group_permissions.count() == 0:
+    return default if not default is None else True
+    
+  if user_permissions.filter(id=userobj.id).count() > 0:
+    return True
+  
+  return group_permissions.filter(id__in=[g.id for g in userobj.groups.all()]).count() > 0
+
+
 
 class Project(models.Model):
   """A project, may contain several authors"""
@@ -60,10 +92,11 @@ class Project(models.Model):
   short_description = models.TextField('short description of the project (200 chars)', max_length = 200, blank = True, null = True)
   description_mk  = models.TextField('text in Markdown', max_length=2500, blank=True, null=True)
   icon            = models.ImageField(blank=True, null=True, upload_to='project_icons/')
+  slug            = models.SlugField()
   
   authors         = models.ManyToManyField(Author)
   
-  # the administrators of the project
+  # the administrators of the project, have the rights to edit the 
   administrators  = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, null=True)
   
   home_page_url   = models.CharField(max_length=250, null=True, blank=True)
@@ -75,14 +108,26 @@ class Project(models.Model):
 
   def __unicode__(self):
     return "%s" %(self.name)
+
+  class Meta:
+    permissions = (
+      ("project_view",  "Can see the project"),
+      ("project_administrate",  "Can administrate the project"),
+      ) 
+
+  def has_project_administrate_permissions(self, user):
+    """Returns true if the user is able to administrate a project"""
+    return user.is_superuser or user in self.administrators.all()
+
   
   def has_version_add_permissions(self, user):
     """Returns true if the user is able to add version to the current project"""
-    return user.is_superuser or user in self.administrators.all()
+    return self.has_project_administrate_permissions(user)
 
   def has_artifact_add_permissions(self, user):
     """Returns true if the user is able to add version to the current project"""
-    return user.is_superuser or user in self.administrators.all()
+    return self.has_project_administrate_permissions(user)
+  
 
   def get_number_of_files(self):
     """Returns the number of files archived for a project"""
@@ -96,32 +141,56 @@ class Project(models.Model):
   def save(self, *args, **kwargs):
     if self.description_mk is None:
       self.description_mk = ''
-    import markdown
     self.description = markdown.markdown(self.description_mk)
+    self.slug = slugify(self.name)
     super(Project, self).save(*args, **kwargs) # Call the "real" save() method.
 
-  
 
+
+ 
 class ProjectVersion(models.Model):
   """A version of a project comes with several artifacts"""
   project         = models.ForeignKey(Project, related_name = "versions")
   version         = models.CharField(max_length=500) # can be a hash
-  release_date    = models.DateField('version release date')
+  release_date    = models.DateField('Release date')
   is_public       = models.BooleanField(default=False)
-  description     = models.TextField('description of the release', max_length=500) # the description of the content
+  description     = models.TextField('Description of the version', max_length=500) # the description of the content
   description_mk  = models.TextField('Description in Markdown format', max_length=200, blank=True, null=True)
 
+  # the users and groups allowed to view the artifacts of the revision and also this project version
+  view_users   = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, null=True, related_name = 'view_users')
+  view_groups  = models.ManyToManyField(Group, blank=True, null=True, related_name = 'view_groups')
+
+  view_artifacts_users = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, null=True, related_name = 'view_artifact_users')
+  view_artifacts_groups = models.ManyToManyField(Group, blank=True, null=True, related_name = 'view_artifact_groups')
+
   class Meta:
-    unique_together = (("project", "version"), ) 
+    unique_together = (("project", "version"), )
+    permissions = (
+      ("version_view",  "User of group has access to this revision"),
+      ("version_artifacts_view",  "Access to the artifacts of this revision"), #. This is a refinement of version_view
+      ) 
 
   def __unicode__(self):
     return "[%s @ %s] [%s]" %(self.project.name, self.version, self.release_date)
 
   def get_absolute_url(self):
     return reverse('project_revision', kwargs={'project_id' : self.project.pk, 'version_id': self.pk})
+  
+  def has_user_view_permission(self, userobj):
+    """Returns true if the user has view permission on this version, False otherwise"""
+    return  self.is_public or \
+            self.project.has_project_administrate_permissions(userobj) or \
+            manage_permission_on_object(userobj, self.view_users, self.view_groups, False)
+  
+  def has_user_artifact_view_permission(self, userobj):
+    """Returns True if the user can see the list of artifacts and the artifacts themselves for a specific version, False otherwise"""
+    return  self.is_public or \
+            (self.has_user_view_permission(userobj) and \
+             manage_permission_on_object(userobj, self.view_artifacts_users, self.view_artifacts_groups, False))
+
 
   def save(self, *args, **kwargs):
-    import markdown
     if self.description_mk is None:
       self.description_mk = ''
     self.description = markdown.markdown(self.description_mk)
@@ -130,16 +199,42 @@ class ProjectVersion(models.Model):
 
 def get_artifact_location(instance, filename):
   """An helper function to specify the storage location of an uploaded file"""
-  return os.path.join("artifacts", instance.project_version.project.name, instance.project_version.version, filename)
+  def is_int(elem):
+    try:
+      return True, int(elem)
+    except ValueError, e:
+      return False, 0
   
+  media_relative_dir = os.path.join("artifacts", instance.project_version.project.name, instance.project_version.version)
+  root_dir = os.path.join(settings.MEDIA_ROOT, media_relative_dir)
+  
+  if os.path.exists(root_dir):
+    
+    dir_content = [v[1] for v in map(is_int, os.listdir(root_dir)) if v[0]]
+    dir_content.sort()
+    last_element = (dir_content[-1] + 1) if len(dir_content) > 0 else 1
+  else:
+    last_element = 1
+  
+  if not os.path.exists(os.path.join(settings.MEDIA_ROOT, media_relative_dir, str(last_element))):
+    os.makedirs(os.path.join(settings.MEDIA_ROOT, media_relative_dir, str(last_element)))
+  
+  return os.path.join(media_relative_dir, str(last_element), filename)
 
 
 class Artifact(models.Model):
   """An artifact is a downloadable file"""
-  project_version = models.ForeignKey(ProjectVersion, related_name = "artifacts")
-  md5hash         = models.CharField(max_length=1024) # md5 hash 
-  description     = models.TextField('description of the artifact', max_length=1024)
-  artifactfile    = models.FileField(upload_to=get_artifact_location)
+  project_version           = models.ForeignKey(ProjectVersion, related_name = "artifacts")
+  md5hash                   = models.CharField(max_length=1024) # md5 hash 
+  description               = models.TextField('description of the artifact', max_length=1024)
+  artifactfile              = models.FileField(upload_to=get_artifact_location,
+                                               help_text='the artifact file that will be stored on the server')
+  is_documentation          = models.BooleanField(default=False, 
+                                                  help_text="Check if the artifact contains a documentation that should be processed by the server")
+  documentation_entry_file  = models.CharField(max_length=255, null=True, blank=True, 
+                                               help_text="the documentation entry file if the artifact is documentation type, relative to the root of the deflated package")
+  upload_date               = models.DateTimeField('Upload date', null=True, blank=True,
+                                               help_text='Automatic field that indicates the file upload time')
 
   def get_absolute_url(self):
     return reverse('project_revision', kwargs={'project_id' : self.project_version.project.pk, 'version_id': self.project_version.pk})
@@ -155,6 +250,11 @@ class Artifact(models.Model):
   def filename(self):
     return os.path.basename(self.artifactfile.name) 
   
+  def get_documentation_url(self):
+    """Returns the entry point of the documentation, relative to the media_root"""
+    deflate_directory = os.path.join(os.path.split(self.artifactfile.name)[0], 'deflate')
+    return urllib.pathname2url(os.path.join(deflate_directory, self.documentation_entry_file))
+  
   def save(self, *args, **kwargs):
     import hashlib
     m = hashlib.md5()
@@ -163,6 +263,34 @@ class Artifact(models.Model):
         m.update(chunk)
         
       self.md5hash = m.hexdigest()
+    
     super(Artifact, self).save(*args, **kwargs) # Call the "real" save() method.  
+
+@receiver(post_save, sender=Artifact)
+def callback_artifact_deflation_on_save(sender, instance, created, raw, **kwargs):
   
+  # we do not perform any deflation in case of database populating action 
+  if raw:
+    return
   
+  # we do not perform any action in case of save failure
+  if not created:
+    return
+  
+  # deflate if documentation
+  if instance.is_documentation:
+    if(os.path.splitext(instance.artifactfile.name)[1] in ['.tar', '.bz2', '.gz']):
+      
+      # I do not know if this one is needed in fact, it is if we are in the save method of Artifact
+      # but from here the file should be fully accessible
+      with tempfile.NamedTemporaryFile(dir=settings.USER_UPLOAD_TEMPORARY_STORAGE) as f:
+        for chunk in instance.artifactfile.chunks():
+          f.write(chunk)
+        f.seek(0)
+      
+        deflate_directory = os.path.join(settings.MEDIA_ROOT, os.path.split(instance.artifactfile.name)[0], 'deflate')
+        logger.debug('[project artifact] deflating artifact %s to %s', instance, deflate_directory)
+        tar = tarfile.open(fileobj=f)
+        tar.extractall(path = deflate_directory)
+      
+  pass
