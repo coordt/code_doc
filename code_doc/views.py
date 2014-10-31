@@ -25,12 +25,6 @@ from django.views.decorators.csrf import csrf_exempt
 
 from django.core.files import File
 
-
-from rest_framework.renderers import JSONRenderer
-from rest_framework.parsers import JSONParser, FileUploadParser
-from rest_framework.views import APIView
-
-
 from code_doc.permissions.decorators import permission_required_on_object
 
 
@@ -421,51 +415,4 @@ def detail_author(request, author_id):
              'author': author, 
              'coauthor_list': coauthor_list})
 
-
-
-# class FileUploadView(APIView):
-#   # works with 
-#   # curl -X PUT --data-binary @manage.py http://localhost:8000/code_doc/api/artifact/1/titi.html
-#   parser_classes = (FileUploadParser,)
-# 
-#   def put(self, request, project_id, project_version_id, filename, format=None):
-#     import hashlib
-#     file_obj = request.FILES['file']
-#     # ...
-#     # do some staff with uploaded file
-#     # ...
-#     
-#     
-#     
-#     filecontent = file_obj.read()#self.parse(file_obj)#request.read()#
-#     with file('/Users/raffi/tmp/toto.py', 'wb') as f:
-#       f.write(filecontent)
-# 
-#     m = hashlib.md5(filecontent).hexdigest()
-# 
-#     
-#     return HttpResponse("Created file %s with the following content\n<br>MD5: %s<br><br>%s" % (filename, m, filecontent.replace('\r', '<br>')))
-#     return Response(status=204)
-#   
-#   # works with 
-#   # curl -X POST --data filename=toto.yoyo --data-urlencode filecontent@manage.py  http://localhost:8000/code_doc/api/artifact/1/ 
-#   def post(self, request, project_id, project_version_id, format=None):
-#     import hashlib
-#     filename = request.DATA['filename']
-#     filecontent = request.DATA['filecontent']
-#     # ...
-#     # do some staff with uploaded file
-#     # ...
-#     
-#     
-#     
-#     #filecontent = file_obj.read()#self.parse(file_obj)#request.read()#
-#     with file('/Users/raffi/tmp/toto.py', 'wb') as f:
-#       f.write(filecontent)
-# 
-#     m = hashlib.md5(filecontent).hexdigest()
-# 
-#     
-#     return HttpResponse("Created file %s with the following content\n<br>MD5: %s<br><br>%s" % (filename, m, filecontent.replace('\r', '<br>')))
-#     return Response(status=204)
 
