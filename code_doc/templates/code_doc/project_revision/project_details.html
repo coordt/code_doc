@@ -45,18 +45,13 @@
 		    <ul>
 		    {% for maintainer in project.administrators.all %}
 		      <li>
-		        {{ maintainer.username }}
-		        {% if maintainer.email.size %}
-		          <a href="mailto:{{maintainer.email}}" >{{ maintainer.firstname }} {{ maintainer.lastname }} / {{maintainer.email}}</a>
-		        {% else %}
-		          (no information provided)
-		        {% endif %}
+		        <a href="{% url 'maintainer' maintainer.id %}" >{{ maintainer.username }}</a>
 		      </li>
 		    {% endfor %}
 		    </ul>
 		  
 		  {% else %}
-		      <p>No known maintainer.</p>
+		      <p>No registered maintainer.</p>
 		  {% endif %}      
       
     </div>  

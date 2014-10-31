@@ -39,7 +39,7 @@ urlpatterns = patterns('',
   url(r'^topics/(?P<topic_id>\d+)/$', views.TopicView.as_view(), name='topic'), # gives details on a specific topic
   
   # maintainers
-  url(r'^maintainer/$', views.MaintainerProfileView.as_view(), name='maintainer'),
+  url(r'^maintainer/(?P<maintainer_id>\d+)/$', views.MaintainerProfileView.as_view(), name='maintainer'),
   
   # Authors
   url(r'^authors/$', views.AuthorListView.as_view(), name='authors_list'), # lists all authors

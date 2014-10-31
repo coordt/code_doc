@@ -22,11 +22,10 @@ from django.views.generic import ListView
 
 from django.views.decorators.csrf import csrf_exempt
 
-
 from django.core.files import File
 
-from code_doc.permissions.decorators import permission_required_on_object
 
+from django.contrib.auth.models import User
 
 
 import hashlib
@@ -42,7 +41,7 @@ from django.conf import settings
 
 from code_doc.models import Project, Author, Topic, ProjectVersion, Artifact, ProjectVersion
 from code_doc.forms import ProjectVersionForm
-#from code_doc.serializers import ProjectSerializer
+from code_doc.permissions.decorators import permission_required_on_object
 
 
 def index(request):
@@ -59,17 +58,18 @@ def index(request):
 class MaintainerProfileView(View):
   
   @method_decorator(login_required(login_url='/accounts/login/'))
-  def get(self, request):
+  def get(self, request, maintainer_id):
     try:
-      user = request.user #User.objects.get(pk=user_id)
+      maintainer = User.objects.get(pk=maintainer_id)
     except Project.DoesNotExist:
       raise Http404
     
-    projects = Project.objects.filter(administrators=user)
+    projects = Project.objects.filter(administrators=maintainer)
     return render(
               request, 
               'code_doc/maintainer_details.html', 
-              {'projects': projects})
+              {'projects': projects, 
+               'maintainer':maintainer})
   
   @login_required(login_url='/accounts/login/')
   def post(self, request):
