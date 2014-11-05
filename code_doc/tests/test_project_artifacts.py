@@ -188,6 +188,9 @@ class ProjectVersionArtifactTest(TestCase):
                         is_documentation = False,
                         documentation_entry_file = os.path.basename(__file__),
                         artifactfile = test_file)
+      
+      test_file.close()
+      
       # a file has been created 
       self.assertTrue(os.path.exists(new_artifact.full_path_name()), "Artifact not existent on disk %s" % new_artifact.full_path_name())
     
@@ -239,6 +242,8 @@ class ProjectVersionArtifactTest(TestCase):
                         is_documentation = True,
                         documentation_entry_file = os.path.basename(__file__),
                         artifactfile = test_file)
+      
+      test_file.close()
       
       self.assertTrue(os.path.exists(get_deflation_directory(new_artifact)))
             

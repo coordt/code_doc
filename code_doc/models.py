@@ -314,6 +314,7 @@ def callback_artifact_deflation_on_save(sender, instance, created, raw, **kwargs
       for chunk in instance.artifactfile.chunks():
         f.write(chunk)
       f.seek(0)
+      instance.artifactfile.close()
     
       deflate_directory = get_deflation_directory(instance)
       logger.debug('[project artifact] deflating artifact %s to %s', instance, deflate_directory)
@@ -356,6 +357,10 @@ def callback_artifact_documentation_delete(sender, instance, using, **kwargs):
 def callback_artifact_delete(sender, instance, using, **kwargs):
   storage, path = instance.artifactfile.storage, instance.artifactfile.path
   storage.delete(path)
+  try:
+    storage.delete(path)
+  except WindowsError, e:
+    logger.warning('[project artifact] error removing %s for instance %s', path, instance)
   #if(os.path.exists(instance.full_path_name())):
   #  os.remove(instance.full_path_name())
   
