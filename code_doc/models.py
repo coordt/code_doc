@@ -355,6 +355,7 @@ def callback_artifact_documentation_delete(sender, instance, using, **kwargs):
 
 @receiver(post_delete, sender=Artifact)
 def callback_artifact_delete(sender, instance, using, **kwargs):
+  logger.debug('[project artifact] post_delete artifact %s', instance)
   storage, path = instance.artifactfile.storage, instance.artifactfile.path
   storage.delete(path)
   try:
