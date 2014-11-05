@@ -200,8 +200,8 @@ class ProjectVersionArtifactTest(TestCase):
       self.assertTrue(os.path.exists(new_artifact.full_path_name()), "Artifact not existent on disk %s" % new_artifact.full_path_name())
       
       
-      raw_input(new_artifact.artifactfile.name)
-      raw_input(new_artifact.artifactfile)
+      #raw_input(new_artifact.artifactfile.name)
+      #raw_input(new_artifact.artifactfile)
     
       self.assertFalse(os.path.exists(get_deflation_directory(new_artifact)))
       
