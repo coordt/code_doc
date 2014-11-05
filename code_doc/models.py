@@ -8,7 +8,7 @@ from django.contrib.auth.models import AbstractUser, Group
 from django.core.urlresolvers import reverse
 
 from django.template.defaultfilters import slugify
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_delete, post_delete
 from django.dispatch import receiver
 
 
@@ -19,6 +19,8 @@ import tarfile
 import tempfile
 import logging
 import urllib
+import shutil
+import functools
 
 # logger for this file
 logger = logging.getLogger(__name__)
@@ -222,6 +224,11 @@ def get_artifact_location(instance, filename):
   return os.path.join(media_relative_dir, str(last_element), filename)
 
 
+def get_deflation_directory(instance):
+  """Returns the location where the artifact is getting deflated"""
+  deflate_directory = os.path.join(settings.MEDIA_ROOT, os.path.split(instance.artifactfile.name)[0], 'deflate')
+  return deflate_directory
+
 class Artifact(models.Model):
   """An artifact is a downloadable file"""
   project_version           = models.ForeignKey(ProjectVersion, related_name = "artifacts")
@@ -250,9 +257,17 @@ class Artifact(models.Model):
   def filename(self):
     return os.path.basename(self.artifactfile.name) 
   
+  
+  def full_path_name(self):
+    """Returns the full path of the artifact on the disk
+    
+    .. warning:: 
+       This should not work for other type of archival process that the one on the local file system"""
+    return os.path.abspath(os.path.join(settings.MEDIA_ROOT, self.artifactfile.name))
+  
   def get_documentation_url(self):
     """Returns the entry point of the documentation, relative to the media_root"""
-    deflate_directory = os.path.join(os.path.split(self.artifactfile.name)[0], 'deflate')
+    deflate_directory = get_deflation_directory(self)
     return urllib.pathname2url(os.path.join(deflate_directory, self.documentation_entry_file))
   
   def save(self, *args, **kwargs):
@@ -265,9 +280,22 @@ class Artifact(models.Model):
       self.md5hash = m.hexdigest()
     
     super(Artifact, self).save(*args, **kwargs) # Call the "real" save() method.  
+    
+
+def is_deflated(instance):
+  """Returns true if the artifact instance should or have been deflated"""
+  return instance.is_documentation and \
+         os.path.splitext(instance.artifactfile.name)[1] in ['.tar', '.bz2', '.gz']
+
+
 
 @receiver(post_save, sender=Artifact)
 def callback_artifact_deflation_on_save(sender, instance, created, raw, **kwargs):
+  """Callback received after an artifact has been saved in the database. In case of a documentation
+  artifact, and in case the artifact is a zip/archive, we deflate it"""
+  
+  logger.debug('[project artifact] post_save artifact %s', instance)
+  
   
   # we do not perform any deflation in case of database populating action 
   if raw:
@@ -278,19 +306,55 @@ def callback_artifact_deflation_on_save(sender, instance, created, raw, **kwargs
     return
   
   # deflate if documentation
-  if instance.is_documentation:
-    if(os.path.splitext(instance.artifactfile.name)[1] in ['.tar', '.bz2', '.gz']):
+  if is_deflated(instance):
       
-      # I do not know if this one is needed in fact, it is if we are in the save method of Artifact
-      # but from here the file should be fully accessible
-      with tempfile.NamedTemporaryFile(dir=settings.USER_UPLOAD_TEMPORARY_STORAGE) as f:
-        for chunk in instance.artifactfile.chunks():
-          f.write(chunk)
-        f.seek(0)
+    # I do not know if this one is needed in fact, it is if we are in the save method of Artifact
+    # but from here the file should be fully accessible
+    with tempfile.NamedTemporaryFile(dir=settings.USER_UPLOAD_TEMPORARY_STORAGE) as f:
+      for chunk in instance.artifactfile.chunks():
+        f.write(chunk)
+      f.seek(0)
+    
+      deflate_directory = get_deflation_directory(instance)
+      logger.debug('[project artifact] deflating artifact %s to %s', instance, deflate_directory)
+      tar = tarfile.open(fileobj=f)
       
-        deflate_directory = os.path.join(settings.MEDIA_ROOT, os.path.split(instance.artifactfile.name)[0], 'deflate')
-        logger.debug('[project artifact] deflating artifact %s to %s', instance, deflate_directory)
-        tar = tarfile.open(fileobj=f)
-        tar.extractall(path = deflate_directory)
+      curdir = os.path.abspath(os.curdir)
+      if(not os.path.exists(deflate_directory)):
+        os.makedirs(deflate_directory)
+      os.chdir(deflate_directory)
+      tar.extractall()#path = deflate_directory)
+      os.chdir(curdir)
       
   pass
+
+
+
+@receiver(pre_delete, sender=Artifact)
+def callback_artifact_documentation_delete(sender, instance, using, **kwargs):
+  """Callback received before an artifact has is being removed from the database. In case of a documentation
+  artifact, and in case the artifact is a zip/archive, the deflated directory is removed."""
+  logger.debug('[project artifact] pre_delete artifact %s', instance)
+  
+  # deflate if documentation and archive
+  if is_deflated(instance):
+    deflate_directory = get_deflation_directory(instance)
+    if(os.path.exists(deflate_directory)):
+      logger.debug('[project artifact] removing deflated artifact %s from %s', instance, deflate_directory)
+      
+      def on_error(instance, function, path, excinfo):
+        logger.warning('[project artifact] error removing %s for instance %s', path, instance)
+        return
+      
+      shutil.rmtree(deflate_directory, False, functools.partial(on_error, instance = instance))
+  
+  # removing the file on post delete
+  pass
+
+
+@receiver(post_delete, sender=Artifact)
+def photo_post_delete_handler(sender, instance, using, **kwargs):
+  
+  if(os.path.exists(instance.full_path_name())):
+    os.remove(instance.full_path_name())
+  

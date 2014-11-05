@@ -129,6 +129,8 @@ class ProjectVersionArtifactTest(TestCase):
 
   def test_create_documentation_artifact(self):
     from django.core.files.uploadedfile import SimpleUploadedFile
+    from code_doc.models import get_deflation_directory
+    import shutil
     
     with tempfile.NamedTemporaryFile(dir=settings.USER_UPLOAD_TEMPORARY_STORAGE, suffix='.tar.bz2') as f:
       # create a temporary tar object
@@ -152,4 +154,101 @@ class ProjectVersionArtifactTest(TestCase):
                         documentation_entry_file = os.path.basename(__file__),
                         artifactfile = test_file)
       
+      
       new_artifact.save()
+      
+      if(os.path.exists(get_deflation_directory(new_artifact))):
+        shutil.rmtree(get_deflation_directory(new_artifact))
+
+
+
+  def test_remove_artifact(self):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+    from code_doc.models import get_deflation_directory
+    import shutil
+    
+    with tempfile.NamedTemporaryFile(dir=settings.USER_UPLOAD_TEMPORARY_STORAGE, suffix='.tar.bz2') as f:
+      # create a temporary tar object
+      tar = tarfile.open(fileobj=f, mode='w:bz2')
+      
+      from inspect import getsourcefile
+      source_file = getsourcefile(lambda _: None)
+      
+      tar.add(os.path.abspath(source_file), arcname=os.path.basename(source_file))
+      tar.close()
+      
+      f.seek(0)
+      test_file = SimpleUploadedFile('filename.tar.bz2', f.read())
+      
+      
+      new_artifact = Artifact.objects.create(
+                        project_version=self.new_version,
+                        md5hash = '1',
+                        description = 'test artifact',
+                        is_documentation = False,
+                        documentation_entry_file = os.path.basename(__file__),
+                        artifactfile = test_file)
+      # a file has been created 
+      self.assertTrue(os.path.exists(new_artifact.full_path_name()), "Artifact not existent on disk %s" % new_artifact.full_path_name())
+    
+      # not a documentation artifact  
+      self.assertFalse(os.path.exists(get_deflation_directory(new_artifact)))
+      
+      new_artifact.save()
+      
+      # file still here
+      self.assertTrue(os.path.exists(new_artifact.full_path_name()), "Artifact not existent on disk %s" % new_artifact.full_path_name())
+      
+      
+      raw_input(new_artifact.artifactfile.name)
+      raw_input(new_artifact.artifactfile)
+    
+      self.assertFalse(os.path.exists(get_deflation_directory(new_artifact)))
+      
+      new_artifact.delete()
+      
+      self.assertFalse(os.path.exists(new_artifact.full_path_name()))
+      self.assertFalse(os.path.exists(get_deflation_directory(new_artifact)))
+      
+      
+      
+      
+  def test_remove_documentation_artifact(self):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+    from code_doc.models import get_deflation_directory
+    import shutil
+    
+    with tempfile.NamedTemporaryFile(dir=settings.USER_UPLOAD_TEMPORARY_STORAGE, suffix='.tar.bz2') as f:
+      # create a temporary tar object
+      tar = tarfile.open(fileobj=f, mode='w:bz2')
+      
+      from inspect import getsourcefile
+      source_file = getsourcefile(lambda _: None)
+      
+      tar.add(os.path.abspath(source_file), arcname=os.path.basename(source_file))
+      tar.close()
+      
+      f.seek(0)
+      test_file = SimpleUploadedFile('filename.tar.bz2', f.read())
+      
+      
+      new_artifact = Artifact.objects.create(
+                        project_version=self.new_version,
+                        md5hash = '1',
+                        description = 'test artifact',
+                        is_documentation = True,
+                        documentation_entry_file = os.path.basename(__file__),
+                        artifactfile = test_file)
+      
+      self.assertTrue(os.path.exists(get_deflation_directory(new_artifact)))
+            
+      new_artifact.save()
+    
+      
+      self.assertTrue(os.path.exists(get_deflation_directory(new_artifact)))
+      
+      new_artifact.delete()
+      
+      self.assertFalse(os.path.exists(get_deflation_directory(new_artifact)))
+      
+      
