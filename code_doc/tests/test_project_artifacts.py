@@ -26,7 +26,7 @@ class ProjectVersionArtifactTest(TestCase):
     self.client = Client()
     
     # path for the queries to the project details
-    self.path                   = 'project_artifacts'
+    self.path                   = 'project_artifacts_add'
     
     self.first_user             = User.objects.create_user(username='toto', password='titi')#, is_active=True)
 
@@ -36,6 +36,7 @@ class ProjectVersionArtifactTest(TestCase):
     self.project.administrators = [self.first_user]
     
     self.new_version            = ProjectVersion.objects.create(version="12345", project = self.project, release_date = datetime.datetime.now())
+    self.new_version.save()
     
     import StringIO
     self.imgfile      = StringIO.StringIO('GIF87a\x01\x00\x01\x00\x80\x01\x00\x00\x00\x00ccc,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;')
@@ -47,33 +48,37 @@ class ProjectVersionArtifactTest(TestCase):
     
   def test_project_revision_artifact_wrong(self):
     """Test if giving the wrong version yields the proper error""" 
-    response = self.client.get(reverse(self.path, args=[self.project.id, self.new_version.version + 'x']))
-    self.assertEqual(response.status_code, 404)
+    initial_path = reverse(self.path, args=[self.project.id, self.new_version.id + 1])
+    response = self.client.get(initial_path)
+    self.assertRedirects(response, reverse('login') + '?next=' + initial_path)
+    # 401 because we do not distinguish between an unauthorized access and a malformed url, ON PURPOSE
+    self.assertEqual(response.status_code, 401)
+
+    response = self.client.login(username='toto', password='titi')
+    self.assertTrue(response)
+    response = self.client.get(reverse(self.path, args=[self.project.id, self.new_version.id + 1]))
+    self.assertEqual(response.status_code, 401)
+
   
   def test_project_revision_artifact(self):
     """Test the creation of a new project version and its artifacts"""
-    response = self.client.get(reverse(self.path, args=[self.project.id, self.new_version.version]))
+    response = self.client.get(reverse(self.path, args=[self.project.id, self.new_version.id]))
     self.assertEqual(response.status_code, 200)
     self.assertEqual(len(response.context['artifacts']), 0)
     
   def test_send_new_artifact_no_login(self):
     """This test should redirect to the login page: we cannot upload a file without a proper login"""
-    initial_path = reverse(self.path, args=[self.project.id, self.new_version.version])
+    initial_path = reverse(self.path, args=[self.project.id, self.new_version.id])
     response = self.client.post(initial_path, 
                      {'name': 'fred', 'attachment': self.imgfile},
                      follow=True)
 
-    #print response
-    #print response.redirect_chain
     self.assertEqual(response.status_code, 200)
     self.assertRedirects(response, reverse('login') + '?next=' + initial_path)
-    #with open('wishlist.doc') as fp:
-    #  self.client.post(self.path, {'name': 'fred', 'attachment': fp})
-
-
+    
   def test_send_new_artifact_no_login_no_follow(self):
     """This test should indicate that no login means redirection"""
-    initial_path = reverse(self.path, args=[self.project.id, self.new_version.version])
+    initial_path = reverse(self.path, args=[self.project.id, self.new_version.id])
     response = self.client.post(initial_path, 
                      {'name': 'fred', 'attachment': self.imgfile},
                      follow=False)
@@ -86,14 +91,14 @@ class ProjectVersionArtifactTest(TestCase):
     
     self.assertEqual(self.new_version.artifacts.count(), 0)
 
-    initial_path = reverse(self.path, args=[self.project.id, self.new_version.version])
+    initial_path = reverse(self.path, args=[self.project.id, self.new_version.id])
     response = self.client.post(initial_path, 
                      {'name': 'fred', 'attachment': self.imgfile},
                      follow=False)
 
     import hashlib
     self.assertEqual(response.status_code, 200)
-    self.assertEqual(response.content, hashlib.md5(self.imgfile.getvalue()).hexdigest())
+    self.assertIn(hashlib.md5(self.imgfile.getvalue()).hexdigest(), response.content)
     self.assertEqual(self.new_version.artifacts.count(), 1)
     
   def test_send_new_artifact_with_login_twice(self):
@@ -103,7 +108,7 @@ class ProjectVersionArtifactTest(TestCase):
 
     self.assertEqual(self.new_version.artifacts.count(), 0)
 
-    initial_path = reverse(self.path, args=[self.project.id, self.new_version.version])
+    initial_path = reverse(self.path, args=[self.project.id, self.new_version.id])
     response = self.client.post(initial_path, 
                      {'name': 'fred', 'attachment': self.imgfile},
                      follow=False)
@@ -128,6 +133,7 @@ class ProjectVersionArtifactTest(TestCase):
 
 
   def test_create_documentation_artifact(self):
+    """Checks if the documentation is properly stored and deflated on the server"""
     from django.core.files.uploadedfile import SimpleUploadedFile
     from code_doc.models import get_deflation_directory
     import shutil
@@ -156,6 +162,9 @@ class ProjectVersionArtifactTest(TestCase):
       
       
       new_artifact.save()
+      
+      # not a documentation artifact  
+      self.assertTrue(os.path.exists(get_deflation_directory(new_artifact)))      
       
       if(os.path.exists(get_deflation_directory(new_artifact))):
         shutil.rmtree(get_deflation_directory(new_artifact))
@@ -217,6 +226,7 @@ class ProjectVersionArtifactTest(TestCase):
       
       
   def test_remove_documentation_artifact(self):
+    """Tests that the deflated documentation is removed as well"""
     from django.core.files.uploadedfile import SimpleUploadedFile
     from code_doc.models import get_deflation_directory
     import shutil

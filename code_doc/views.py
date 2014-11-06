@@ -32,6 +32,7 @@ import hashlib
 import tempfile
 import logging
 import json
+from functools import partial
 
 # logger for this file
 logger = logging.getLogger(__name__)
@@ -94,14 +95,41 @@ class GetProjectRevisionIds(View):
 
 # just an attempt to do something 
 class PermissionOnObjectViewMixin(object):
+  """Manages the permissions for the object given by model"""
   
-  
+  object_permissions_getter = 'get_object'
   
   @classmethod
   def as_view(cls, **initkwargs):
     view = super(PermissionOnObjectViewMixin, cls).as_view(**initkwargs)
     #print "as view", cls, initkwargs
-    return view#permission_required_on_object(view, lambda x: True)
+    
+    def object_getter(instance, *args, **kwargs):
+      print 
+      print instance
+      print instance.__doc__
+      print dir(instance)
+      print args
+      print kwargs
+      
+      object_permissions_getter = getattr(instance, 'object_permissions_getter', None)
+      print object_permissions_getter
+      raw_input('inside get object')
+      if(object_permissions_getter):
+        name = getattr(instance, object_permissions_getter, None)
+        return name(instance, **kwargs)
+      return instance.get_object()
+      
+      
+    object_permissions = getattr(cls, 'object_permissions', None)
+    object_permissions_getter = getattr(cls, 'object_permissions_getter', None)
+    
+    
+    print 'object_permissions', object_permissions, ' for class ', cls
+    print 'object_permissions_getter', object_permissions_getter, ' for class ', cls
+    print view
+        
+    return permission_required_on_object(object_permissions, partial(object_getter, view))(view)
 
 
 class ProjectView(PermissionOnObjectViewMixin, DetailView):
@@ -145,12 +173,27 @@ class ProjectListView(ListView):
     return Project.objects.all()
   
   
+  
+  
+################################################################################################
+# 
+# Versions/series related
+################################################################################################
+  
 
 class ProjectVersionAddView(PermissionOnObjectViewMixin, CreateView):
   """Generic view for adding a version into a specific project"""
   model = ProjectVersion
   template_name = "code_doc/project_revision/project_revision_add.html"
   fields = ['version', 'description', 'release_date', 'is_public', 'view_users', 'view_groups']
+  
+  
+  object_permissions = ('code_doc.project_administrate',)
+  object_permissions_getter = 'object_permission_getter_bla'
+  
+  def object_permission_getter_bla(self, **kwargs):
+    raw_input('inside object_permission_getter')
+    return self.object
   
   def get_context_data(self, **kwargs):
     """Method used for populating the template context"""
@@ -228,75 +271,39 @@ class ProjectVersionDetailsShortcutView(RedirectView):
     return reverse('project_revision', args=[project.id, version.id])
 
 
-class ProjectVersionArtifactView(View):
-  """Adds an artifact.
-  deprecated, to be removed"""
+
+
+
+
+
+
+
+
+
+
+
+################################################################################################
+# 
+# Artifacts related
+################################################################################################
+
+
+class ProjectVersionArtifactEditionFormsView(PermissionOnObjectViewMixin):
+  """A generic class for grouping the several views for the artifacts"""
   
-      
-  def get(self, request, project_id, version_number):
-
-    try:
-      project_version = ProjectVersion.objects.get(version=version_number)
-    except ProjectVersion.DoesNotExist:
-      raise Http404
-
-    project = project_version.project
-
-    artifact_list = project_version.artifacts.all()
-    return render(
-              request, 
-              'code_doc/project_artifacts/project_artifact_add.html',
-              {'project': project,
-               'current_version':project_version,
-               'artifacts' : artifact_list})
-  
-  @method_decorator(lambda x: login_required(x, login_url=reverse_lazy('login')))
-  def post(self, request, project_id, version_number):
-    try:
-      project_version = ProjectVersion.objects.get(version=version_number)
-    except ProjectVersion.DoesNotExist:
-      raise Http404
-
-    project = project_version.project
-    if request.FILES.has_key('attachment'):
-      fileattached = request.FILES['attachment']
-      filename = fileattached.name
-      m = hashlib.md5()
-      
-      logger.debug('[fileupload] temporary location %s', settings.USER_UPLOAD_TEMPORARY_STORAGE)
-      with tempfile.NamedTemporaryFile(dir=settings.USER_UPLOAD_TEMPORARY_STORAGE) as f:
-        for chunk in fileattached.chunks():
-          f.write(chunk)
-          m.update(chunk)
-        
-        f.seek(0)
-
-        current_artifact, created = Artifact.objects.get_or_create(project_version=project_version, md5hash=m.hexdigest())
-        
-        logger.debug('[fileupload] artifact %s - digest is %s', "created" if created else "not created", m.hexdigest())
-        if created:
-          current_artifact.artifactfile.save(filename, File(f), True)
-          current_artifact.save()
-          assert hashlib.md5(current_artifact.artifactfile.read()).hexdigest() == m.hexdigest()
-          
-          logger.debug('[fileupload] \tlocation %s', current_artifact.artifactfile.name)
-          logger.debug('[fileupload] \turl %s', current_artifact.artifactfile.url)
-        logger.debug('[fileupload] object %s', current_artifact)
-        
-        
-
-    return HttpResponse(m.hexdigest(), status=200)
-
-
-class ProjectVersionArtifactAddView(CreateView):
-  """Generic view for adding a version into a specific project"""
   model = Artifact
-  template_name = "code_doc/project_artifacts/project_artifact_add.html"
-  fields = ['description', 'artifactfile', 'is_documentation', 'documentation_entry_file', 'upload_date']
+  
+  object_permissions = ('code_doc.project_administrate',)
+  object_permissions_getter = 'object_permission_getter_bla'
+  
+  def object_permission_getter_bla(self, **kwargs):
+    raw_input('inside object_permission_getter')
+    return self.object
+  
   
   def get_context_data(self, **kwargs):
     """Method used for populating the template context"""
-    context = super(ProjectVersionArtifactAddView, self).get_context_data(**kwargs)
+    context = super(ProjectVersionArtifactEditionFormsView, self).get_context_data(**kwargs)
     try:
       current_project = Project.objects.get(pk=self.kwargs['project_id'])  
     except Project.DoesNotExist:
@@ -311,8 +318,13 @@ class ProjectVersionArtifactAddView(CreateView):
     context['artifacts'] = current_version.artifacts.all()
     context['uploaded_by'] = self.request.user
     return context
-
-  @method_decorator(lambda x: login_required(x, login_url=reverse_lazy('login')))
+  
+  #def dispatch(self, request, *args, **kwargs):
+  #  print "Dispatching"
+  #  return super(ProjectVersionArtifactEditionFormsView, self).dispatch(request, *args, **kwargs)
+  
+  #@permission_required_on_object(('code_doc.project_administrate',), self.project_getter)
+  #@method_decorator(lambda x: login_required(x, login_url=reverse_lazy('login')))
   def get(self, request, project_id, version_id, *args, **kwargs):
     """Returning the form"""
     logger.warning('[fileupload] dispatch %s, %s, %s', project_id, version_id, kwargs)
@@ -330,11 +342,24 @@ class ProjectVersionArtifactAddView(CreateView):
     except ProjectVersion.DoesNotExist:
       return HttpResponse('Unauthorized', status=401) # we can return 404 but it is better to return the same as unauthorized
 
-    return super(ProjectVersionArtifactAddView, self).get(request, project_id, version_id, *args, **kwargs)
-
+    return super(ProjectVersionArtifactEditionFormsView, self).get(request, project_id, version_id, *args, **kwargs)  
   
+
+  def get_success_url(self):
+    return reverse('project_revision', 
+                   kwargs={'project_id' : self.object.project_version.project.pk, 'version_id': self.object.project_version.pk})
+
+
+class ProjectVersionArtifactAddView(ProjectVersionArtifactEditionFormsView, CreateView):
+  """Generic view for adding a version into a specific project"""
+    
+  template_name = "code_doc/project_artifacts/project_artifact_add.html"
+  fields = ['description', 'artifactfile', 'is_documentation', 'documentation_entry_file', 'upload_date']
+  
+
   #@method_decorator(lambda x: login_required(x, login_url=reverse_lazy('login')))
   def form_valid(self, form):    
+    
     logger.warning('[fileupload] form valid')
     try:
       current_project = Project.objects.get(pk=self.kwargs['project_id'])
@@ -353,6 +378,8 @@ class ProjectVersionArtifactAddView(CreateView):
       return HttpResponse('Unauthorized', status=401) # we can return 404 but it is better to return the same as unauthorized
 
     form.instance.project_version = current_version 
+    print 'form %r' % form
+    print 'form instance %r' % form.instance
     
     try:
       return super(ProjectVersionArtifactAddView, self).form_valid(form)
@@ -362,13 +389,20 @@ class ProjectVersionArtifactAddView(CreateView):
     return HttpResponse('Conflict %s' % form.instance.md5hash, status=409)
     
     
-  def get_success_url(self):
-    return self.object.get_absolute_url()  
 
 
-class ProjectVersionArtifactRemoveView(DeleteView):
-  model = Artifact
+class ProjectVersionArtifactRemoveView(ProjectVersionArtifactEditionFormsView, DeleteView):
+  """Removes an artifact"""
+  
+  template_name = "code_doc/project_artifacts/project_artifact_remove.html"
+  pk_url_kwarg  = "artifact_id"
 
+
+
+################################################################################################
+# 
+# Topics related
+################################################################################################
 
 class TopicView(View):
   def get(self, request, topic_id):
@@ -391,6 +425,11 @@ class TopicListView(ListView):
   def get_queryset(self):
     return Topic.objects.all()
 
+
+################################################################################################
+# 
+# Authors related
+################################################################################################
 
 class AuthorListView(ListView):
   """A generic view of the authors in a list"""
