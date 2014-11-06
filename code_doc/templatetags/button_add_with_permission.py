@@ -23,6 +23,25 @@ def button_add_version_with_permission(user, project):
 def button_add_artifact_with_permission(user, revision):
   project = revision.project
   logger.debug('[templatetag|button artifact] User %s ', user)
+  return {'permission_ok': project.has_artifact_add_permissions(user),
+          'user': user,
+          'text' : 'Add',
+          'next' : reverse_lazy('project_artifacts_add', args=[project.id, revision.id])}
+
+@register.inclusion_tag('code_doc/tags/button_add_with_permission_tag.html')
+def button_remove_artifact_with_permission(user, revision):
+  project = revision.project
+  logger.debug('[templatetag|button artifact] User %s ', user)
+  return {'permission_ok': project.has_artifact_add_permissions(user),
+          'user': user,
+          'text' : 'Remove',
+          'next' : reverse_lazy('project_artifacts_add', args=[project.id, revision.id])}
+ 
+  
+@register.inclusion_tag('code_doc/tags/button_edit_with_permission_tag.html')
+def button_edit_series_with_permission(user, revision):
+  project = revision.project
+  logger.debug('[templatetag|button artifact] User %s ', user)
   return {'permission_ok': project.has_version_add_permissions(user),
           'user': user,
           'next' : reverse_lazy('project_artifacts_add', args=[project.id, revision.id])}
