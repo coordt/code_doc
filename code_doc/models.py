@@ -246,6 +246,8 @@ class Artifact(models.Model):
                                                help_text="the documentation entry file if the artifact is documentation type, relative to the root of the deflated package")
   upload_date               = models.DateTimeField('Upload date', null=True, blank=True,
                                                help_text='Automatic field that indicates the file upload time')
+  
+  uploaded_by               = models.CharField(max_length=50, help_text='User/agent uploading the file', null=True, blank=True,)
 
   def get_absolute_url(self):
     return reverse('project_revision', kwargs={'project_id' : self.project_version.project.pk, 'version_id': self.project_version.pk})

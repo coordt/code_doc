@@ -26,7 +26,8 @@
 	          <th>Label</th>
 	          <th>MD5</th>
 	          <th>Description</th>
-	          <th>Uploaded</th>
+	          <th>Upload date</th>
+	          <th>Uploaded by</th>
 	        </tr>
 	      </thead>
 	
@@ -42,13 +43,13 @@
               <span class="label label-info">doc</span>
             {% endif %}
               {% if artifact.documentation_entry_file %}
-              <a href="{%get_media_prefix%}{{artifact.get_documentation_url}}">read online</a>
+                <a href="{%get_media_prefix%}{{artifact.get_documentation_url}}">read online</a>
               {% endif %}
             </td>
             <td><small><span style="font-family:monospace;">{{artifact.md5hash|upper}}</span></small></td>
 	          <td>{{artifact.description}}</td>
 	          <td>{{artifact.upload_date|date}}</td>
-	          
+	          <td>{{artifact.uploaded_by}}</td>
 	          
 	        </tr>
 	    {%endfor%}

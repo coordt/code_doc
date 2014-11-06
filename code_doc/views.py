@@ -309,6 +309,7 @@ class ProjectVersionArtifactAddView(CreateView):
     context['project'] = current_project
     context['version'] = current_version
     context['artifacts'] = current_version.artifacts.all()
+    context['uploaded_by'] = self.request.user
     return context
 
   @method_decorator(lambda x: login_required(x, login_url=reverse_lazy('login')))
@@ -351,7 +352,7 @@ class ProjectVersionArtifactAddView(CreateView):
       logger.warning('[fileupload] formvalid version does not exist')
       return HttpResponse('Unauthorized', status=401) # we can return 404 but it is better to return the same as unauthorized
 
-    form.instance.project_version =current_version 
+    form.instance.project_version = current_version 
     
     try:
       return super(ProjectVersionArtifactAddView, self).form_valid(form)
