@@ -6,10 +6,13 @@
 
 
 {% block content %}
-  <h1>{{ project.name }}</h1>
+  <h1><a href="{% url 'project' project.id %}">{{ project.name }}</a> - {{version.version}}</h1>
 
+  <h3>Description {% button_edit_series_with_permission user version %} </h3>
   {{version.description|safe}}
-  <h3>Artifacts for revision {{version.version}} {% button_add_artifact_with_permission user version %}
+  
+  
+  <h3>Artifacts for series {{version.version}} {% button_add_artifact_with_permission user version %}
   </h3>
   
 
