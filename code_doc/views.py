@@ -365,7 +365,8 @@ class ProjectVersionArtifactAddView(CreateView):
     return self.object.get_absolute_url()  
 
 
-
+class ProjectVersionArtifactRemoveView(DeleteView):
+  model = Artifact
 
 
 class TopicView(View):

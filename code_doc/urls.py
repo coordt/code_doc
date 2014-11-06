@@ -29,6 +29,9 @@ urlpatterns = patterns('',
   # project version artifacts
   url(r'^project/(?P<project_id>\d+)/(?P<version_number>[\d\w\s]+)/$', views.ProjectVersionArtifactView.as_view(), name='project_artifacts'),
   url(r'^project/(?P<project_id>\d+)/(?P<version_id>\w+)/add$', views.ProjectVersionArtifactAddView.as_view(), name='project_artifacts_add'),
+  url(r'^project/(?P<project_id>\d+)/(?P<version_id>\w+)/remove/(?P<artifact_id>\w+)', 
+      views.ProjectVersionArtifactRemoveView.as_view(), 
+      name='project_artifacts_remove'),
   
   # shortcuts
   url(r'^s/(?P<project_name>[\d\w\s]+)/(?P<version_number>[\d\w\s]+)/$', views.ProjectVersionDetailsShortcutView.as_view(), name='project_shortcuts'),
