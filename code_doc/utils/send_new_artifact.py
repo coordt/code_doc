@@ -301,8 +301,8 @@ def post_multipart(host, page, form_fields, form_files, username = None, passwor
     
     try:
       response = opener.open(request)      
-      output = response.read()
-      return output
+      #output = response.read()
+      return response
     except urllib2.HTTPError, e:
       print e
       print 'Code', e.code
