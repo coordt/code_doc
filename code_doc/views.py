@@ -57,7 +57,7 @@ def index(request):
 
 class MaintainerProfileView(View):
   
-  @method_decorator(login_required(login_url='/accounts/login/'))
+  @method_decorator(login_required)
   def get(self, request, maintainer_id):
     try:
       maintainer = User.objects.get(pk=maintainer_id)
@@ -71,7 +71,7 @@ class MaintainerProfileView(View):
               {'projects': projects, 
                'maintainer':maintainer})
   
-  @login_required(login_url='/accounts/login/')
+  @method_decorator(login_required)
   def post(self, request):
     pass
 
@@ -82,7 +82,7 @@ class GetProjectRevisionIds(View):
     response_kwargs['content_type'] = 'application/json'
     return HttpResponse(data, **response_kwargs)
 
-  @method_decorator(lambda x: login_required(x, login_url=reverse_lazy('login')))
+  @method_decorator(login_required)
   def get(self, request, project_name, version_number):
     
     logger.debug('[GetProjectRevisionIds.get]')
