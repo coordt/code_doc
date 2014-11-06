@@ -224,9 +224,13 @@ def get_artifact_location(instance, filename):
   return os.path.join(media_relative_dir, str(last_element), filename)
 
 
-def get_deflation_directory(instance):
+def get_deflation_directory(instance, without_media_root = False):
   """Returns the location where the artifact is getting deflated"""
-  deflate_directory = os.path.join(settings.MEDIA_ROOT, os.path.split(instance.artifactfile.name)[0], 'deflate')
+  
+  if without_media_root:
+    deflate_directory = os.path.join(os.path.split(instance.artifactfile.name)[0], 'deflate')
+  else:
+    deflate_directory = os.path.join(settings.MEDIA_ROOT, os.path.split(instance.artifactfile.name)[0], 'deflate')
   return deflate_directory
 
 class Artifact(models.Model):
@@ -267,7 +271,7 @@ class Artifact(models.Model):
   
   def get_documentation_url(self):
     """Returns the entry point of the documentation, relative to the media_root"""
-    deflate_directory = get_deflation_directory(self)
+    deflate_directory = get_deflation_directory(self, without_media_root = True)
     return urllib.pathname2url(os.path.join(deflate_directory, self.documentation_entry_file))
   
   def save(self, *args, **kwargs):
