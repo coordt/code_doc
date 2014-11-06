@@ -57,6 +57,8 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
       import hashlib
       f.seek(0)
       self.assertEqual(artifact.md5hash, hashlib.md5(f.read()).hexdigest())
+      
+      self.assertEqual(ret.code, 200)
 
   def test_send_new_file_new_api(self):
     """In this test, we know in advance the login url"""
@@ -103,6 +105,8 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
       import hashlib
       f.seek(0)
       self.assertEqual(artifact.md5hash, hashlib.md5(f.read()).hexdigest())
+      
+      self.assertEqual(ret.code, 200)
       
       
   def test_get_redirection(self):

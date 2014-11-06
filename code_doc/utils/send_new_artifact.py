@@ -217,7 +217,7 @@ class PostMultipartWithSession(object):
       print e
       print 'Code', e.code
       print 'Reason', e.reason
-      return 'Errors'
+      return e
     
 
 
@@ -307,7 +307,7 @@ def post_multipart(host, page, form_fields, form_files, username = None, passwor
       print e
       print 'Code', e.code
       print 'Reason', e.reason
-      return 'Errors'
+      return e
     
     
 def encode_multipart_formdata(fields, files):
