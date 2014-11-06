@@ -300,7 +300,7 @@ def callback_artifact_deflation_on_save(sender, instance, created, raw, **kwargs
   """Callback received after an artifact has been saved in the database. In case of a documentation
   artifact, and in case the artifact is a zip/archive, we deflate it"""
   
-  logger.debug('[project artifact] post_save artifact %s', instance)
+  #logger.debug('[project artifact] post_save artifact %s', instance)
   
   
   # we do not perform any deflation in case of database populating action 
@@ -323,7 +323,7 @@ def callback_artifact_deflation_on_save(sender, instance, created, raw, **kwargs
       instance.artifactfile.close()
     
       deflate_directory = get_deflation_directory(instance)
-      logger.debug('[project artifact] deflating artifact %s to %s', instance, deflate_directory)
+      #logger.debug('[project artifact] deflating artifact %s to %s', instance, deflate_directory)
       tar = tarfile.open(fileobj=f)
       
       curdir = os.path.abspath(os.curdir)
@@ -341,13 +341,13 @@ def callback_artifact_deflation_on_save(sender, instance, created, raw, **kwargs
 def callback_artifact_documentation_delete(sender, instance, using, **kwargs):
   """Callback received before an artifact has is being removed from the database. In case of a documentation
   artifact, and in case the artifact is a zip/archive, the deflated directory is removed."""
-  logger.debug('[project artifact] pre_delete artifact %s', instance)
+  #logger.debug('[project artifact] pre_delete artifact %s', instance)
   
   # deflate if documentation and archive
   if is_deflated(instance):
     deflate_directory = get_deflation_directory(instance)
     if(os.path.exists(deflate_directory)):
-      logger.debug('[project artifact] removing deflated artifact %s from %s', instance, deflate_directory)
+      #logger.debug('[project artifact] removing deflated artifact %s from %s', instance, deflate_directory)
       
       def on_error(instance, function, path, excinfo):
         logger.warning('[project artifact] error removing %s for instance %s', path, instance)
@@ -361,7 +361,7 @@ def callback_artifact_documentation_delete(sender, instance, using, **kwargs):
 
 @receiver(post_delete, sender=Artifact)
 def callback_artifact_delete(sender, instance, using, **kwargs):
-  logger.debug('[project artifact] post_delete artifact %s', instance)
+  #logger.debug('[project artifact] post_delete artifact %s', instance)
   storage, path = instance.artifactfile.storage, instance.artifactfile.path
   storage.delete(path)
   try:
