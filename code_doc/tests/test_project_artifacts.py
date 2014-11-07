@@ -49,21 +49,36 @@ class ProjectVersionArtifactTest(TestCase):
   def test_project_revision_artifact_wrong(self):
     """Test if giving the wrong version yields the proper error""" 
     initial_path = reverse(self.path, args=[self.project.id, self.new_version.id + 1])
+    response = self.client.login(username='toto', password='titi')
+    self.assertTrue(response)
     response = self.client.get(initial_path)
-    self.assertRedirects(response, reverse('login') + '?next=' + initial_path)
     # 401 because we do not distinguish between an unauthorized access and a malformed url, ON PURPOSE
     self.assertEqual(response.status_code, 401)
 
-    response = self.client.login(username='toto', password='titi')
-    self.assertTrue(response)
-    response = self.client.get(reverse(self.path, args=[self.project.id, self.new_version.id + 1]))
-    self.assertEqual(response.status_code, 401)
-
   
-  def test_project_revision_artifact(self):
-    """Test the creation of a new project version and its artifacts"""
-    response = self.client.get(reverse(self.path, args=[self.project.id, self.new_version.id]))
+  def test_project_revision_artifact_no_anonymous_access(self):
+    """Creation of a new project version and its artifacts not allowed for anonymous"""
+    initial_path = reverse(self.path, args=[self.project.id, self.new_version.id])
+    response = self.client.get(initial_path, follow=False)
+    # redirects to login page
+    self.assertRedirects(response, reverse('login') + '?next=' + initial_path)
+    self.assertEqual(response.status_code, 302)
+
+    response = self.client.get(initial_path, follow=True)
+    # redirects to login page
+    self.assertRedirects(response, reverse('login') + '?next=' + initial_path)
     self.assertEqual(response.status_code, 200)
+
+    
+  def test_project_revision_artifact_possible_for_admins(self):
+    """Creation of a new project version and its artifacts always possible for admins"""
+    admin_user = User.objects.create_superuser(username='admin', email = 'bla@bla.com', password='admin')
+    response = self.client.login(username='admin', password='admin')
+    self.assertTrue(response)
+    
+    response = self.client.get(reverse(self.path, args=[self.project.id, self.new_version.id]), follow=False)
+    self.assertEqual(response.status_code, 200)
+    
     self.assertEqual(len(response.context['artifacts']), 0)
     
   def test_send_new_artifact_no_login(self):
@@ -84,7 +99,7 @@ class ProjectVersionArtifactTest(TestCase):
                      follow=False)
     self.assertEqual(response.status_code, 302) # redirection status
 
-  def test_send_new_artifact_with_login(self):
+  def test_send_new_artifact_with_login_malformed(self):
     """Testing the upload capabilities. The returned hash should be ok"""
     response = self.client.login(username='toto', password='titi')
     self.assertTrue(response)
@@ -96,10 +111,29 @@ class ProjectVersionArtifactTest(TestCase):
                      {'name': 'fred', 'attachment': self.imgfile},
                      follow=False)
 
-    import hashlib
     self.assertEqual(response.status_code, 200)
-    self.assertIn(hashlib.md5(self.imgfile.getvalue()).hexdigest(), response.content)
+    self.assertIn('errorlist', response.content)
+    
+  def test_send_new_artifact_with_login(self):
+    """Testing the upload capabilities. The returned hash should be ok"""
+    import hashlib
+    response = self.client.login(username='toto', password='titi')
+    self.assertTrue(response)
+    
+    self.assertEqual(self.new_version.artifacts.count(), 0)
+
+    initial_path = reverse(self.path, args=[self.project.id, self.new_version.id])
+    response = self.client.post(initial_path, 
+                     {'description': 'blabla', 
+                      'artifactfile': self.imgfile,
+                      'is_documentation' : False},
+                     follow=True)
+    self.assertNotIn('errorlist', response.content)
+    
     self.assertEqual(self.new_version.artifacts.count(), 1)
+    self.assertEqual(response.status_code, 200)
+    self.assertIn(hashlib.md5(self.imgfile.getvalue()).hexdigest().upper(), response.content)
+    
     
   def test_send_new_artifact_with_login_twice(self):
     """Sending the same file twice should not create a new file"""
@@ -110,12 +144,14 @@ class ProjectVersionArtifactTest(TestCase):
 
     initial_path = reverse(self.path, args=[self.project.id, self.new_version.id])
     response = self.client.post(initial_path, 
-                     {'name': 'fred', 'attachment': self.imgfile},
-                     follow=False)
+                     {'description': 'blabla', 
+                      'artifactfile': self.imgfile,
+                      'is_documentation' : False},
+                     follow=True)
     
     import hashlib
     self.assertEqual(response.status_code, 200)
-    self.assertEqual(response.content, hashlib.md5(self.imgfile.getvalue()).hexdigest())
+    self.assertIn(hashlib.md5(self.imgfile.getvalue()).hexdigest().upper(), response.content)
     
     self.assertEqual(self.new_version.artifacts.count(), 1)    
     
@@ -124,11 +160,13 @@ class ProjectVersionArtifactTest(TestCase):
     
     # second send should not create a new one for a specific revision
     response = self.client.post(initial_path, 
-                     {'name': 'fred', 'attachment': self.imgfile},
-                     follow=False)
-    
-    self.assertEqual(response.status_code, 200)
-    self.assertEqual(response.content, hashlib.md5(self.imgfile.getvalue()).hexdigest())
+                     {'description': 'blabla', 
+                      'artifactfile': self.imgfile,
+                      'is_documentation' : False},
+                     follow=True)
+
+    # indicates the conflict    
+    self.assertEqual(response.status_code, 409)
     self.assertEqual(self.new_version.artifacts.count(), 1)    
 
 
@@ -211,10 +249,6 @@ class ProjectVersionArtifactTest(TestCase):
       # file still here
       self.assertTrue(os.path.exists(new_artifact.full_path_name()), "Artifact not existent on disk %s" % new_artifact.full_path_name())
       
-      
-      #raw_input(new_artifact.artifactfile.name)
-      #raw_input(new_artifact.artifactfile)
-    
       self.assertFalse(os.path.exists(get_deflation_directory(new_artifact)))
       
       new_artifact.delete()
