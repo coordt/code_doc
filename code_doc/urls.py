@@ -19,15 +19,18 @@ urlpatterns = patterns('',
   
   # revisions
   # lists all revisions of a project
-  url(r'^revisions/(?P<project_id>\d+)/$', views.ProjectView.as_view(), name='project_revisions_all'),
+  url(r'^revisions/(?P<project_id>\d+)/$', 
+      views.ProjectView.as_view(), 
+      name='project_revisions_all'),
   # details about a particular revision of a project
   url(r'^revisions/(?P<project_id>\d+)/(?P<version_id>\d+)/$', 
       views.ProjectVersionDetailsView.as_view(), 
       name='project_revision'),
+  # adding a revision to the project
   url(r'^revisions/(?P<project_id>\d+)/add/$', 
       views.ProjectVersionAddView.as_view(), 
       name='project_revision_add'),
-  # form for adding a revision to a project
+  
   # @todo update and delete of a series
   
   # project version artifacts
