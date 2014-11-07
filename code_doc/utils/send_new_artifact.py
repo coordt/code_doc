@@ -71,8 +71,6 @@ class PostMultipartWithSession(object):
     
   def get_redirection(self, initial_page):
     """Returns the redirection from one page to another if it exists, None otherwise"""
-    #print self.redirection_intercepter.redirection_map
-    #print self.host + initial_page
     value = self.redirection_intercepter.redirection_map.get(self.host + initial_page, None)
     if value is None:
       return value

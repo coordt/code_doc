@@ -115,7 +115,6 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
     
     post_url = '/code_doc/s/%s/%s/' % (self.project.name, self.version.version)
     response = instance.get(post_url)
-    #print response
     redir = instance.get_redirection(post_url)
     self.assertEqual(redir, reverse('project_revision', args=[self.project.id, self.version.id]))
 
@@ -130,7 +129,7 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
     
     post_url = '/code_doc/api/%s/%s/' % (self.project.name, self.version.version)
     response = instance.get(post_url)
-    #print response.read()
+    
     dic_ids = json.loads(response.read())
     self.assertEquals(dic_ids['project_id'], self.project.id)
     self.assertEquals(dic_ids['version_id'], self.version.id)
