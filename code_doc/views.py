@@ -7,6 +7,7 @@ from django.http import HttpResponse
 from django.template import RequestContext, loader
 from django.core.urlresolvers import reverse, reverse_lazy
 
+from django.db import transaction
 
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
@@ -19,6 +20,7 @@ from django.views.generic.detail import DetailView
 from django.views.generic.detail import SingleObjectMixin
 from django.views.generic import ListView
 
+from django.core.exceptions import PermissionDenied
 
 from django.views.decorators.csrf import csrf_exempt
 
@@ -57,6 +59,8 @@ def index(request):
 
 
 class MaintainerProfileView(View):
+  """Manages the views associated to the maintainers"""
+  
   
   @method_decorator(login_required)
   def get(self, request, maintainer_id):
@@ -93,47 +97,50 @@ class GetProjectRevisionIds(View):
 
 
 
-# just an attempt to do something 
-class PermissionOnObjectViewMixin(object):
+
+class PermissionOnObjectViewMixin(SingleObjectMixin):
   """Manages the permissions for the object given by model"""
   
-  object_permissions_getter = 'get_object'
+  # the required permissions on the object
+  permissions_on_object = None
+  # the method returning an object on which the permissions will be tested
+  permissions_object_getter = None
+  # permission overriding function (not implemented)
+  permissions_manager = None
   
-  @classmethod
-  def as_view(cls, **initkwargs):
-    view = super(PermissionOnObjectViewMixin, cls).as_view(**initkwargs)
-    #print "as view", cls, initkwargs
+  def handle_access_error(self, obj):
+    """Default access error handler. This one returns a 401 error instead of the 403 error"""
     
-    def object_getter(instance, *args, **kwargs):
-      print 
-      print instance
-      print instance.__doc__
-      print dir(instance)
-      print args
-      print kwargs
-      
-      object_permissions_getter = getattr(instance, 'object_permissions_getter', None)
-      print object_permissions_getter
-      raw_input('inside get object')
-      if(object_permissions_getter):
-        name = getattr(instance, object_permissions_getter, None)
-        return name(instance, **kwargs)
-      return instance.get_object()
-      
-      
-    object_permissions = getattr(cls, 'object_permissions', None)
-    object_permissions_getter = getattr(cls, 'object_permissions_getter', None)
+    logging.warn('** access error for object %s **', obj)
     
-    
-    print 'object_permissions', object_permissions, ' for class ', cls
-    print 'object_permissions_getter', object_permissions_getter, ' for class ', cls
-    print view
+    return HttpResponse('Unauthorized', status=401)
+
+  def dispatch(self, request, *args, **kwargs):
         
-    return permission_required_on_object(object_permissions, partial(object_getter, view))(view)
+    object_permissions = getattr(self, 'permissions_on_object', None)
+    object_permissions_getter = getattr(self, 'permissions_object_getter', None)
+    if(object_permissions_getter is None):
+      object_permissions_getter = self.get_object
+    else:
+      object_permissions_getter = getattr(self, object_permissions_getter, None)
+    
+    
+    # this modifies the dispatch of the parent through the decorator, and calls it with the same parameters
+    return permission_required_on_object(object_permissions, object_permissions_getter, handle_access_error=self.handle_access_error)\
+              (super(PermissionOnObjectViewMixin, self).dispatch)\
+                  (request, *args, **kwargs)
+    
+    # we do not need to reimplement this behaviour as it is properly done in the decorator
 
 
-class ProjectView(PermissionOnObjectViewMixin, DetailView):
-  """Detailed view of a specific project. The view contains all revisions."""
+
+class ProjectView(DetailView):
+  """Detailed view of a specific project. The view contains all revisions.
+  
+  .. note:: no specific permission is associated to a project. All project can be seen from anyone.
+            The versions associated to a project might have limited visibility 
+  
+  """
   
   model         = Project
   pk_url_kwarg  = 'project_id'
@@ -149,8 +156,9 @@ class ProjectView(PermissionOnObjectViewMixin, DetailView):
     
     last_update = {}
     for v in context['versions']:
-      if not self.request.user.has_perm('code_doc.version_view', v):
-        continue
+      assert(self.request.user.has_perm('code_doc.version_view', v))
+      #if not self.request.user.has_perm('code_doc.version_view', v):
+      #  continue
       current_update = Artifact.objects.filter(project_version=v).order_by('upload_date').last()
       if(not current_update is None):
         last_update[v] = current_update.upload_date
@@ -182,18 +190,31 @@ class ProjectListView(ListView):
   
 
 class ProjectVersionAddView(PermissionOnObjectViewMixin, CreateView):
-  """Generic view for adding a version into a specific project"""
+  """Generic view for adding a version into a specific project.
+  
+  .. note:: in order to be able to add a version, the user should have the 'code_doc.project_version_add' permission
+            on the project object.
+  
+  """
   model = ProjectVersion
   template_name = "code_doc/project_revision/project_revision_add.html"
   fields = ['version', 'description', 'release_date', 'is_public', 'view_users', 'view_groups']
   
+
+  # user should have the appropriate privileges on the object in order to be able to add anything  
+  permissions_on_object = ('code_doc.project_version_add',)
+  permissions_object_getter = 'get_project_from_request'
   
-  object_permissions = ('code_doc.project_administrate',)
-  object_permissions_getter = 'object_permission_getter_bla'
+  def get_project_from_request(self, request, *args, **kwargs):
+    
+    try:
+      return Project.objects.get(pk=kwargs['project_id'])  
+    except Project.DoesNotExist:
+      logger.warning('[ProjectVersionAddView] non existent project with id %s', kwargs['project_id'])
+      return None    
+    
+      
   
-  def object_permission_getter_bla(self, **kwargs):
-    raw_input('inside object_permission_getter')
-    return self.object
   
   def get_context_data(self, **kwargs):
     """Method used for populating the template context"""
@@ -201,7 +222,9 @@ class ProjectVersionAddView(PermissionOnObjectViewMixin, CreateView):
     try:
       current_project = Project.objects.get(pk=self.kwargs['project_id'])  
     except Project.DoesNotExist:
-      raise Http404
+      # this should not occur here
+      raise 
+    
     context['project'] = current_project
     context['project_id'] = current_project.id       
     return context
@@ -213,7 +236,7 @@ class ProjectVersionAddView(PermissionOnObjectViewMixin, CreateView):
     except Project.DoesNotExist:
       return HttpResponse('Unauthorized', status=401) # we can return 404 but it is better to return the same as unauthorized
 
-    if not self.request.user.is_superuser and not current_project.has_version_add_permissions(self.request.user):
+    if not self.request.user.is_superuser and not current_project.has_user_project_version_add_permission(self.request.user):
       return HttpResponse('Unauthorized', status=401) 
     
     return super(ProjectVersionAddView, self).get(request, project_id, **kwargs)
@@ -224,7 +247,7 @@ class ProjectVersionAddView(PermissionOnObjectViewMixin, CreateView):
     except Project.DoesNotExist:
       raise Http404
     
-    if not self.request.user.is_superuser and not current_project.has_version_add_permissions(self.request.user):
+    if not self.request.user.is_superuser and not current_project.has_user_project_version_add_permission(self.request.user):
       return HttpResponse('Unauthorized', status=401) 
     
     form.instance.project =current_project 
@@ -235,27 +258,76 @@ class ProjectVersionAddView(PermissionOnObjectViewMixin, CreateView):
   
 
 
-class ProjectVersionDetailsView(View):
-  """Details the content of a specific version. Contains all the artifacts"""
-  def get(self, request, project_id, version_id):
+class ProjectVersionDetailsView(PermissionOnObjectViewMixin, DetailView):
+  """Details the content of a specific version. Contains all the artifacts
+  
+  .. note:: the user should have the 'version_view' and the 'version_artifact_view' permissions on the version object
+  
+  """
+  
+  # detail view on a version
+  model = ProjectVersion
+  # part of the url giving the proper object
+  pk_url_kwarg  = 'version_id'
+  
+  template_name = 'code_doc/project_revision/project_revision_details.html'
+  
+  # we should have admin priviledges on the object in order to be able to add anything  
+  permissions_on_object = ('code_doc.version_view','code_doc.version_artifact_view')
+  permissions_object_getter = 'get_version_from_request'
+  
+  def get_version_from_request(self, request, *args, **kwargs):
     
+    # this already checks the coherence of the url:
+    # if the version does not belong to the project, an PermissionDenied is raised
     try:
-      project = Project.objects.get(pk=project_id)
+      project = Project.objects.get(pk=kwargs['project_id'])  
     except Project.DoesNotExist:
-      raise Http404
-    
+      logger.warning('[ProjectVersionDetailsView] non existent project with id %d', kwargs['project_id'])
+      return None    
+  
     try:
-      version = project.versions.get(pk=version_id)
+      version = project.versions.get(pk=kwargs['version_id'])
     except ProjectVersion.DoesNotExist:
-      raise Http404
+      logger.warning('[ProjectVersionDetailsView] non existent version with id %d', kwargs['version_id'])
+      return None
+  
+    return version
+  
+  def get_context_data(self, **kwargs):
+    """Method used for populating the template context"""
+    context = super(ProjectVersionDetailsView, self).get_context_data(**kwargs)
     
-    artifacts = version.artifacts.all()
-    return render(
-              request, 
-              'code_doc/project_revision/project_revision_details.html',
-              {'project': project,
-               'version': version,
-               'artifacts': artifacts})
+    version_object = self.object
+    
+    assert(Project.objects.get(pk=self.kwargs['project_id']).id == version_object.project.id)
+    
+    context['version'] = version_object 
+    context['project'] = version_object.project
+    context['project_id'] = version_object.project.id
+    context['artifacts'] = version_object.artifacts.all()
+    return context  
+  
+  
+#   def get(self, request, project_id, version_id):
+#     
+#     try:
+#       project = Project.objects.get(pk=project_id)
+#     except Project.DoesNotExist:
+#       raise Http404
+#     
+#     try:
+#       version = project.versions.get(pk=version_id)
+#     except ProjectVersion.DoesNotExist:
+#       raise Http404
+#     
+#     artifacts = version.artifacts.all()
+#     return render(
+#               request, 
+#               'code_doc/project_revision/project_revision_details.html',
+#               {'project': project,
+#                'version': version,
+#                'artifacts': artifacts})
 
 
 class ProjectVersionDetailsShortcutView(RedirectView):
@@ -293,13 +365,16 @@ class ProjectVersionArtifactEditionFormsView(PermissionOnObjectViewMixin):
   
   model = Artifact
   
-  object_permissions = ('code_doc.project_administrate',)
-  object_permissions_getter = 'object_permission_getter_bla'
+  permissions_on_object = ('code_doc.project_artifact_add',)
+  permissions_object_getter = 'get_project_from_request'
   
-  def object_permission_getter_bla(self, **kwargs):
-    raw_input('inside object_permission_getter')
-    return self.object
-  
+  def get_project_from_request(self, request, *args, **kwargs):
+    
+    try:
+      return Project.objects.get(pk=kwargs['project_id'])  
+    except Project.DoesNotExist:
+      logger.warning('[ProjectVersionArtifactEditionFormsView] non existent project with id %d', project_id)
+      return None    
   
   def get_context_data(self, **kwargs):
     """Method used for populating the template context"""
@@ -327,14 +402,14 @@ class ProjectVersionArtifactEditionFormsView(PermissionOnObjectViewMixin):
   #@method_decorator(lambda x: login_required(x, login_url=reverse_lazy('login')))
   def get(self, request, project_id, version_id, *args, **kwargs):
     """Returning the form"""
-    logger.warning('[fileupload] dispatch %s, %s, %s', project_id, version_id, kwargs)
+    logger.warning('[fileupload] get %s, %s, %s', project_id, version_id, kwargs)
     
     try:
       current_project = Project.objects.get(pk=project_id)
     except Project.DoesNotExist:
       return HttpResponse('Unauthorized', status=401) # we can return 404 but it is better to return the same as unauthorized
 
-    if not self.request.user.is_superuser and not current_project.has_artifact_add_permissions(self.request.user):
+    if not self.request.user.is_superuser and not current_project.has_user_project_artifact_add_permission(self.request.user):
       return HttpResponse('Unauthorized', status=401) 
     
     try:
@@ -367,7 +442,7 @@ class ProjectVersionArtifactAddView(ProjectVersionArtifactEditionFormsView, Crea
       logger.warning('[fileupload] formvalid project does not exist')
       raise Http404
     
-    if not self.request.user.is_superuser and not current_project.has_artifact_add_permissions(self.request.user):
+    if not self.request.user.is_superuser and not current_project.has_user_project_artifact_add_permission(self.request.user):
       return HttpResponse('Unauthorized', status=401) 
 
     logger.debug('[fileupload] version')
@@ -378,15 +453,14 @@ class ProjectVersionArtifactAddView(ProjectVersionArtifactEditionFormsView, Crea
       return HttpResponse('Unauthorized', status=401) # we can return 404 but it is better to return the same as unauthorized
 
     form.instance.project_version = current_version 
-    print 'form %r' % form
-    print 'form instance %r' % form.instance
     
     try:
-      return super(ProjectVersionArtifactAddView, self).form_valid(form)
+      with transaction.atomic():
+        return super(ProjectVersionArtifactAddView, self).form_valid(form)
     except Exception, e:
       logging.error("[fileupload] error during the save %s", e)
     
-    return HttpResponse('Conflict %s' % form.instance.md5hash, status=409)
+    return HttpResponse('Conflict %s' % form.instance.md5hash.upper(), status=409)
     
     
 
