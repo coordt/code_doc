@@ -45,8 +45,8 @@ class ProjectTest(TestCase):
     # user2 is not admin
     user2 = User.objects.create_user(username='user2', password='user2')
     
-    self.assertFalse(self.project.has_version_add_permissions(user2))
-    self.assertTrue(self.project.has_version_add_permissions(self.first_user))
+    self.assertFalse(self.project.has_user_project_version_add_permission(user2))
+    self.assertTrue(self.project.has_user_project_version_add_permission(self.first_user))
     
     
   def test_project_get_number_of_revisions(self):
