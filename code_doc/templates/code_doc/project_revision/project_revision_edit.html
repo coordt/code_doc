@@ -1,0 +1,40 @@
+{% extends "code_doc/base_template.html" %}
+{% load staticfiles %}
+
+
+{% block content %}
+
+<h1>Project "{{ project.name|title }}" - Series {{version.version}}</h1>
+  <div class="alert alert-info" role="alert">
+    You are editing the version/series details
+  </div>
+
+
+
+<h2>Edition</h2>
+  {% if form.errors %} 
+    <div class="alert alert-danger" role="alert">The following error occurred with your submission {{form.errors}}</div>
+  {% endif %}
+
+
+
+  <form class="form-horizontal" enctype="multipart/form-data" action="" method="post" role="form">
+
+    {% csrf_token %}
+    {{ form.as_p }}
+
+    <div class="form-group">
+      <label for="id_description"  class="col-sm-2 control-label">Description</label> 
+      <div class="col-sm-10">
+        <textarea class="form-control" id="id_description" maxlength="1024" name="description" rows="10" 
+                   ></textarea>
+        <p class="help-block">
+        Indicate the content of this artifact in MarkDown format</p>
+      </div>
+    </div>
+
+
+    <input type="submit" value="Save" />
+</form>
+
+{% endblock %}

@@ -291,6 +291,59 @@ class ProjectVersionDetailsView(PermissionOnObjectViewMixin, DetailView):
     context['project_id'] = version_object.project.id
     context['artifacts'] = version_object.artifacts.all()
     return context  
+
+
+class ProjectVersionUpdateView(PermissionOnObjectViewMixin, UpdateView):
+  """Update the content of a specific version. 
+  
+  .. note:: the user should have the 'version_view' and the 'version_artifact_view' permissions on the version object
+  
+  """
+  
+  # detail view on a version
+  model = ProjectVersion
+  # part of the url giving the proper object
+  pk_url_kwarg  = 'version_id'
+  
+  template_name = 'code_doc/project_revision/project_revision_edit.html'
+  
+  # we should have admin priviledges on the object in order to be able to add anything  
+  permissions_on_object = ('code_doc.version_edit',)
+  permissions_object_getter = 'get_version_from_request'
+  
+  def get_version_from_request(self, request, *args, **kwargs):
+    
+    # this already checks the coherence of the url:
+    # if the version does not belong to the project, an PermissionDenied is raised
+    try:
+      project = Project.objects.get(pk=kwargs['project_id'])  
+    except Project.DoesNotExist:
+      logger.warning('[ProjectVersionDetailsView] non existent project with id %d', kwargs['project_id'])
+      return None    
+  
+    try:
+      version = project.versions.get(pk=kwargs['version_id'])
+    except ProjectVersion.DoesNotExist:
+      logger.warning('[ProjectVersionDetailsView] non existent version with id %d', kwargs['version_id'])
+      return None
+  
+    return version
+  
+  def get_context_data(self, **kwargs):
+    """Method used for populating the template context"""
+    context = super(ProjectVersionUpdateView, self).get_context_data(**kwargs)
+    
+    version_object = self.object
+    
+    assert(Project.objects.get(pk=self.kwargs['project_id']).id == version_object.project.id)
+    
+    context['version'] = version_object 
+    context['project'] = version_object.project
+    context['project_id'] = version_object.project.id
+    context['artifacts'] = version_object.artifacts.all()
+    return context  
+  
+
   
 
 class ProjectVersionDetailsShortcutView(RedirectView):

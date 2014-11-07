@@ -26,6 +26,10 @@ urlpatterns = patterns('',
   url(r'^revisions/(?P<project_id>\d+)/(?P<version_id>\d+)/$', 
       views.ProjectVersionDetailsView.as_view(), 
       name='project_revision'),
+  # edition of a particular project version
+  url(r'^project/(?P<project_id>\d+)/(?P<version_id>\w+)/edit', 
+      views.ProjectVersionUpdateView.as_view(), 
+      name='project_revision_edit'),
   # adding a revision to the project
   url(r'^revisions/(?P<project_id>\d+)/add/$', 
       views.ProjectVersionAddView.as_view(), 

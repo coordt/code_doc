@@ -44,4 +44,4 @@ def button_edit_series_with_permission(user, revision):
   logger.debug('[templatetag|button artifact] User %s ', user)
   return {'permission_ok': project.has_user_project_version_add_permission(user),
           'user': user,
-          'next' : reverse_lazy('project_artifacts_add', args=[project.id, revision.id])}
+          'next' : reverse_lazy('project_revision_edit', args=[project.id, revision.id])}
