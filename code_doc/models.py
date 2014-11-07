@@ -70,6 +70,16 @@ class Topic(models.Model):
     super(Topic, self).save() # Call the "real" save() method.
 
 def manage_permission_on_object(userobj, user_permissions, group_permissions, default = None):
+  """If (in order)
+  
+    * userobj is a superuser, then true
+    * userobj is not active, then default. If default is None, then True
+    * no credentials set in the groups user_permissions / group_permissions, the default. If default is None, then True.
+    * userobj in user_permissions, then True
+    * userobj in one of the groups in group_permissions, the True
+    * otherwise False
+    
+  """
   if userobj.is_superuser:
     return True
   
@@ -79,7 +89,7 @@ def manage_permission_on_object(userobj, user_permissions, group_permissions, de
   # no permission has been set, so no restriction by default
   if user_permissions.count() == 0 and group_permissions.count() == 0:
     return default if not default is None else True
-    
+  
   if user_permissions.filter(id=userobj.id).count() > 0:
     return True
   
@@ -113,22 +123,27 @@ class Project(models.Model):
 
   class Meta:
     permissions = (
-      ("project_view",  "Can see the project"),
+      ("project_view",          "Can see the project"),
       ("project_administrate",  "Can administrate the project"),
+      ("project_version_add",   "Can add a version to the project"),
+      ("project_artifact_add",  "Can add an artifact to the project"),
       ) 
 
-  def has_project_administrate_permissions(self, user):
+  def has_user_project_administrate_permission(self, user):
     """Returns true if the user is able to administrate a project"""
     return user.is_superuser or user in self.administrators.all()
 
+  def has_user_project_view_permission(self, user):
+    """Returns true if the user is able to view the project"""
+    return True
   
-  def has_version_add_permissions(self, user):
+  def has_user_project_version_add_permission(self, user):
     """Returns true if the user is able to add version to the current project"""
-    return self.has_project_administrate_permissions(user)
+    return self.has_user_project_administrate_permission(user)
 
-  def has_artifact_add_permissions(self, user):
+  def has_user_project_artifact_add_permission(self, user):
     """Returns true if the user is able to add version to the current project"""
-    return self.has_project_administrate_permissions(user)
+    return self.has_user_project_administrate_permission(user)
   
 
   def get_number_of_files(self):
@@ -170,7 +185,8 @@ class ProjectVersion(models.Model):
     unique_together = (("project", "version"), )
     permissions = (
       ("version_view",  "User of group has access to this revision"),
-      ("version_artifacts_view",  "Access to the artifacts of this revision"), #. This is a refinement of version_view
+      ("version_edit",  "User can edit the content of this version"),
+      ("version_artifact_view",  "Access to the artifacts of this revision"), #. This is a refinement of version_view
       ) 
 
   def __unicode__(self):
@@ -179,16 +195,23 @@ class ProjectVersion(models.Model):
   def get_absolute_url(self):
     return reverse('project_revision', kwargs={'project_id' : self.project.pk, 'version_id': self.pk})
   
-  def has_user_view_permission(self, userobj):
+  def has_user_version_view_permission(self, userobj):
     """Returns true if the user has view permission on this version, False otherwise"""
     return  self.is_public or \
-            self.project.has_project_administrate_permissions(userobj) or \
+            self.project.has_user_project_administrate_permission(userobj) or \
             manage_permission_on_object(userobj, self.view_users, self.view_groups, False)
   
-  def has_user_artifact_view_permission(self, userobj):
-    """Returns True if the user can see the list of artifacts and the artifacts themselves for a specific version, False otherwise"""
+  def has_user_version_edit_permission(self, userobj):
+    """Returns true if the user has view permission on this version, False otherwise"""
     return  self.is_public or \
-            (self.has_user_view_permission(userobj) and \
+            self.project.has_user_project_administrate_permission(userobj) or \
+            manage_permission_on_object(userobj, self.view_users, self.view_groups, False)
+  
+  def has_user_version_artifact_view_permission(self, userobj):
+    """Returns True if the user can see the list of artifacts and the artifacts themselves for a specific version, False otherwise"""
+    return self.is_public or \
+           self.project.has_user_project_administrate_permission(userobj) or \
+            (self.has_user_version_view_permission(userobj) and \
              manage_permission_on_object(userobj, self.view_artifacts_users, self.view_artifacts_groups, False))
 
 
