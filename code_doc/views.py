@@ -429,7 +429,7 @@ class ProjectVersionArtifactAddView(ProjectVersionArtifactEditionFormsView, Crea
     
     current_version = ProjectVersion.objects.get(pk=self.kwargs['version_id'])
     current_project = current_version.project
-    assert(current_project.id == self.kwargs['project_id'])
+    assert(str(current_project.id) == self.kwargs['project_id'])
 
     form.instance.project_version = current_version 
     
