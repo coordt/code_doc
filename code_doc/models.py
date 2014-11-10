@@ -57,17 +57,11 @@ class Copyright(models.Model):
 class Topic(models.Model):
   """A topic associated to a project"""
   name            = models.CharField(max_length=20)
-  #description     = models.TextField(max_length=200, blank=True, null=True)
   description_mk  = models.TextField('Description in Markdown format', max_length=200, blank=True, null=True)
   
   def __unicode__(self):
     return "%s" %(self.name)
 
-  #def save(self, *args, **kwargs):
-  #  if self.description_mk is None:
-  #    self.description_mk = ''
-  #  self.description = markdown.markdown(self.description_mk)
-  #  super(Topic, self).save() # Call the "real" save() method.
 
 def manage_permission_on_object(userobj, user_permissions, group_permissions, default = None):
   """If (in order)
@@ -100,7 +94,6 @@ def manage_permission_on_object(userobj, user_permissions, group_permissions, de
 class Project(models.Model):
   """A project, may contain several authors"""
   name            = models.CharField(max_length=50, unique=True)
-  #description     = models.TextField('hidden', max_length=2500, blank=True, null=True)
   short_description = models.TextField('short description of the project (200 chars)', max_length = 200, blank = True, null = True)
   description_mk  = models.TextField('text in Markdown', max_length=2500, blank=True, null=True)
   icon            = models.ImageField(blank=True, null=True, upload_to='project_icons/')
@@ -156,9 +149,6 @@ class Project(models.Model):
     return self.versions.count()
   
   def save(self, *args, **kwargs):
-    #if self.description_mk is None:
-    #  self.description_mk = ''
-    #self.description = markdown.markdown(self.description_mk)
     self.slug = slugify(self.name)
     super(Project, self).save(*args, **kwargs) # Call the "real" save() method.
 
@@ -171,7 +161,6 @@ class ProjectVersion(models.Model):
   version         = models.CharField(max_length=500) # can be a hash
   release_date    = models.DateField('Release date')
   is_public       = models.BooleanField(default=False)
-  #description     = models.TextField('Description of the version', max_length=500) # the description of the content
   description_mk  = models.TextField('Description in Markdown format', max_length=200, blank=True, null=True)
 
   # the users and groups allowed to view the artifacts of the revision and also this project version
@@ -214,12 +203,6 @@ class ProjectVersion(models.Model):
             (self.has_user_version_view_permission(userobj) and \
              manage_permission_on_object(userobj, self.view_artifacts_users, self.view_artifacts_groups, False))
 
-
-  #def save(self, *args, **kwargs):
-  #  if self.description_mk is None:
-  #    self.description_mk = ''
-  #  self.description = markdown.markdown(self.description_mk)
-  #  super(ProjectVersion, self).save() # Call the "real" save() method.
 
 
 def get_artifact_location(instance, filename):

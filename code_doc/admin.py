@@ -15,7 +15,6 @@ admin.site.register(CopyrightHolder)
 class ProjectAdmin(admin.ModelAdmin):
   list_display = ('name', 'home_page_url', 'description_mk')
   list_filter  = ['name']
-  #exclude      = ('description',)
 
   def get_queryset(self, request):
     """Filters the project to which the current user has access to"""
@@ -32,13 +31,11 @@ admin.site.register(Project, ProjectAdmin)
 class ProjectVersionAdmin(admin.ModelAdmin):
   list_display = ('version', 'release_date', 'is_public', 'description_mk')
   list_filter  = ['version', 'release_date']
-  #exclude      = ('description',)
   
 admin.site.register(ProjectVersion, ProjectVersionAdmin)
 
 
 class TopicAdmin(admin.ModelAdmin):
-  #exclude      = ('description',)
   pass
 
 admin.site.register(Topic, TopicAdmin)
