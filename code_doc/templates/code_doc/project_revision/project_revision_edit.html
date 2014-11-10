@@ -1,17 +1,24 @@
 {% extends "code_doc/base_template.html" %}
 {% load staticfiles %}
 
+{% block additionalhead %}
+<script>
+$(document).ready(function(){
+	$('.datepicker').datepicker();
+	})
+</script>
+{% endblock %}
 
 {% block content %}
 
-<h1>Project "{{ project.name|title }}" - Series {{version.version}}</h1>
+<h1>{{ project.name|title }} - Series {{version.version}}</h1>
   <div class="alert alert-info" role="alert">
     You are editing the version/series details
   </div>
 
 
 
-<h2>Edition</h2>
+
   {% if form.errors %} 
     <div class="alert alert-danger" role="alert">The following error occurred with your submission {{form.errors}}</div>
   {% endif %}
@@ -21,18 +28,18 @@
   <form class="form-horizontal" enctype="multipart/form-data" action="" method="post" role="form">
 
     {% csrf_token %}
-    {{ form.as_p }}
 
+    {% for field in form.visible_fields %}
     <div class="form-group">
-      <label for="id_description"  class="col-sm-2 control-label">Description</label> 
+      {{ field.errors }}
+      <label for="{{ field.id_for_label }}"  class="col-sm-2 control-label">{{ field.label }}</label> 
       <div class="col-sm-10">
-        <textarea class="form-control" id="id_description" maxlength="1024" name="description" rows="10" 
-                   ></textarea>
-        <p class="help-block">
-        Indicate the content of this artifact in MarkDown format</p>
+      
+        {{ field }}
+        <p class="help-block">{{ field.help_text }}</p>
       </div>
     </div>
-
+    {% endfor %}
 
     <input type="submit" value="Save" />
 </form>

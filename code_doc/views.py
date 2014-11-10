@@ -293,6 +293,9 @@ class ProjectVersionDetailsView(PermissionOnObjectViewMixin, DetailView):
     return context  
 
 
+from django.forms import Textarea, DateInput
+from django.forms.models import modelform_factory
+
 class ProjectVersionUpdateView(PermissionOnObjectViewMixin, UpdateView):
   """Update the content of a specific version. 
   
@@ -310,6 +313,19 @@ class ProjectVersionUpdateView(PermissionOnObjectViewMixin, UpdateView):
   # we should have admin priviledges on the object in order to be able to add anything  
   permissions_on_object = ('code_doc.version_edit',)
   permissions_object_getter = 'get_version_from_request'
+  
+  # for the form that is displayed
+  
+  form_class = modelform_factory(ProjectVersion,
+                                 fields = ('version', 'release_date', 'description_mk'),
+                                 labels = {'version' : 'Version/Series name',
+                                           'description_mk' : 'Description'},
+                                 help_texts = {'description_mk' : 'Description/content of the version/series in MarkDown format'},
+                                 
+                                 widgets = {'version' : Textarea(attrs={'cols' : 120, 'rows' : 2}),
+                                            'description_mk' : Textarea(attrs={'cols' : 120, 'rows' : 10}),
+                                            'release_date' : DateInput(attrs={'class' : 'datepicker'})})
+  
   
   def get_version_from_request(self, request, *args, **kwargs):
     
