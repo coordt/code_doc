@@ -200,7 +200,7 @@ class ProjectVersionAddView(PermissionOnObjectViewMixin, CreateView):
   """
   model = ProjectVersion
   template_name = "code_doc/project_revision/project_revision_add.html"
-  fields = ['version', 'description', 'release_date', 'is_public', 'view_users', 'view_groups']
+  fields = ['version', 'description_mk', 'release_date', 'is_public', 'view_users', 'view_groups']
   
 
   # user should have the appropriate privileges on the object in order to be able to add anything  

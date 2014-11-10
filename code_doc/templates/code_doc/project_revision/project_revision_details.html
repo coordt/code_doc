@@ -1,6 +1,7 @@
 {% extends "code_doc/base_template.html" %}
 {% load static %}
 {% load button_add_with_permission %}
+{% load markdown_filter %}
 
 {% block title %}{{ project.name }}{% endblock %}
 
@@ -9,7 +10,7 @@
   <h1><a href="{% url 'project' project.id %}">{{ project.name }}</a> - {{version.version}} {% button_edit_series_with_permission user version %}</h1>
 
   <h3>Description</h3>
-  {{version.description|safe}}
+  {{version.description_mk|markd|safe}}
   
   <h3>Details</h3>
   

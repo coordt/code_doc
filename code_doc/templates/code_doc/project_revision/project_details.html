@@ -3,6 +3,7 @@
 {% load staticfiles %}
 {% load author_image %}
 {% load button_add_with_permission %}
+{% load markdown_filter %}
 
 {% block title %}{{ project.name }}{% endblock %}
 
@@ -16,7 +17,7 @@
   <div class="row">
     <div class="col-md-8">
       <h3>Description</h3>
-      {{ project.description|safe }}
+      {{ project.description_mk|markd|safe }}
     </div>
     <div class="col-sm-4">
       <h4>Authors</h4>
@@ -96,7 +97,7 @@
             <td>{{ version.release_date }}</td>
             <td>{{ version.artifacts.count }}</td>
             <td>{{ current_last_update|date }}</td>
-            <td>{{ version.description|safe }}</td>
+            <td>{{ version.description_mk|markd|safe }}</td>
           </tr>
          <tbody>
 
