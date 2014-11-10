@@ -1,12 +1,13 @@
 {% extends "code_doc/base_template.html" %}
 {% load project_image %}
+{% load markdown_filter %}
 
 {% block title %}Topics: {{ topic.name }}{% endblock %}
 
 
 {% block content %}
   <h1>{{ topic.name|title }}</h1>
-  <p>{{ topic.description|safe }}</p>
+  <p>{{ topic.description_mk|markd|safe }}</p>
   
   <h3>Projects</h3>
   {% if topic.project_set %}

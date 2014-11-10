@@ -2,7 +2,7 @@
 {% load gravatar %}
 {% load staticfiles %}
 {% load static %}
-
+{% load markdown_filter %}
 
 {% block title %}{{ project.name }}{% endblock %}
 
@@ -10,12 +10,12 @@
 {% block content %}
   <h1>{{ project.name }}</h1>
 
-  {{ project.description|safe }}
+  {{ project.description_mk|markd|safe }}
 
 
   <h1>Details for version {{version.version}}</h1>
   
-  {{ version.description|safe }}
+  {{ version.description_mk|markd|safe }}
   
   
   <h3>Artifacts</h3>
