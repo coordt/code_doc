@@ -293,8 +293,36 @@ class ProjectVersionDetailsView(PermissionOnObjectViewMixin, DetailView):
     return context  
 
 
-from django.forms import Textarea, DateInput
+from django.forms import Textarea, DateInput, CheckboxSelectMultiple, HiddenInput
+from django.forms.widgets import Widget, MultiWidget
 from django.forms.models import modelform_factory
+from django.contrib.auth.models import User, Group
+
+class CredentialsWidget(MultiWidget):
+    """
+    
+    """
+
+    def __init__(self, fields, name_mapping, attrs=None):
+      widgets = [forms.CheckboxSelectMultiple()]
+      super(MultiWidget, self).__init__(widgets, attrs)
+
+    def decompress(self, value):
+        if value:
+            return [value.date(), value.time().replace(microsecond=0)]
+        return [None, None]
+
+
+class EmptyWidget(CheckboxSelectMultiple):
+    """
+    
+    """
+    def __init__(self, attrs=None):
+      super(EmptyWidget, self).__init__(attrs)
+
+    def render(self, name, value, attrs=None):
+      return ''
+
 
 class ProjectVersionUpdateView(PermissionOnObjectViewMixin, UpdateView):
   """Update the content of a specific version. 
@@ -317,17 +345,21 @@ class ProjectVersionUpdateView(PermissionOnObjectViewMixin, UpdateView):
   # for the form that is displayed
   
   form_class = modelform_factory(ProjectVersion,
-                                 fields = ('version', 'release_date', 'description_mk'),
-                                 labels = {'version' : 'Version/Series name',
+                                 fields = ('version', 'release_date', 'description_mk', 'view_users', 'view_groups', 'view_artifacts_users', 'view_artifacts_groups'),
+                                 labels = {'version' : 'Version/series name',
                                            'description_mk' : 'Description'},
                                  help_texts = {'description_mk' : 'Description/content of the version/series in MarkDown format'},
                                  
-                                 widgets = {'version' : Textarea(attrs={'cols' : 120, 'rows' : 2}),
-                                            'description_mk' : Textarea(attrs={'cols' : 120, 'rows' : 10}),
+                                 widgets = {'version' : Textarea(attrs={'cols' : 120, 'rows' : 2, 'style' : "resize:none"}),
+                                            'description_mk' : Textarea(attrs={'cols' : 120, 'rows' : 10, 'style' : "resize:vertical"}),
                                             'release_date' : DateInput(attrs={'class' : 'datepicker', 
-                                                                              'data-date-format' : "dd-mm-yyyy",
+                                                                              'data-date-format' : "dd/mm/yyyy",
                                                                               'data-provide': 'datepicker'}, 
-                                                                       format='%d-%m-%Y')})
+                                                                       format='%d/%m/%Y'),
+                                            'view_users' : CheckboxSelectMultiple,
+                                            'view_groups': CheckboxSelectMultiple,
+                                            'view_artifacts_users' : CheckboxSelectMultiple,
+                                            'view_artifacts_groups' : CheckboxSelectMultiple})
   
   
   def get_version_from_request(self, request, *args, **kwargs):
@@ -356,10 +388,34 @@ class ProjectVersionUpdateView(PermissionOnObjectViewMixin, UpdateView):
     
     assert(Project.objects.get(pk=self.kwargs['project_id']).id == version_object.project.id)
     
+    form = context['form']
+    
     context['version'] = version_object 
     context['project'] = version_object.project
     context['project_id'] = version_object.project.id
     context['artifacts'] = version_object.artifacts.all()
+    context['permission_headers'] = ['View', 'Artifact view']
+    
+    context['automatic_fields'] = (form[i] for i in ('version', 'release_date', 'description_mk'))
+        
+    context['active_users'] = User.objects.all()#set(version_object.view_users.all()) | set(version_object.view_artifacts_users.all())
+    context['user_permissions'] = zip(xrange(len(context['active_users'])), 
+                                      context['active_users'], 
+                                      form['view_users'], 
+                                      form['view_artifacts_users'])
+    
+
+    #context['active_groups'] = set(version_object.view_groups.all()) | set(version_object.view_artifacts_groups.all())
+    context['active_groups'] = Group.objects.all()
+    context['group_permissions'] = zip(xrange(len(context['active_groups'])), 
+                                       context['active_groups'], 
+                                       form['view_groups'], 
+                                       form['view_artifacts_groups'])
+    
+    #context['form']['view_groups'].is_hidden = True
+    
+    
+    print form.visible_fields()
     return context  
   
 
