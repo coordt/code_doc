@@ -14,8 +14,7 @@
   
   <h3>Details</h3>
   
-  <h3>Artifacts for series {{version.version}} {% button_add_artifact_with_permission user version %}
-  </h3>
+  <h3>Artifacts</h3>
   
 
   {% if artifacts %}
@@ -33,12 +32,11 @@
 	        </tr>
 	      </thead>
 	
-	    {% for artifact in artifacts %}
-	    
-	      <tbody>
+	    <tbody>
+	      {% for artifact in artifacts %}
 	        <tr>
 	          <td>{{artifact.pk}}</td>
-	          <th class="text-nowrap"><a href="{%get_media_prefix%}{{artifact.artifactfile}}">{{artifact.filename}}</a></th>
+	          <td class="text-nowrap"><small><a href="{%get_media_prefix%}{{artifact.artifactfile}}">{{artifact.filename}}</a></small></td>
 	          
             <td>
             {% if artifact.is_documentation %}
@@ -49,12 +47,16 @@
               {% endif %}
             </td>
             <td><small><span style="font-family:monospace;">{{artifact.md5hash|upper}}</span></small></td>
-	          <td>{{artifact.description}}</td>
-	          <td>{{artifact.upload_date|date}}</td>
-	          <td>{{artifact.uploaded_by}}</td>
+	          <td><small>{{artifact.description}}</small></td>
+	          <td><small>{{artifact.upload_date|date}}</small></td>
+	          <td>{% if artifact.uploaded_by %}<small>{{artifact.uploaded_by}}</small>{%endif%}</td>
 	          
 	        </tr>
-	    {%endfor%}
+	      {%endfor%}
+	      <tr>
+	        <th>{% button_add_artifact_with_permission user version %}</th>
+	      </tr>
+	    </tbody>
 	  </table>  
   
   {% else %}
