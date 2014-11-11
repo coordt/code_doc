@@ -324,7 +324,10 @@ class ProjectVersionUpdateView(PermissionOnObjectViewMixin, UpdateView):
                                  
                                  widgets = {'version' : Textarea(attrs={'cols' : 120, 'rows' : 2}),
                                             'description_mk' : Textarea(attrs={'cols' : 120, 'rows' : 10}),
-                                            'release_date' : DateInput(attrs={'class' : 'datepicker'})})
+                                            'release_date' : DateInput(attrs={'class' : 'datepicker', 
+                                                                              'data-date-format' : "dd-mm-yyyy",
+                                                                              'data-provide': 'datepicker'}, 
+                                                                       format='%d-%m-%Y')})
   
   
   def get_version_from_request(self, request, *args, **kwargs):

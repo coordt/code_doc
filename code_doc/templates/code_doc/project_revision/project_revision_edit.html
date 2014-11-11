@@ -1,12 +1,11 @@
 {% extends "code_doc/base_template.html" %}
 {% load staticfiles %}
 
+{% block title %}{{version.version}} - {{ project.name }}{% endblock %}
+
 {% block additionalhead %}
-<script>
-$(document).ready(function(){
-	$('.datepicker').datepicker();
-	})
-</script>
+  <link rel="stylesheet" href="{% static "datepicker3.css" %}">  
+  <script language="javascript" type="text/javascript" src="{% static "bootstrap-datepicker.js" %}"></script>
 {% endblock %}
 
 {% block content %}
@@ -40,7 +39,7 @@ $(document).ready(function(){
       </div>
     </div>
     {% endfor %}
-
+    
     <input type="submit" value="Save" />
 </form>
 
