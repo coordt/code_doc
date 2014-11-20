@@ -48,15 +48,15 @@ ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 ADMINS = (('Raffi Enficiaud', 'raffi.enficiaud@tuebingen.mpg.de'), )
 
 
-LOGIN_URL = "/code_doc/accounts/login/"
-LOGIN_REDIRECT_URL = "/code_doc"
+LOGIN_URL = "/accounts/login/"
+LOGIN_REDIRECT_URL = "/"
 
 # Email address that error messages come from.
 SERVER_EMAIL = 'root@localhost'
 
 # Default email address to use for various automated correspondence from
 # the site managers.
-DEFAULT_FROM_EMAIL = 'webmaster@codedoc'
+DEFAULT_FROM_EMAIL = 'webmaster@code.is.localnet'
 
 # Subject-line prefix for email messages send with django.core.mail.mail_admins
 # or ...mail_managers.  Make sure to include the trailing space.
