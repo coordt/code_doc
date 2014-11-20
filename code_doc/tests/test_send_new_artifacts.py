@@ -44,7 +44,7 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
       files.append(('artifactfile', f)) # send the descriptor as in Windows it is not possible to reopen a temporary file based on its name
   
       ret = post_multipart(self.live_server_url, 
-                           '/code_doc/project/%d/%d/add' % (self.project.id, self.version.id), 
+                           '/project/%d/%d/add' % (self.project.id, self.version.id), 
                            fields, 
                            files,
                            username = self.first_user.username,
@@ -78,7 +78,7 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
       
       instance = PostMultipartWithSession(host=self.live_server_url)
       
-      post_url = '/code_doc/project/%d/%d/add' % (self.project.id, self.version.id)
+      post_url = '/project/%d/%d/add' % (self.project.id, self.version.id)
       
       #ret = instance.post_multipart( 
       #        post_url, 
@@ -113,7 +113,7 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
     """Tests if the redirection is ok"""
     instance = PostMultipartWithSession(host=self.live_server_url)
     
-    post_url = '/code_doc/s/%s/%s/' % (self.project.name, self.version.version)
+    post_url = '/s/%s/%s/' % (self.project.name, self.version.version)
     response = instance.get(post_url)
     redir = instance.get_redirection(post_url)
     self.assertEqual(redir, reverse('project_revision', args=[self.project.id, self.version.id]))
@@ -127,7 +127,7 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
                      username = self.first_user.username,
                      password = 'test_version_user')
     
-    post_url = '/code_doc/api/%s/%s/' % (self.project.name, self.version.version)
+    post_url = '/api/%s/%s/' % (self.project.name, self.version.version)
     response = instance.get(post_url)
     
     dic_ids = json.loads(response.read())
