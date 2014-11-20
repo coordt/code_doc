@@ -86,7 +86,7 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
       #        files,
       #        avoid_redirections = True)
 
-      instance.login(login_page = "/code_doc/accounts/login/", 
+      instance.login(login_page = "/accounts/login/", 
                      username = self.first_user.username,
                      password = 'test_version_user')
       
@@ -123,7 +123,7 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
     """Tests if the json mapping the name of project/version to ids is ok"""
     
     instance = PostMultipartWithSession(host=self.live_server_url)
-    instance.login(login_page = "/code_doc/accounts/login/", 
+    instance.login(login_page = "/accounts/login/", 
                      username = self.first_user.username,
                      password = 'test_version_user')
     
