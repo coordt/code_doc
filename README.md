@@ -3,6 +3,7 @@
 This project provides a simple web application to store documentation and artifacts. It manages permissions on each of the resources served. 
 
 ## Deploying the application into production ## 
+
 The tested configuration is NGinx + uWSGI under Ubuntu 14.04. We need to install 
 
 * the webserver, 
@@ -27,6 +28,7 @@ The tested configuration is NGinx + uWSGI under Ubuntu 14.04. We need to install
 Let's call ``$my_application_folder`` the root location where the sources were cloned (here we would have ``$my_application_folder=/www/webapp/my_application_name``).
 
 ### Preparation of the virtual environment ###
+
 We want everything running in a virtual environment. This way there is no troubleshooting among several instances of web application hosted by the same server. 
 ```
 #!bash
@@ -40,6 +42,7 @@ We want everything running in a virtual environment. This way there is no troubl
 
 
 ### Preparation of the static and media folders ###
+
 In production, the static and media files are served by NGinx and not by Django
 
 ```
@@ -52,6 +55,7 @@ In production, the static and media files are served by NGinx and not by Django
 ```
 
 ### Fixing some permissions ###
+
 The user that will be running django is likely to be ``www-data`` which also has its own group. The database should be writable for this user. This is usually not a problem if you run Django with a real database backend, but if (eg. for small applications) you decide to stay with sqlite, the the db that is stored into a file should have the proper permissions. 
 
 ```
