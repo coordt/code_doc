@@ -43,7 +43,7 @@ DEBUG = True
 TEMPLATE_DEBUG = True
 
 # to be edited when in production mode
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ['code.is.localnet', '127.0.0.1', 'localhost']
 
 ADMINS = (('Raffi Enficiaud', 'raffi.enficiaud@tuebingen.mpg.de'), )
 
