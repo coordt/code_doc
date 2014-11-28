@@ -61,6 +61,7 @@
   
   {% else %}
       <p>No artifacts for this revision {{ version.version }}.</p>
+      <p>{% button_add_artifact_with_permission user version %}</p>
   {% endif %}
 
 
