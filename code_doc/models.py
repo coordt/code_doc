@@ -161,7 +161,7 @@ class ProjectVersion(models.Model):
   version         = models.CharField(max_length=500) # can be a hash
   release_date    = models.DateField('Release date')
   is_public       = models.BooleanField(default=False)
-  description_mk  = models.TextField('Description in Markdown format', max_length=200, blank=True, null=True)
+  description_mk  = models.TextField('Description in Markdown format', max_length=2500, blank=True, null=True)
 
   # the users and groups allowed to view the artifacts of the revision and also this project version
   view_users   = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, null=True, related_name = 'view_users')
