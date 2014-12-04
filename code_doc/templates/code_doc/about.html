@@ -1,0 +1,33 @@
+{% extends "code_doc/base_template.html" %}
+{% load gravatar %}
+{% load staticfiles %}
+{% load static %}
+{% load project_image %}
+{% load markdown_filter %}
+
+{% block title %}About MPI.IS documentation{% endblock %}
+
+
+{% block content %}
+{% markdown_tag %}
+
+blablsa
+=======
+
+This is the definition of otototot.
+
+toto
+----
+Dowload the code as follow:
+
+    ::python
+    import blabla
+    
+    blabla(2, 3)
+    
+
+
+
+{% endmarkdown_tag %}
+
+{% endblock %}

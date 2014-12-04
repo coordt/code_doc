@@ -58,6 +58,12 @@ def index(request):
           {'projects_list': projects_list, 
            'topics_list': topics_list})
   
+def about(request):
+  return render(
+          request, 
+          'code_doc/about.html', 
+          {})
+  
 
 
 class MaintainerProfileView(View):

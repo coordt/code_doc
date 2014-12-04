@@ -11,7 +11,7 @@
 {% block content %}
   <h1>{{ project.name }}</h1>
 
-  
+  {{ project.short_description }}
 
 
   <div class="row">
@@ -40,7 +40,7 @@
       {% endif %}
       
       
-      <h4>Maintainers</h4>
+      <h4>Maintained by</h4>
 		  {% if project.administrators.count > 0 %}
 		  
 		    <ul>
