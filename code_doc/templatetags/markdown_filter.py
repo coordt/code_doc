@@ -9,4 +9,4 @@ import markdown
 def markd(text):
   if text is None:
     return text
-  return markdown.markdown(text, safe_mode='escape')
+  return markdown.markdown(text, extensions = ['codehilite'], safe_mode='escape')
