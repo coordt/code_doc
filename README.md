@@ -2,7 +2,20 @@
 
 This project provides a simple web application to store documentation and artifacts. It manages permissions on each of the resources served. 
 
-## Deploying the application into production ## 
+## Installation #
+In the sequel, everything will be installed and ran in a virtual environment. 
+
+```
+virtualenv my_env
+. my_env/bin/activate
+
+pip install django
+pip install Pillows
+pip install markdown
+pip install pygments
+```
+
+## Deploying the application into production #
 
 The tested configuration is NGinx + uWSGI under Ubuntu 14.04. We need to install 
 
