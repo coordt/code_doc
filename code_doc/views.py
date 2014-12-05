@@ -23,15 +23,17 @@ from django.views.generic import ListView
 from django.core.exceptions import PermissionDenied
 from django.db import IntegrityError
 
+# for sending files specific to the server
+from django.core.servers.basehttp import FileWrapper
+from django.core.files import File
+
 
 from django.views.decorators.csrf import csrf_exempt
-
-from django.core.files import File
 
 
 from django.contrib.auth.models import User
 
-
+import os
 import hashlib
 import tempfile
 import logging
@@ -50,6 +52,7 @@ from code_doc.permissions.decorators import permission_required_on_object
 
 
 def index(request):
+  """Front page"""
   projects_list = Project.objects.order_by('name')
   topics_list = Topic.objects.order_by('name')
   return render(
@@ -59,11 +62,18 @@ def index(request):
            'topics_list': topics_list})
   
 def about(request):
-  return render(
-          request, 
-          'code_doc/about.html', 
-          {})
+  """About page"""
+  return render(request,'code_doc/about.html',{})
   
+def script(request):
+  """Returns the script used for uploading stuff"""
+  filename = 'code_doc_upload.py'
+  file_content = open(os.path.join(os.path.dirname(__file__), 'utils', 'send_new_artifact.py'), 'rb') # binary is important here
+  response = HttpResponse(FileWrapper(file_content), content_type='application/text')
+  response['Content-Disposition'] = 'attachment; filename=%s' % filename
+  response['Content-Length'] = file_content.tell()
+  return response
+
 
 
 class MaintainerProfileView(View):

@@ -8,6 +8,7 @@ from code_doc import views
 urlpatterns = patterns('',
   url(r'^$', views.index, name='index'),
   url(r'^about$', views.about, name='about'),
+  url(r'^script$', views.script, name='script'),
   
   url(r'^accounts/login/$',  login, name='login'),
   url(r'^accounts/logout/$', logout, name='logout'),  
