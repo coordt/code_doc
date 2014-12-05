@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 
 from code_doc.models import Project, Author, ProjectVersion
-from code_doc.utils.send_new_artifact import post_multipart, PostMultipartWithSession
+from code_doc.utils.send_new_artifact import PostMultipartWithSession
 
 import tempfile
 import datetime
@@ -29,36 +29,6 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
     
     self.version                = ProjectVersion.objects.create(version="12345", project = self.project, release_date = datetime.datetime.now())
     
-  def test_send_new_file(self):
-    self.assertEqual(len(self.version.artifacts.all()), 0)
-    with tempfile.NamedTemporaryFile() as f:
-
-      f.write('GIF87a\x01\x00\x01\x00\x80\x01\x00\x00\x00\x00ccc,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;')
-      f.seek(0)
-      
-      
-      fields = {}
-      fields['description'] = "revision from client based application"
-  
-      files = []
-      files.append(('artifactfile', f)) # send the descriptor as in Windows it is not possible to reopen a temporary file based on its name
-  
-      ret = post_multipart(self.live_server_url, 
-                           '/project/%d/%d/add' % (self.project.id, self.version.id), 
-                           fields, 
-                           files,
-                           username = self.first_user.username,
-                           password = 'test_version_user')
-      
-      self.assertEqual(len(self.version.artifacts.all()), 1)
-      artifact = self.version.artifacts.all()[0]
-      self.assertEqual(artifact.filename(), os.path.basename(f.name))
-      
-      import hashlib
-      f.seek(0)
-      self.assertEqual(artifact.md5hash, hashlib.md5(f.read()).hexdigest())
-      
-      self.assertEqual(ret.code, 200)
 
   def test_send_new_file_new_api(self):
     """In this test, we know in advance the login url"""
@@ -80,12 +50,6 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
       
       post_url = '/project/%d/%d/add' % (self.project.id, self.version.id)
       
-      #ret = instance.post_multipart( 
-      #        post_url, 
-      #        fields, 
-      #        files,
-      #        avoid_redirections = True)
-
       instance.login(login_page = "/accounts/login/", 
                      username = self.first_user.username,
                      password = 'test_version_user')
