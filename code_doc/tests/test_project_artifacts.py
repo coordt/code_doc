@@ -134,6 +134,37 @@ class ProjectVersionArtifactTest(TestCase):
     self.assertEqual(response.status_code, 200)
     self.assertIn(hashlib.md5(self.imgfile.getvalue()).hexdigest().upper(), response.content)
     
+  def test_get_all_artifacts_json(self):
+    """Tests if the json received by the api view is correct"""
+
+    import hashlib, json
+    response = self.client.login(username='toto', password='titi')
+    self.assertTrue(response)
+
+    self.assertEqual(self.new_version.artifacts.count(), 0)
+
+    initial_path = reverse(self.path, args=[self.project.id, self.new_version.id])
+    response = self.client.post(initial_path, 
+                     {'description': 'blabla', 
+                      'artifactfile': self.imgfile,
+                      'is_documentation' : False},
+                     follow=True)
+        
+    self.assertEqual(self.new_version.artifacts.count(), 1)
+    self.assertEqual(response.status_code, 200)
+    
+    json_artifact_path = reverse('api_get_artifacts', args=[self.project.id, self.new_version.id])
+    response = self.client.get(json_artifact_path)
+
+    dic_ids = json.loads(response.content)
+    self.assertEquals(len(dic_ids), 1)
+    self.assertEquals(len(dic_ids['artifacts']), 1)
+    self.assertTrue(dic_ids['artifacts'].has_key(str(Artifact.objects.first().id)))
+    
+    artifact = dic_ids['artifacts'][str(Artifact.objects.first().id)]
+    
+    self.assertEquals(artifact['md5'].upper(), hashlib.md5(self.imgfile.getvalue()).hexdigest().upper())
+
     
   def test_send_new_artifact_with_login_twice(self):
     """Sending the same file twice should not create a new file"""

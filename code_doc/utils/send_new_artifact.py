@@ -2,8 +2,14 @@
 
 
 __doc__ = """
-The intent of this module is to send a filled form to the coffeepi server, without using any of the Django related stuff
-and possibly no extra packages. The form may contain files. The main class is :class:`PostMultipartWithSession`.
+The intent of this module is to send "artifacts" to a code_doc server, without using any of the Django related stuff
+and possibly no extra packages. This is done by
+
+* loging into the code_doc server using credentials and storing the cookies associated to this session
+* filling a form that contains the details of the artifact to send
+* sending the content
+
+The main class is :class:`PostMultipartWithSession` and the entry point when used as a script is the :func:`main`. 
 """
 
 
@@ -18,6 +24,13 @@ import re
 import urllib
 import StringIO
 import types
+import logging
+
+
+
+logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+logger = logging
+
 
 
 
@@ -164,7 +177,9 @@ class PostMultipartWithSession(object):
         buf.write('Content-Disposition: form-data; name="%s"; filename="%s"\r\n' % (key, filename))
         buf.write('Content-Type: %s\r\n' % contenttype)
         fd.seek(0)
-        buf.write('\r\n' + fd.read() + '\r\n')      
+        string_file = fd.read()
+        
+        buf.write('\r\n' + string_file + '\r\n')      
         
       buf.write('--' + mime_boundary + '--\r\n\r\n')
       
@@ -235,23 +250,180 @@ class PostMultipartWithSession(object):
       raise
 
 
-if __name__ == '__main__':
-  current_directory = os.path.dirname(__file__)
-  project_root_directory = os.path.abspath(os.path.join(current_directory, os.pardir, os.pardir, os.pardir))
-  data_directory = os.path.join(project_root_directory, "data", "1.jpg")
+
+def main():
+  import argparse
+  import hashlib
+  import json
+  import datetime
   
+  
+  description = """code_doc upload script:
+  
+  This utility sends a file to a code_doc instance. It logs onto a code_doc instance with the 
+  provided credentials, gets the id of the project and version that are given from the command line
+  and sends the file to this specific version. 
+  
+  """
+  
+  epilog = ""
+  
+  parser = argparse.ArgumentParser(prog = 'code_doc-archival', 
+                                   description = description,
+                                   epilog = epilog)
+
+  group = parser.add_argument_group('artifact')
+  
+
+  group.add_argument('-f', '--file', 
+                      dest='inputfile', 
+                      action='store',
+                      required=True,
+                      nargs=1,
+                      type=argparse.FileType('rb'),
+                      help="""The file that should be sent to the server.""")
+
+  group.add_argument('--project',
+                      dest = 'project',
+                      required=True,
+                      help = """The name of the project concerned by this upload""")
+
+  group.add_argument('--artifact_version',
+                      dest = 'version',
+                      required=True,
+                      help = """The name of the version concerned by this upload""")
+
+  group.add_argument('--is_doc',
+                      dest = 'is_doc',
+                      action="store_true",
+                      help = """Indicates that the file is an archive containing a documentation that should be deflated on the
+                      server side. Additionally, the `doc_entry` parameter should be set.""")
+
+  group.add_argument('--doc_entry',
+                      dest = 'doc_entry',
+                      default = None,
+                      help = """Indicates the file that is used as the documentation main entry point.""")
+
+  group.add_argument('--artifact_description',
+                      dest = 'description',
+                      action='store',
+                      help = """Describes the artifact.""")
+
+
+  group = parser.add_argument_group('server')
+
+  group.add_argument('-s', '--code_doc_url', 
+                      dest='url', 
+                      metavar='URL',
+                      action='store',
+                      default='http://localhost:8000',
+                      help="""CodeDoc (Django) server to which the results will be send. The URL should contain 
+                              the http scheme, the dns name and the port (default: "http://localhost:8000")""")
+
+  group.add_argument('--username',
+                      dest = 'username',
+                      required=True,
+                      help = """The username used for updating the results (the user should exist on the Django instance is should be
+                             allowed to add results)""")
+
+  group.add_argument('--password',
+                      dest = 'password',
+                      required=True,
+                      help = """The password of the provided user on the Django instance""")
+
+
+
+  args = parser.parse_args()
+
+  args.inputfile = args.inputfile[0]
+
+  if args.inputfile.closed:
+    logger.error("[configuration] the provided file cannot be accessed")
+    raise Exception("[configuration] cannot open the artifact file")
+
+  if args.is_doc and args.doc_entry is None:
+    logger.error("[configuration] the entry point should be provided for documentation artifacts")
+    raise Exception("[configuration] cannot open the artifact file")
+    
+
+  instance = PostMultipartWithSession(args.url)
+  instance.login(login_page = "/accounts/login/", 
+                 username = args.username,
+                 password = args.password)
+  
+  post_url = '/api/%s/%s/' % (args.project, args.version)
+  
+  try:
+    response = instance.get(post_url)
+  except Exception, e:
+    logger.error("An exception was raised while trying to login to the server %r", e)
+    raise
+    
+  res = response.read()
+  dic_ids = json.loads(res)
+  project_id = int(dic_ids['project_id'])
+  version_id = int(dic_ids['version_id'])
+
+  # preparing the form
   fields = {}
-  fields['date'] = datetime.datetime.now()
-  fields['content'] = "random text"
+  fields['description'] = args.description if not args.description is None else 'uploaded by a robot'
+  fields['is_documentation'] = "True" if args.is_doc else "False"
+  fields['documentation_entry_file'] = args.doc_entry if not args.doc_entry is None else ''
+  fields['upload_date'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
   
   files = []
-  files.append(('image_name.jpg', open(data_directory)))
+  files.append(('artifactfile', args.inputfile))
+      
   
-  my_post_object = PostMultipartWithSession('http://localhost:8000') 
-  my_post_object.login('/login', # login page 
-                       'User2',  # username
-                       'user2')  # password
-  my_post_object.post_multipart('/add/', 
-                                fields, 
-                                files, 
-                                True)
+  post_url = '/artifacts/%d/%d/add' % (project_id, version_id)
+      
+  # check
+  #    f.seek(0)
+  print 'Sending artifact'
+  response = instance.post_multipart( 
+          post_url, 
+          fields, 
+          files,
+          avoid_redirections = False)
+
+  if(response.code != 200):
+    logger.error("[transfer] an error was returned by the server during the transfer of the file, return code is %d", ret.code)
+    raise Exception("[transfer] an error was returned by the server during the transfer of the file")
+
+  
+  print 'Checking artifact'
+  post_url = '/artifacts/api/%d/%d' % (project_id, version_id)
+  response = instance.get(post_url) 
+  if(response.code != 200):
+    logger.error("[transfer] an error was returned by the server while querying for artifacts, return code is %d", ret.code)
+    raise Exception("[transfer] an error was returned by the server during the transfer of the file")
+  
+  
+  args.inputfile.seek(0)
+  hash_file = hashlib.md5(args.inputfile.read()).hexdigest().upper()
+  
+  dic_ids = json.loads(response.read())
+  artifacts = dic_ids['artifacts']
+  for art_id, art in artifacts.items():
+    if(art['md5'].upper() == hash_file):
+      print 'Artifact successfully stored on the server'
+      break
+  else:
+    print 'cannot find the artifact'
+    raise Exception("[trasnfer] the artifact cannot be found on the server")
+
+
+
+
+if __name__ == '__main__':
+  import sys
+  
+  try:
+    main()
+    sys.exit(0)
+  except Exception, e:
+    print e
+    logger.error("[ERROR] The artifact was not pushed to the server")
+    sys.exit(2)
+  
+

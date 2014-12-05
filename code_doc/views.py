@@ -134,8 +134,13 @@ class PermissionOnObjectViewMixin(SingleObjectMixin):
     return HttpResponse('Unauthorized', status=401)
 
   def dispatch(self, request, *args, **kwargs):
-        
+    
+    # we read the field "permissions_on_object" on the instance, which indicates the 
+    # permissions for accessing the view
     object_permissions = getattr(self, 'permissions_on_object', None)
+    
+    # we read the field "permissions_object_getter" on the instance, which tells us
+    # how to get the instance of the object on which the permissions will be tested
     object_permissions_getter = getattr(self, 'permissions_object_getter', None)
     if(object_permissions_getter is None):
       object_permissions_getter = self.get_object
@@ -454,7 +459,20 @@ class ProjectVersionDetailsShortcutView(RedirectView):
 
 
 
-
+class APIGetArtifacts(ProjectVersionDetailsView, DetailView):
+  """An API view returning a json dictionary containing all artifacts of a specific revision"""
+  
+  def render_to_response(self, context, **response_kwargs):
+    
+    artifacts = context['artifacts']
+    l = {}
+    for art in artifacts:
+      l[art.id] = {'file' : art.artifactfile.name,
+                   'md5'  : art.md5hash
+                   }
+    data = json.dumps({'artifacts': l})
+    response_kwargs['content_type'] = 'application/json'
+    return HttpResponse(data, **response_kwargs)
 
 
 
@@ -502,12 +520,15 @@ class ProjectVersionArtifactEditionFormsView(PermissionOnObjectViewMixin):
     context['project'] = current_project
     context['version'] = current_version
     context['artifacts'] = current_version.artifacts.all()
-    context['uploaded_by'] = self.request.user
+    context['uploaded_by'] = self.request.user # @todo: FIX
     return context
   
   def get_success_url(self):
     return reverse('project_revision', 
                    kwargs={'project_id' : self.object.project_version.project.pk, 'version_id': self.object.project_version.pk})
+
+
+
 
 
 class ProjectVersionArtifactAddView(ProjectVersionArtifactEditionFormsView, CreateView):

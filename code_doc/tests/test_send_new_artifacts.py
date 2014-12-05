@@ -48,7 +48,7 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
       
       instance = PostMultipartWithSession(host=self.live_server_url)
       
-      post_url = '/project/%d/%d/add' % (self.project.id, self.version.id)
+      post_url = '/artifacts/%d/%d/add' % (self.project.id, self.version.id)
       
       instance.login(login_page = "/accounts/login/", 
                      username = self.first_user.username,

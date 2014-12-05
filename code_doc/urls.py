@@ -43,16 +43,17 @@ urlpatterns = patterns('',
   #url(r'^project/(?P<project_id>\d+)/(?P<version_number>[\d\w\s]+)/$', 
   #    views.ProjectVersionArtifactView.as_view(), 
   #    name='project_artifacts'),
-  url(r'^project/(?P<project_id>\d+)/(?P<version_id>\w+)/add$', 
+  url(r'^artifacts/(?P<project_id>\d+)/(?P<version_id>\w+)/add$', 
       views.ProjectVersionArtifactAddView.as_view(), 
       name='project_artifacts_add'),
-  url(r'^project/(?P<project_id>\d+)/(?P<version_id>\w+)/remove/(?P<artifact_id>\w+)', 
+  url(r'^artifacts/(?P<project_id>\d+)/(?P<version_id>\w+)/remove/(?P<artifact_id>\w+)', 
       views.ProjectVersionArtifactRemoveView.as_view(), 
       name='project_artifacts_remove'),
+  url(r'^artifacts/api/(?P<project_id>\d+)/(?P<version_id>\w+)/$', views.APIGetArtifacts.as_view(), name='api_get_artifacts'),
   
   # shortcuts
   url(r'^s/(?P<project_name>[\d\w\s]+)/(?P<version_number>[\d\w\s]+)/$', views.ProjectVersionDetailsShortcutView.as_view(), name='project_shortcuts'),
-  url(r'^api/(?P<project_name>[\d\w\s]+)/(?P<version_number>[\d\w\s]+)/$', views.GetProjectRevisionIds.as_view(), name='api_get_ids'),
+  url(r'^api/(?P<project_name>[\d\w\s-]+)/(?P<version_number>[\d\w\s-]+)/$', views.GetProjectRevisionIds.as_view(), name='api_get_ids'),
   
   # topics
   url(r'^topics/$', views.TopicListView.as_view(), name='topics_list'),  # lists all topics
