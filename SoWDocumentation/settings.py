@@ -150,6 +150,11 @@ LOGGING = {
           'handlers': ['console'],
           'level': 'DEBUG',
           'propagate': True,
+      },
+      'code_doc.templatetags.markdown_filter': {
+          'handlers': ['console'],
+          'level': 'DEBUG',
+          'propagate': True,
       },  
       'code_doc.models': {
           'handlers': ['console'],
