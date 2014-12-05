@@ -1,6 +1,6 @@
 # Code documentation server #
 
-This project provides a simple web application to store documentation and artifacts. It manages permissions on each of the resources served. 
+This project provides a simple web application to store documentation and artefacts. It manages permissions on each of the resources served. 
 
 ## Installation #
 In the sequel, everything will be installed and ran in a virtual environment. 
@@ -15,6 +15,16 @@ In the sequel, everything will be installed and ran in a virtual environment.
 > pip install markdown
 > pip install pygments
 ```
+
+and now you can just test the application as follow
+```
+#!bash
+> git clone "this_repository" code_doc
+> cd code_doc
+> python manage.py syncdb
+> python manage.py runserver
+```
+and then open a browser at http://localhost:8000 .
 
 ## Deploying the application into production #
 
@@ -52,6 +62,7 @@ We want everything running in a virtual environment. This way there is no troubl
 > pip install django>=1.7
 > pip install Pillow
 > pip install markdown
+> pip install pygments
 ```
 
 
@@ -94,17 +105,3 @@ Beside that, the process running django should be able to read and write from th
 
 ## uWSGI configuration ##
 
-### What is this repository for? ###
-
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
-
-### How do I get set up? ###
-
-* Summary of set up
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
