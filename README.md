@@ -6,13 +6,14 @@ This project provides a simple web application to store documentation and artifa
 In the sequel, everything will be installed and ran in a virtual environment. 
 
 ```
-virtualenv my_env
-. my_env/bin/activate
+#!bash
+> virtualenv my_env
+> . my_env/bin/activate
 
-pip install django
-pip install Pillows
-pip install markdown
-pip install pygments
+> pip install django
+> pip install Pillows
+> pip install markdown
+> pip install pygments
 ```
 
 ## Deploying the application into production #
