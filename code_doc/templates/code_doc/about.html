@@ -17,10 +17,10 @@
 Welcome to [code_doc](https://bitbucket.org/renficiaud/code_doc) project!
 ============================
 
-This server is meant 
+This application is meant 
 
 * to make your projects available to the public or to specific groups and increase their visibility
-* to store your wonderful documentation and binaries that you want to share with your team mates. 
+* to store the documentation and binaries that you want to share, with your public or with your team mates. 
 
 
 ----------------------------
@@ -57,6 +57,21 @@ Now let's talk about configuration. The two ingredients are
 
 * Defining a project
 * Defining one or more version for this project
+
+A project is composed of
+
+* information about the purpose of the project and the services it provides
+* information about how to use the code (copyrights, location of the source code)
+* its maintainers
+* its authors
+* and a list of versions
+
+A version is composed of
+
+* a description (content of the release)
+* a release date
+* permissions
+* a list of artifacts that can either be single files or archives containing documentation
 
 ### Create a project
 At the moment, creating a project is an admin priviledge, so you should ask your administrator to create a project for you.
@@ -115,27 +130,6 @@ The following steps should be followed:
                -f filetosend.tar.bz2 
 
 
-blabla
-
-
-[[https://code.is.localnet/{% url 'authors_list' %}]]
-toto {{request.get_referer|urlize}}
-tata {{request.build_absolute_uri|urlize}}
-titi {{request.META.HTTP_HOST}}
-
-
-    ::bash
-    > wget {{request.scheme}}://{{request.get_host}}{% url 'authors_list' %}
-    > python manage.py runserver
-    
-    blabla(2, 3)
-
-This is cool 
-
-    #!python
-
-    class toto(object):
-      pass
 
 
 ----------------------------
