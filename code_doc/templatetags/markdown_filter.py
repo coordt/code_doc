@@ -21,10 +21,7 @@ class MkNode(template.Node):
   def __init__(self, nodelist):
     self.nodelist = nodelist
   def render(self, context):
-    #logger.debug("toto is also here")
-    #logger.debug("toto is also here\n" + str(context))
     output = self.nodelist.render(context)
-    #logger.debug("toto is also here\n" + output)
     return markdown.markdown(output, 
                              extensions = ['codehilite', 'toc', 'fenced_code', 'admonition'],
                              safe_mode=False)
