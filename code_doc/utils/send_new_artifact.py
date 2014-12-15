@@ -110,7 +110,7 @@ class PostMultipartWithSession(object):
     
   def login(self, login_page = None, username = None, password = None):
     """Allow to log in to Django, and store the credentials into the current session"""
-    
+   
     self.redirection_intercepter.avoid_redirections = False
     request = urllib2.Request(self.host + login_page)
     response= self.opener.open(request)
@@ -122,9 +122,21 @@ class PostMultipartWithSession(object):
     login_data = dict(username=username, 
                       password=password, 
                       csrfmiddlewaretoken=token)
+
     request = urllib2.Request(response.geturl(), data=urllib.urlencode(login_data))
-    response = self.opener.open(request)
-    #content = response.read()
+    
+    # the referer is needed by NGinx in order to not be considered as a robot/spambot/malicious software
+    request.add_header('Referer', self.host + login_page)
+
+    try:
+      response = self.opener.open(request)
+    except urllib2.HTTPError, e:
+      logger.error("""[login] an error occurred during login:\n
+                      \tError code: %d\n
+                      \tError reason: %s\n
+                      \tError details %s""", e.code, e.reason, e.fp.read())
+      
+      raise
     
     return response   
       
@@ -138,7 +150,7 @@ class PostMultipartWithSession(object):
           token = c.value
           break
       else:
-        print 'Cookie not found'
+        logger.info('[csrf] cookie not found from the content')
         pos = content.find('value', pos)
         m = re.match('value=\'([\w\d]+?)\'', content[pos:])
         if not m is None:
@@ -239,14 +251,19 @@ class PostMultipartWithSession(object):
       request_url = server_url
     
     request = urllib2.Request(request_url, data=body, headers=headers)
+    # again (as for login) the referer is needed by NGinx
+    request.add_header('Referer', self.host + page_url)
 
     try:
       response = self.opener.open(request)
       return response
     except urllib2.HTTPError, e:
-      print e
-      print 'Code', e.code
-      print 'Reason', e.reason
+      logger.error("""[post] an error occurred during posting of the form to %s:\n
+                      \tError code: %d\n
+                      \tError reason: %s\n
+                      \tError details %s""",
+                      self.host + page_url, 
+                      e.code, e.reason, e.fp.read())      
       raise
 
 
@@ -347,23 +364,38 @@ def main():
     
 
   instance = PostMultipartWithSession(args.url)
+  
+  
+  # logging with the provided credentials
+  logger.debug("[log in] Logging to the server")
   instance.login(login_page = "/accounts/login/", 
                  username = args.username,
                  password = args.password)
-  
+
+
+  # getting the location (id of the project and version) to which the upload should be done
+  logger.debug("[meta] Retrieving the project and versions IDs")  
   post_url = '/api/%s/%s/' % (args.project, args.version)
   
   try:
     response = instance.get(post_url)
   except Exception, e:
-    logger.error("An exception was raised while trying to login to the server %r", e)
+    logger.error("[login] an exception was raised while trying to login to the server %r", e)
     raise
-    
-  res = response.read()
-  dic_ids = json.loads(res)
-  project_id = int(dic_ids['project_id'])
-  version_id = int(dic_ids['version_id'])
 
+  try:    
+    res = response.read()
+    dic_ids = json.loads(res)
+    project_id = int(dic_ids['project_id'])
+    version_id = int(dic_ids['version_id'])
+  except Exception, e:
+    logger.error("""[meta] an error occurred during the retrieval of the projects informations from %s:\n
+                      \tError details %s""",
+                      self.host + post_url, 
+                      e)     
+  
+
+  ##### sending the artifact
   # preparing the form
   fields = {}
   fields['description'] = args.description if not args.description is None else 'uploaded by a robot'
@@ -376,10 +408,10 @@ def main():
       
   
   post_url = '/artifacts/%d/%d/add' % (project_id, version_id)
-      
-  # check
-  #    f.seek(0)
-  print 'Sending artifact'
+
+  
+  # sending    
+  logger.debug("[transfer] Sending artifact")
   response = instance.post_multipart( 
           post_url, 
           fields, 
@@ -391,7 +423,9 @@ def main():
     raise Exception("[transfer] an error was returned by the server during the transfer of the file")
 
   
-  print 'Checking artifact'
+  #### checking artifact properly stored
+  logger.debug("[integrity] Checking artifact") 
+  
   post_url = '/artifacts/api/%d/%d' % (project_id, version_id)
   response = instance.get(post_url) 
   if(response.code != 200):
@@ -406,11 +440,11 @@ def main():
   artifacts = dic_ids['artifacts']
   for art_id, art in artifacts.items():
     if(art['md5'].upper() == hash_file):
-      print 'Artifact successfully stored on the server'
+      logger.info("[integrity] artifact successfully stored on the server")
       break
   else:
-    print 'cannot find the artifact'
-    raise Exception("[trasnfer] the artifact cannot be found on the server")
+    logger.error("[integrity] the artifact cannot be found on the server")
+    raise Exception("[integrity] the artifact cannot be found on the server")
 
 
 
@@ -423,7 +457,7 @@ if __name__ == '__main__':
     sys.exit(0)
   except Exception, e:
     print e
-    logger.error("[ERROR] The artifact was not pushed to the server")
+    logger.error("[ERROR] The artifact was not pushed to the server: %s", e)
     sys.exit(2)
   
 
