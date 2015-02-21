@@ -2,7 +2,7 @@
 {% load gravatar %}
 {% load staticfiles %}
 {% load static %}
-
+{% load markdown_filter %}
 
 {% block title %}Topics's list{% endblock %}
 
@@ -15,7 +15,7 @@
      <div class="media-body">
        <h4 class="media-heading">
          <a href="{% url 'topic' topic.id %}" >{{ topic.name|title }}</a> <span class="badge">{{topic.project_set.count}}</span> </h4>
-       <p>{{topic.description|safe}}</p>
+       <p>{{topic.description_mk|markd|safe}}</p>
      </div>
    {% endfor %}
       

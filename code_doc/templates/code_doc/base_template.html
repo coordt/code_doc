@@ -8,17 +8,22 @@
   <head>
     <link rel="stylesheet" href="{% static "bootstrap-3.2.0-dist/css/bootstrap.css"  %}">
     <link rel="stylesheet" href="{% static "bootstrap-3.2.0-dist/css/bootstrap-theme.min.css" %}">
-
-    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="{% static "pygment.css" %}">
 
 
+    <script language="javascript" type="text/javascript" src="{% static "jquery-1.11.1.min.js" %}"></script>
+    <!-- <script language="javascript" type="text/javascript" src="{% static "jquery-ui-1.11.2/jquery-ui.min.js" %}"></script> -->
     <script language="javascript" type="text/javascript" src="{% static "bootstrap-3.2.0-dist/js/bootstrap.js" %}"></script>
 
 
+    {% block additionalhead %}
+    {% endblock %}
 
-
-    <title>{% block title %}Template title{% endblock %}</title>
+    <title>
+      {% block title %}
+        Template title
+      {% endblock %}
+    </title>
   </head>
   
   <body>
@@ -27,19 +32,19 @@
 
     <div class="navbar-header">
       <ul class="nav navbar-nav">
-        <li><a class="navbar-brand" href="{% url 'index' %}">Home</button></a></li>
-        <li><a class="navbar-brand" href="{% url 'project_list' %}">Projects</button></a></li>
-        <li><a class="navbar-brand" href="{% url 'topics_list' %}">Topics</button></a></li>
-        <li><a class="navbar-brand" href="{% url 'authors_list' %}">Authors</button></a></li>
+        <li><a class="navbar-brand" href="{% url 'index' %}">Home</a></li>
+        <li><a class="navbar-brand" href="{% url 'project_list' %}">Projects</a></li>
+        <li><a class="navbar-brand" href="{% url 'topics_list' %}">Topics</a></li>
+        <li><a class="navbar-brand" href="{% url 'authors_list' %}">Authors</a></li>
       </ul>
     </div>
     <div class="collapse navbar-collapse navbar-right" id="bs-example-navbar-collapse-1">
       {% if user.is_authenticated %}
       <ul class="nav navbar-nav">
         <li class="dropdown">
-          <a class="dropdown-toggle" data-toggle="dropdown" href="#">{{ user.username }} <span class="caret"></span></a>
+          <a class="dropdown-toggle" data-toggle="dropdown" href="#">{{ user.username | title }} <span class="caret"></span></a>
           <ul class="dropdown-menu" role="menu">
-            <li><a href="{% url 'maintainer' %}">Profile</a></li>
+            <li><a href="{% url 'maintainer' user.id %}">Profile</a></li>
             <li class="divider"></li>
             <li><a href="{% url 'logout' %}?next={% url 'index' %}">Log out</a></li>
           </ul>
@@ -56,7 +61,8 @@
   
   
   <div class="container">
-    {% block content %}{% endblock %}
+    {% block content %}
+    {% endblock %}
   </div>
 
   </body>

@@ -1,16 +1,20 @@
 {% extends "code_doc/base_template.html" %}
 {% load static %}
 {% load button_add_with_permission %}
+{% load markdown_filter %}
 
 {% block title %}{{ project.name }}{% endblock %}
 
 
 {% block content %}
-  <h1>{{ project.name }}</h1>
+  <h1><a href="{% url 'project' project.id %}">{{ project.name }}</a> - {{version.version}} {% button_edit_series_with_permission user version %}</h1>
 
-  {{version.description|safe}}
-  <h3>Artifacts for revision {{version.version}} {% button_add_artifact_with_permission user version %}
-  </h3>
+  <h3>Description</h3>
+  {{version.description_mk|markd|safe}}
+  
+  <h3>Details</h3>
+  
+  <h3>Artifacts</h3>
   
 
   {% if artifacts %}
@@ -23,36 +27,41 @@
 	          <th>Label</th>
 	          <th>MD5</th>
 	          <th>Description</th>
-	          <th>Uploaded</th>
+	          <th>Upload date</th>
+	          <th>Uploaded by</th>
 	        </tr>
 	      </thead>
 	
-	    {% for artifact in artifacts %}
-	    
-	      <tbody>
+	    <tbody>
+	      {% for artifact in artifacts %}
 	        <tr>
 	          <td>{{artifact.pk}}</td>
-	          <th class="text-nowrap"><a href="{%get_media_prefix%}{{artifact.artifactfile}}">{{artifact.filename}}</a></th>
+	          <td class="text-nowrap"><small><a href="{%get_media_prefix%}{{artifact.artifactfile}}">{{artifact.filename}}</a></small></td>
 	          
             <td>
             {% if artifact.is_documentation %}
               <span class="label label-info">doc</span>
             {% endif %}
               {% if artifact.documentation_entry_file %}
-              <a href="{%get_media_prefix%}{{artifact.get_documentation_url}}">read online</a>
+                <a href="{%get_media_prefix%}{{artifact.get_documentation_url}}">read online</a>
               {% endif %}
             </td>
             <td><small><span style="font-family:monospace;">{{artifact.md5hash|upper}}</span></small></td>
-	          <td>{{artifact.description}}</td>
-	          <td>{{artifact.upload_date|date}}</td>
-	          
+	          <td><small>{{artifact.description}}</small></td>
+	          <td><small>{{artifact.upload_date|date}}</small></td>
+	          <td>{% if artifact.uploaded_by %}<small>{{artifact.uploaded_by}}</small>{%endif%}</td>
 	          
 	        </tr>
-	    {%endfor%}
+	      {%endfor%}
+	      <tr>
+	        <th>{% button_add_artifact_with_permission user version %}</th>
+	      </tr>
+	    </tbody>
 	  </table>  
   
   {% else %}
       <p>No artifacts for this revision {{ version.version }}.</p>
+      <p>{% button_add_artifact_with_permission user version %}</p>
   {% endif %}
 
 

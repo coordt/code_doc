@@ -2,24 +2,50 @@
 {% load gravatar %}
 {% load staticfiles %}
 {% load static %}
+{% load project_image %}
 
-{% block title %}Profile of {{ user.username }}{% endblock %}
+{% block title %}Profile of {{ maintainer.username }}{% endblock %}
 
 
 {% block content %}
-  <h1>Profile of {{ user.username }}</h1>
+  <h1>Profile of {{ maintainer.username | title }}</h1>
 
-  <ul>
-    <li> {{user.firstname}} {{user.lastname}}</li>
-    <li> {{user.email}}</li>
-  </ul>
+  <h3>Contact information</h3>
+  <table class="table table-hover">
+    <thead>
+      <tr>
+        <th>User name</th>
+        <th>Full name</th>
+        <th>contact email</th>
+        <th>Institute / organization</th>
+        <th>Last login</th>
+        
+      </tr>
+    </thead>
+  
+    <tbody>
+      <tr>
+        <td>{{ maintainer.username | title }}</td>
+        <td>{{ maintainer.firstname | title }} {{ maintainer.lastname | title }}</td>
+        <td>
+          {% if maintainer.email.size %}
+            <a href="mailto:{{maintainer.email}}" >{{maintainer.email}}</a>
+          {% else %}
+            (not provided)
+          {% endif %}
+        </td>
+        <td>MPI</td>
+        <td>{{maintainer.last_login}}</td>
+      </tr>
+    </tbody>
+  </table>
 
-  <h2>Projects</h2>
+  <h2>Projects maintained</h2>
   {% if projects %}
     <div class="media">
       {% for project in projects %}
-        <a class="pull-left" href=href="{% url 'project' project.id %}">
-          <img class="media-object" src="{% get_media_prefix %}{{project.icon}}" class="img-rounded" width="50" height="50" alt="">
+        <a class="pull-left" href="{% url 'project' project.id %}">
+          {% project_image project.id 64 %}
         </a>
     
         <div class="media-body">
@@ -31,7 +57,7 @@
     </div>
   
   {% else %}
-      <p>No project associated.</p>
+      <p>No project maintained by {{ maintainer.username | title }}.</p>
   {% endif %}
 
 {% endblock %}

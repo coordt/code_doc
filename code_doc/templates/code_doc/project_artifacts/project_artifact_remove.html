@@ -1,0 +1,71 @@
+{% extends "code_doc/base_template.html" %}
+{% load gravatar %}
+{% load static %}
+{% load author_image %}
+{% load button_add_with_permission %}
+
+{% block title %}{{ project.name }}{% endblock %}
+
+
+{% block content %}
+
+  {% if form.errors %} 
+    <div class="alert alert-danger" role="alert">The following error occurred with your submission {{form.errors}}</div>
+  {% endif %}
+
+
+  <h1><a href={% url 'project' project.id %}>{{ project.name }}</a> - <a href={% url 'project_revision' project.id version.id %}>{{version.version}}</a></h1>
+
+
+  <div class="alert alert-danger" role="alert">
+    You are removing the artifact {{object.filename}} from the version "{{version.version|title}}".
+  </div>
+
+  
+   
+
+  <form action="" method="post">{% csrf_token %}
+    <p>Are you sure you want to delete "{{ object }}"?</p>
+    <input type="submit" value="Confirm" />
+  </form>
+
+
+  <h3>Details on this series</h3>
+  {% if artifacts %}
+    <p>This version contains already the following artifacts:</p>
+    <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Visibility</th>
+            <th>Uploaded</th>
+          </tr>
+        </thead>
+  
+      {% for artifact in artifacts %}
+      
+        <tbody>
+          {% if artifact.id == object.id %}
+          <tr class="danger">
+          {% else %}
+          <tr>
+          {%endif %}
+            <th class="text-nowrap"><a href="{%get_media_prefix%}{{artifact.artifactfile}}">{{artifact.filename}}</a></th>
+            <td>
+            {% if version.is_public %}
+              <span class="label label-success">Public</span>
+            {% else %}
+              <span class="label label-warning">Restricted</span>
+            {% endif %}</td>
+            <td>{{artifact.upload_date|date}}</td>
+          </tr>
+      {%endfor%}
+    </table>    
+  
+
+  
+  {% else %}
+      <p>This version contains no artifacts.</p>
+  {% endif %}
+
+{% endblock %}

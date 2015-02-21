@@ -7,30 +7,36 @@ from code_doc.models import Project, ProjectVersion
 
 _project_permission_prefix = 'code_doc'
 
+
+# logger for this file
+import logging
+logger = logging.getLogger(__name__)
+
+
+def get_permission_handler_name(permission_name):
+  return 'has_user_%s_permission' % permission_name
+
+
 class CodedocPermissionBackend(object):
   """A class helping the management of per object permissions in the user land"""
 
-  version_permission_map = {
-    _project_permission_prefix + '.version_view' : 'has_user_view_permission',
-    _project_permission_prefix + '.version_artifacts_view' : 'has_user_artifact_view_permission',}
-  
-  project_permission_map = {
-    #_project_permission_prefix + '.project_view' : 'project_view',
-    _project_permission_prefix + '.project_administrate' : 'has_project_administrate_permissions',}
-  
+  objects_permission_handlers = {}
   
   def authenticate(self, **credentials):
     """Does not manage any authentication"""
     return None
   
-  def _manage_has_permissions(self, user, perm, obj, permission_map):
+  def _manage_has_permissions(self, user, perm, obj):
     """Manages the permissions for a specific type of object"""
     
-    # the backend does not manage this kind of permissions
-    if(not permission_map.has_key(perm)):
+    
+    # the backend does not manage these permissions on this kind of object
+    if(not self.objects_permission_handlers.has_key(type(obj))):
+      return False
+    if(not perm in self.objects_permission_handlers[type(obj)]):
       return False
     
-    func = getattr(obj, permission_map[perm], None)
+    func = getattr(obj, get_permission_handler_name(perm.split('.')[1]))
     assert(not func is None)
     
     if(func(user)):
@@ -40,20 +46,12 @@ class CodedocPermissionBackend(object):
     return False
     #raise PermissionDenied
   
-  def _populate_permissions(self, user, obj, permission_map):
+  def _populate_permissions(self, user, obj):
     
-    permission_set = set()
+    if(not self.objects_permission_handlers.has_key(type(obj))):
+      return set()
     
-    for codename, object_attribute in permission_map.items():
-      
-      func = getattr(obj, object_attribute, None)
-      if func is None:
-        continue
-    
-      if(func(user)):
-        permission_set.add(codename)
-        
-    return permission_set
+    return set(codename for codename in self.objects_permission_handlers[type(obj)] if self._manage_has_permissions(user, codename, obj))
   
   
   
@@ -66,17 +64,9 @@ class CodedocPermissionBackend(object):
     #  print "User not active"
     #  return False
     
-    # manage the permission for a specific project version
-    if(type(obj) is ProjectVersion):
-      return self._manage_has_permissions(user_obj, perm, obj, self.version_permission_map)
+    # manage the permission for an object that is handled by this backend 
+    return self._manage_has_permissions(user_obj, perm, obj)
     
-    # manage the permission for a specific project
-    if(type(obj) is Project):
-      return self._manage_has_permissions(user_obj, perm, obj, self.project_permission_map)
-    
-    
-    # we do not manage permission for other type of objects
-    return False
   
   
   def get_all_permissions(self, user, obj):
@@ -84,8 +74,32 @@ class CodedocPermissionBackend(object):
     if(obj is None):
       return set()
     
-    permissions = set()
-    for map_perms in [self.version_permission_map, self.project_permission_map]:
-      permissions.update(self._populate_permissions(user, obj, map_perms))
-    
-    return permissions
+    return self._populate_permissions(user, obj)
+  
+  
+def create_tables():
+  """Populates the tables of CodedocPermissionBackend"""
+
+
+  from django.apps import apps
+  from django.db import models
+  config = apps.get_app_config(_project_permission_prefix)
+  
+  for cls in (m for m in config.get_models(include_auto_created=False) if issubclass(m, models.Model)):
+    handler_dict = CodedocPermissionBackend.objects_permission_handlers
+    if(hasattr(cls, '_meta') and hasattr(cls._meta, 'permissions')):
+      for permission_name, _ in cls._meta.permissions:
+        handler_function = get_permission_handler_name(permission_name)
+        if(hasattr(cls, handler_function)):
+          if(not handler_dict.has_key(cls)):
+            handler_dict[cls] = []
+          handler_dict[cls].append(_project_permission_prefix + '.' + permission_name)
+          
+        else:
+          logger.warning('[permissions][backend] "%s" does not handle object permission "%s"', cls, permission_name)
+
+
+  pass
+  
+
+create_tables()

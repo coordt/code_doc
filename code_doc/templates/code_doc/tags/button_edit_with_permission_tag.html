@@ -1,0 +1,9 @@
+{% load static %}
+
+<a type="button" class="btn btn-default btn-sm" href='{{ next }}'
+{% if not permission_ok %} 
+ disabled="disabled" 
+{%endif%}
+>
+    <span class="glyphicon glyphicon-plus"></span> Edit</a>
+

@@ -1,3 +1,7 @@
 media/artifacts/test_project/12345
 media
+db.sqlite3
+temporary
 *.pyc
+code_doc/static/jquery-ui-1.11.2
+code_doc/static/bootstrap-3.2.0-dist

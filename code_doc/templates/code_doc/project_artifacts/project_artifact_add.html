@@ -14,9 +14,72 @@
   {% endif %}
 
 
-  <h1>{{ project.name }}</h1>
+  <h1><a href={% url 'project' project.id %}>{{ project.name }}</a> - <a href={% url 'project_revision' project.id version.id %}>{{version.version}}</a></h1>
 
-  <p>You are uploading a file for the version "{{version.version|title}}".</p>
+
+  <div class="alert alert-info" role="alert">
+    You are uploading a file for the version "{{version.version|title}}".
+  </div>
+
+  
+   
+
+  <form class="form-horizontal" enctype="multipart/form-data" action="" method="post" role="form">
+    {% csrf_token %}
+  
+   
+    
+    <div class="form-group">
+      <label for="id_description"  class="col-sm-2 control-label">Description</label> 
+      <div class="col-sm-10">
+	      <textarea class="form-control" id="id_description" maxlength="1024" name="description" rows="10" 
+	                 ></textarea>
+	      <p class="help-block">
+        Indicate the content of this artifact in MarkDown format</p>
+      </div>
+    </div>
+    
+    <div class="form-group">
+      <label for="id_artifactfile" class="col-sm-2 control-label">File</label> 
+      <div class="col-sm-8">
+        <input id="id_artifactfile" name="artifactfile" type="file" />
+        <p class="help-block">The file that will be stored</p>
+      </div>
+
+    </div>
+    
+    
+    <div class="form-group">
+      <label for="id_is_documentation" class="col-sm-2 control-label">Documentation</label> 
+      <div class="col-sm-8">
+        <input id="id_is_documentation" name="is_documentation" type="checkbox" />
+        <p class="help-block">Check if the artifact is an archive containing a documentation that should be deflated on the server</p>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="id_documentation_entry_file" class="col-sm-2 control-label" >Entry point</label> 
+      <div class="col-sm-8">
+        <input id="id_documentation_entry_file" maxlength="255" name="documentation_entry_file" type="text" class="form-control" /> 
+        <p class="help-block">the documentation entry point file for documentation archive, relative to the root of the deflated package</p>
+      </div>
+    </div>
+    
+    <!-- 
+    <div class="form-group">
+      <label for="id_upload_date">Upload date:</label> 
+      <input id="id_upload_date" name="upload_date" type="text" /> 
+      <span class="helptext">Automatic field that indicates the file upload time</span>
+    </div>
+     -->
+    <!-- {{ form.as_p }}  -->
+    
+    <button type="submit" class="btn btn-default" value="Create">Submit</button>
+    
+  </form>
+
+
+  <h3>Details on this series</h3>
   {% if artifacts %}
     <p>This version contains already the following artifacts:</p>
     <table class="table table-hover">
@@ -49,13 +112,5 @@
   {% else %}
       <p>This version contains no artifacts.</p>
   {% endif %}
-  
-   
-
-<form enctype="multipart/form-data" action="" method="post">{% csrf_token %}
-    {{ form.as_p }}
-    <input type="submit" value="Create" />
-</form>
-
 
 {% endblock %}

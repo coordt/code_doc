@@ -3,6 +3,7 @@
 {% load staticfiles %}
 {% load author_image %}
 {% load button_add_with_permission %}
+{% load markdown_filter %}
 
 {% block title %}{{ project.name }}{% endblock %}
 
@@ -10,13 +11,13 @@
 {% block content %}
   <h1>{{ project.name }}</h1>
 
-  
+  {{ project.short_description }}
 
 
   <div class="row">
     <div class="col-md-8">
       <h3>Description</h3>
-      {{ project.description|safe }}
+      {{ project.description_mk|markd|safe }}
     </div>
     <div class="col-sm-4">
       <h4>Authors</h4>
@@ -39,24 +40,19 @@
       {% endif %}
       
       
-      <h4>Maintainers</h4>
+      <h4>Maintained by</h4>
 		  {% if project.administrators.count > 0 %}
 		  
 		    <ul>
 		    {% for maintainer in project.administrators.all %}
 		      <li>
-		        {{ maintainer.username }}
-		        {% if maintainer.email.size %}
-		          <a href="mailto:{{maintainer.email}}" >{{ maintainer.firstname }} {{ maintainer.lastname }} / {{maintainer.email}}</a>
-		        {% else %}
-		          (no information provided)
-		        {% endif %}
+		        <a href="{% url 'maintainer' maintainer.id %}" >{{ maintainer.username }}</a>
 		      </li>
 		    {% endfor %}
 		    </ul>
 		  
 		  {% else %}
-		      <p>No known maintainer.</p>
+		      <p>No registered maintainer.</p>
 		  {% endif %}      
       
     </div>  
@@ -101,7 +97,7 @@
             <td>{{ version.release_date }}</td>
             <td>{{ version.artifacts.count }}</td>
             <td>{{ current_last_update|date }}</td>
-            <td>{{ version.description|safe }}</td>
+            <td>{{ version.description_mk|markd|safe }}</td>
           </tr>
          <tbody>
 
