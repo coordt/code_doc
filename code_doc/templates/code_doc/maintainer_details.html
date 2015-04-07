@@ -42,19 +42,24 @@
 
   <h2>Projects maintained</h2>
   {% if projects %}
-    <div class="media">
+    
       {% for project in projects %}
+      <div class="media">
         <a class="pull-left" href="{% url 'project' project.id %}">
           {% project_image project.id 64 %}
         </a>
     
         <div class="media-body">
           <h4 class="media-heading">
-            <a href="{% url 'project' project.id %}" >{{ project.name }}</a></h4>
-          <p>blablablabla this author</p>
+            <a href="{% url 'project' project.id %}" >{{ project.name }}</a>
+          </h4>
+          <p>
+            {{ project.short_description }}
+          </p>
         </div>
+      </div>
       {% endfor %}
-    </div>
+    
   
   {% else %}
       <p>No project maintained by {{ maintainer.username | title }}.</p>
