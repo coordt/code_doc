@@ -11,7 +11,7 @@ In the sequel, everything will be installed and ran in a virtual environment.
 > . my_env/bin/activate
 
 > pip install django
-> pip install Pillows
+> pip install Pillow
 > pip install markdown
 > pip install pygments
 ```

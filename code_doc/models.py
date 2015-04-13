@@ -31,7 +31,7 @@ class Author(models.Model):
   (not a user of Django)."""
   lastname        = models.CharField(max_length=50)
   firstname       = models.CharField(max_length=50)
-  gravatar_email  = models.CharField(max_length=50)
+  gravatar_email  = models.CharField(max_length=50, blank=True)
   email           = models.EmailField(max_length=50, unique=True, db_index=True)
   home_page_url   = models.CharField(max_length=250)
   
