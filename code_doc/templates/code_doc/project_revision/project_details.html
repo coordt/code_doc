@@ -13,7 +13,6 @@
 
   {{ project.short_description }}
 
-
   <div class="row">
     <div class="col-md-8">
       <h3>Description</h3>
@@ -22,27 +21,26 @@
     <div class="col-sm-4">
       <h4>Authors</h4>
       {% if project.authors %}
-  
-  
-				<div class="row">
-				  <div class="col-xs-8 col-sm-4">
+
+        <div class="row">
+          <div class="col-xs-8 col-sm-4">
 				    {% for author in project.authors.all %}
-		        <a href="{% url 'author' author.id %}" class="thumbnail" alt="{{author.firstname}} {{author.lastname}}">
-		          <img data-src="holder.js/100%x64" > 
-		          {% author_image author.id %}
-		        </a>
+		        <a href="{% url 'author' author.id %}" alt="{{author.firstname}} {{author.lastname}}">
+		          {% author_image author.id 50 %}
+            </a>
+            <div class="author-seperator"></div>
 				    {% endfor %}
 				  </div>
-				  
-				</div>  
+
+				</div>
       {% else %}
         <p>No author.</p>
       {% endif %}
-      
-      
+
+
       <h4>Maintained by</h4>
 		  {% if project.administrators.count > 0 %}
-		  
+
 		    <ul>
 		    {% for maintainer in project.administrators.all %}
 		      <li>
@@ -50,26 +48,21 @@
 		      </li>
 		    {% endfor %}
 		    </ul>
-		  
+
 		  {% else %}
 		      <p>No registered maintainer.</p>
-		  {% endif %}      
-      
-    </div>  
-  
+		  {% endif %}
+
+    </div>
+
   </div>
 
-  
-  
 
- 
- 
- 
   <h3>Versions {% button_add_version_with_permission user project %}
   </h3>
 
   {% if last_update %}
-  
+
     <table class="table table-hover">
         <thead>
           <tr>
@@ -79,10 +72,10 @@
             <th># files</th>
             <th>Last updated</th>
             <th>Description</th>
-            
+
           </tr>
         </thead>
-  
+
       {% for version, current_last_update in last_update.items %}
 
         <tbody>
@@ -102,14 +95,11 @@
          <tbody>
 
       {%endfor%}
-      
-    </table>    
-  
 
-  
+    </table>
+
   {% else %}
       <p>No known released versions.</p>
   {% endif %}
-
 
 {% endblock %}
