@@ -3,7 +3,7 @@
 
 {% if uploaded_image or gravatar_email %}
 <!-- Display or load img -->
-  <img class="media-object " src=
+  <img src=
   {% if image %}
     "{% get_media_prefix %}{{image}}"
   {% elif gravatar_email %}
@@ -11,9 +11,9 @@
   {% endif %}
 
   {% if size %}
-    width="{{ size }}" height="{{ size }}"
+    width="{{ size }}px" height="{{ size }}px"
   {% else %}
-    width="40" height="40"
+    width="40px" height="40px"
   {% endif %}
   class="img-rounded" >
 
