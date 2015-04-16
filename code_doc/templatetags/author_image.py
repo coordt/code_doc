@@ -8,5 +8,6 @@ register = template.Library()
 def author_image(author_id, size = None):
   author = Author.objects.get(pk=author_id)
   return {'image': None, #author.image,
-          'email': author.gravatar_email, 
+          'gravatar_email': None if author.gravatar_email == "" else author.gravatar_email,
+          'author_initial': author.firstname[0], 
           'size' : size}
