@@ -2,8 +2,9 @@
 {% load static %}
 
 {% if image or gravatar_email %}
-  <img class="media-object" src=
-  {% if image %}  
+<!-- Display or load img -->
+  <img class="media-object " src=
+  {% if image %}
     "{% get_media_prefix %}{{image}}"
   {% elif gravatar_email %}
     "{% gravatar_url gravatar_email %}"
@@ -12,14 +13,15 @@
   {% if size %}
     width="{{ size }}" height="{{ size }}"
   {% else %}
-    width="40" height="40" 
+    width="40" height="40"
   {% endif %}
-class="img-rounded" >
+  class="img-rounded" >
 
 {% else %}
-  <svg width="40" height="40" viewBox="0 0 100 100" >
+<!-- Generate svg image -->
+  <svg class="media-object img-rounded svg-centered" width="40" height="40" viewBox="0 0 100 100" >
     <rect x="0" y="0" width="100%" height="100%" fill="#011345" />
     <text text-anchor="middle" x="50" y="92" font-size="112" fill="white" >{{author_initial}}</text>
-  </svg>   
-{% endif %}  
+  </svg>
+{% endif %}
 
