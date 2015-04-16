@@ -25,7 +25,7 @@
         <div class="row">
           <div class="col-xs-8 col-sm-4">
 				    {% for author in project.authors.all %}
-		        <a href="{% url 'author' author.id %}" alt="{{author.firstname}} {{author.lastname}}">
+		        <a href="{% url 'author' author.id %}" title="{{author.firstname}} {{author.lastname}}" alt="{{author.firstname}} {{author.lastname}}">
 		          {% author_image author.id 50 %}
             </a>
             <div class="author-seperator"></div>
