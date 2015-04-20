@@ -306,8 +306,7 @@ class Artifact(models.Model):
         if not self.md5hash:
             for chunk in self.artifactfile.chunks():
                 m.update(chunk)
-
-        self.md5hash = m.hexdigest()
+            self.md5hash = m.hexdigest()
 
         super(Artifact, self).save(*args, **kwargs)  # Call the "real" save() method.
 
