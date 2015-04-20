@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 
 # Register your models here.
 
-from code_doc.models import Author, Project, ProjectVersion, Artifact, Copyright, CopyrightHolder, Topic
+from code_doc.models import Author, Project, ProjectSeries, Artifact, Copyright, CopyrightHolder, Topic
 
 admin.site.register(Author)
 admin.site.register(Artifact)
@@ -25,14 +25,14 @@ class ProjectAdmin(admin.ModelAdmin):
     logger.debug('[admin|project] User %s has the right to edit the following projects %s', request.user, [i.name for i in filtered_qs.all()])
     return filtered_qs
 
-  
+
 admin.site.register(Project, ProjectAdmin)
 
 class ProjectVersionAdmin(admin.ModelAdmin):
   list_display = ('version', 'release_date', 'is_public', 'description_mk')
   list_filter  = ['version', 'release_date']
-  
-admin.site.register(ProjectVersion, ProjectVersionAdmin)
+
+admin.site.register(ProjectSeries, ProjectVersionAdmin)
 
 
 class TopicAdmin(admin.ModelAdmin):

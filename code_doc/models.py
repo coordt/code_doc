@@ -159,7 +159,7 @@ class Project(models.Model):
         super(Project, self).save(*args, **kwargs)  # Call the "real" save() method.
 
 
-class ProjectVersion(models.Model):
+class ProjectSeries(models.Model):
     """A version of a project comes with several artifacts"""
     project = models.ForeignKey(Project, related_name="versions")
     version = models.CharField(max_length=500)  # can be a hash
@@ -257,7 +257,7 @@ def get_deflation_directory(instance, without_media_root=False):
 
 class Artifact(models.Model):
     """An artifact is a downloadable file"""
-    project_version = models.ForeignKey(ProjectVersion, related_name="artifacts")
+    project_version = models.ForeignKey(ProjectSeries, related_name="artifacts")
     md5hash = models.CharField(max_length=1024)  # md5 hash
     description = models.TextField('description of the artifact', max_length=1024)
     artifactfile = models.FileField(upload_to=get_artifact_location,
