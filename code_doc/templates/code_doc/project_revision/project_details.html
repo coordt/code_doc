@@ -58,7 +58,7 @@
   </div>
 
 
-  <h3>Versions {% button_add_version_with_permission user project %}
+  <h3>Series {% button_add_series_with_permission user project %}
   </h3>
 
   {% if last_update %}
@@ -66,7 +66,7 @@
     <table class="table table-hover">
         <thead>
           <tr>
-            <th>Version</th>
+            <th>Series</th>
             <th>Visibility</th>
             <th>Release date</th>
             <th># files</th>
@@ -76,21 +76,21 @@
           </tr>
         </thead>
 
-      {% for version, current_last_update in last_update.items %}
+      {% for series, current_last_update in last_update.items %}
 
         <tbody>
           <tr>
-            <th class="text-nowrap"><a href="{% url 'project_revision' project.id version.id %}" >{{ version.version }}</a></th>
+            <th class="text-nowrap"><a href="{% url 'project_revision' project.id series.id %}" >{{ series.series }}</a></th>
             <td>
-            {% if version.is_public %}
+            {% if series.is_public %}
               <span class="label label-success">Public</span>
             {% else %}
               <span class="label label-warning">Restricted</span>
             {% endif %}</td>
-            <td>{{ version.release_date }}</td>
-            <td>{{ version.artifacts.count }}</td>
+            <td>{{ series.release_date }}</td>
+            <td>{{ series.artifacts.count }}</td>
             <td>{{ current_last_update|date }}</td>
-            <td>{{ version.description_mk|markd|safe }}</td>
+            <td>{{ series.description_mk|markd|safe }}</td>
           </tr>
          <tbody>
 
@@ -99,7 +99,7 @@
     </table>
 
   {% else %}
-      <p>No known released versions.</p>
+      <p>No known released series.</p>
   {% endif %}
 
 {% endblock %}

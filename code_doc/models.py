@@ -125,7 +125,7 @@ class Project(models.Model):
         permissions = (
          ("project_view",          "Can see the project"),
          ("project_administrate",  "Can administrate the project"),
-         ("project_version_add",   "Can add a version to the project"),
+         ("project_series_add",   "Can add a series to the project"),
          ("project_artifact_add",  "Can add an artifact to the project"),
         )
 
@@ -137,22 +137,22 @@ class Project(models.Model):
         """Returns true if the user is able to view the project"""
         return True
 
-    def has_user_project_version_add_permission(self, user):
-        """Returns true if the user is able to add version to the current project"""
+    def has_user_project_series_add_permission(self, user):
+        """Returns true if the user is able to add series to the current project"""
         return self.has_user_project_administrate_permission(user)
 
     def has_user_project_artifact_add_permission(self, user):
-        """Returns true if the user is able to add version to the current project"""
+        """Returns true if the user is able to add series to the current project"""
         return self.has_user_project_administrate_permission(user)
 
     def get_number_of_files(self):
         """Returns the number of files archived for a project"""
-        artifact_counts = [rev.artifacts.count() for rev in self.versions.all()]
+        artifact_counts = [rev.artifacts.count() for rev in self.series.all()]
         return sum(artifact_counts) if len(artifact_counts) > 0 else 0
 
     def get_number_of_revisions(self):
         """Returns the number of revisions for a project"""
-        return self.versions.count()
+        return self.series.count()
 
     def save(self, *args, **kwargs):
         self.slug = slugify(self.name)
@@ -160,16 +160,16 @@ class Project(models.Model):
 
 
 class ProjectSeries(models.Model):
-    """A version of a project comes with several artifacts"""
-    project = models.ForeignKey(Project, related_name="versions")
-    version = models.CharField(max_length=500)  # can be a hash
+    """A series of a project comes with several artifacts"""
+    project = models.ForeignKey(Project, related_name="series")
+    series = models.CharField(max_length=500)  # can be a hash
     release_date = models.DateField('Release date')
     is_public = models.BooleanField(default=False)
     description_mk = models.TextField('Description in Markdown format',
                                       max_length=2500, blank=True, null=True)
 
     # the users and groups allowed to view the artifacts of the revision
-    # and also this project version
+    # and also this project series
     view_users = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, null=True,
                                         related_name='view_users')
     view_groups = models.ManyToManyField(Group, blank=True, null=True, related_name='view_groups')
@@ -180,39 +180,39 @@ class ProjectSeries(models.Model):
                                                    related_name='view_artifact_groups')
 
     class Meta:
-        unique_together = (("project", "version"), )
+        unique_together = (("project", "series"), )
         permissions = (
-          ("version_view",  "User of group has access to this revision"),
-          ("version_edit",  "User can edit the content of this version"),
-          # This is a refinement of version_view
-          ("version_artifact_view",  "Access to the artifacts of this revision"),
+          ("series_view",  "User of group has access to this revision"),
+          ("series_edit",  "User can edit the content of this series"),
+          # This is a refinement of series_view
+          ("series_artifact_view",  "Access to the artifacts of this revision"),
         )
 
     def __unicode__(self):
-        return "[%s @ %s] [%s]" % (self.project.name, self.version, self.release_date)
+        return "[%s @ %s] [%s]" % (self.project.name, self.series, self.release_date)
 
     def get_absolute_url(self):
         return reverse('project_revision', kwargs={'project_id': self.project.pk,
-                                                   'version_id': self.pk})
+                                                   'series_id': self.pk})
 
-    def has_user_version_view_permission(self, userobj):
-        """Returns true if the user has view permission on this version, False otherwise"""
+    def has_user_series_view_permission(self, userobj):
+        """Returns true if the user has view permission on this series, False otherwise"""
         return self.is_public or \
             self.project.has_user_project_administrate_permission(userobj) or \
             manage_permission_on_object(userobj, self.view_users, self.view_groups, False)
 
-    def has_user_version_edit_permission(self, userobj):
-        """Returns true if the user has view permission on this version, False otherwise"""
+    def has_user_series_edit_permission(self, userobj):
+        """Returns true if the user has view permission on this series, False otherwise"""
         return self.is_public or \
             self.project.has_user_project_administrate_permission(userobj) or \
             manage_permission_on_object(userobj, self.view_users, self.view_groups, False)
 
-    def has_user_version_artifact_view_permission(self, userobj):
+    def has_user_series_artifact_view_permission(self, userobj):
         """Returns True if the user can see the list of artifacts and the artifacts themselves for
-           a specific version, False otherwise"""
+           a specific series, False otherwise"""
         return self.is_public or \
             self.project.has_user_project_administrate_permission(userobj) or \
-            (self.has_user_version_view_permission(userobj) and
+            (self.has_user_series_view_permission(userobj) and
              manage_permission_on_object(userobj, self.view_artifacts_users,
                                          self.view_artifacts_groups, False))
 
@@ -226,8 +226,8 @@ def get_artifact_location(instance, filename):
             return False, 0
 
     media_relative_dir = os.path.join("artifacts",
-                                      instance.project_version.project.name,
-                                      instance.project_version.version)
+                                      instance.project_series.project.name,
+                                      instance.project_series.series)
     root_dir = os.path.join(settings.MEDIA_ROOT, media_relative_dir)
 
     if os.path.exists(root_dir):
@@ -257,7 +257,7 @@ def get_deflation_directory(instance, without_media_root=False):
 
 class Artifact(models.Model):
     """An artifact is a downloadable file"""
-    project_version = models.ForeignKey(ProjectSeries, related_name="artifacts")
+    project_series = models.ForeignKey(ProjectSeries, related_name="artifacts")
     md5hash = models.CharField(max_length=1024)  # md5 hash
     description = models.TextField('description of the artifact', max_length=1024)
     artifactfile = models.FileField(upload_to=get_artifact_location,
@@ -273,16 +273,16 @@ class Artifact(models.Model):
                                    null=True, blank=True)
 
     def get_absolute_url(self):
-        return reverse('project_revision', kwargs={'project_id': self.project_version.project.pk,
-                                                   'version_id': self.project_version.pk})
+        return reverse('project_revision', kwargs={'project_id': self.project_series.project.pk,
+                                                   'series_id': self.project_series.pk})
 
     def __unicode__(self):
-        return "%s | %s | %s" % (self.project_version, self.artifactfile.name, self.md5hash)
+        return "%s | %s | %s" % (self.project_series, self.artifactfile.name, self.md5hash)
 
     class Meta:
         # we allow only one version per project version
         # (we can however have the same file in several versions)
-        unique_together = (("project_version", "md5hash"), )
+        unique_together = (("project_series", "md5hash"), )
 
     def filename(self):
         return os.path.basename(self.artifactfile.name)

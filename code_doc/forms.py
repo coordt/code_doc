@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from django import forms
 
+
 class ArtifactForm(forms.Form):
     artifactfile = forms.FileField(
         label='Select a file',
@@ -8,6 +9,6 @@ class ArtifactForm(forms.Form):
     )
 
 
-class ProjectVersionForm(forms.Form):
-  version = forms.CharField()
-  description = forms.CharField()
+class ProjectSeriesForm(forms.Form):
+    series = forms.CharField()
+    description = forms.CharField()
