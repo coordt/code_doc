@@ -1,5 +1,5 @@
 # gravatar.py ###############
-# place inside a 'templatetags' directory inside the top level of a 
+# place inside a 'templatetags' directory inside the top level of a
 # Django app (not project, must be inside an app)
 # at the top of your page template include this:
 # {% load gravatar %}
