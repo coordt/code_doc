@@ -10,6 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User, Group
 from django.forms import ModelForm, Textarea, DateInput, CheckboxSelectMultiple
 from django.forms.widgets import Widget, MultiWidget
+from django.forms import ModelForm, Textarea, DateInput, CheckboxSelectMultiple
 from django.utils.decorators import method_decorator
 
 from django.views.generic.base import RedirectView, View
@@ -138,11 +139,10 @@ class PermissionOnObjectViewMixin(SingleObjectMixin):
         else:
             object_permissions_getter = getattr(self, object_permissions_getter, None)
 
-        # this modifies the dispatch of the parent through the decorator,
-        # and calls it with the same parameters
+        # this modifies the dispatch of the parent through the decorator, and calls it with the same parameters
         return permission_required_on_object(object_permissions, object_permissions_getter, handle_access_error=self.handle_access_error)\
-            (super(PermissionOnObjectViewMixin, self).dispatch)\
-            (request, *args, **kwargs)
+                  (super(PermissionOnObjectViewMixin, self).dispatch)\
+                      (request, *args, **kwargs)
 
     # we do not need to reimplement this behaviour as it is properly done in the decorator
 
@@ -236,6 +236,7 @@ class ProjectSeriesForm(ModelForm):
         }
 
 
+# @todo: remove overlap with ProjectSeriesUpdateView
 class ProjectSeriesAddView(PermissionOnObjectViewMixin, CreateView):
     """Generic view for adding a series into a specific project.
 
@@ -244,11 +245,10 @@ class ProjectSeriesAddView(PermissionOnObjectViewMixin, CreateView):
               on the project object.
 
     """
-
     form_class = ProjectSeriesForm
 
     model = ProjectSeries
-    template_name = "code_doc/project_revision/project_revision_add.html"
+    template_name = "code_doc/project_revision/project_revision_add_or_edit.html"
 
     # user should have the appropriate privileges on the object in order to be able to add anything
     permissions_on_object = ('code_doc.project_series_add',)
@@ -384,6 +384,7 @@ class EmptyWidget(CheckboxSelectMultiple):
         return ''
 
 
+# @todo: remove overlap with ProjectSeriesAddView
 class ProjectSeriesUpdateView(PermissionOnObjectViewMixin, UpdateView):
     """Update the content of a specific series.
 
@@ -397,35 +398,33 @@ class ProjectSeriesUpdateView(PermissionOnObjectViewMixin, UpdateView):
     # part of the url giving the proper object
     pk_url_kwarg = 'series_id'
 
-    template_name = 'code_doc/project_revision/project_revision_edit.html'
+    template_name = 'code_doc/project_revision/project_revision_add_or_edit.html'
 
     # we should have admin priviledges on the object in order to be able to add anything
     permissions_on_object = ('code_doc.series_edit',)
     permissions_object_getter = 'get_series_from_request'
 
     # for the form that is displayed
-
     form_class = ProjectSeriesForm
 
     def get_series_from_request(self, request, *args, **kwargs):
-
         # this already checks the coherence of the url:
-        # if the series does not belong to the project, an PermissionDenied is raised
+        # if the version does not belong to the project, an PermissionDenied is raised
         try:
             project = Project.objects.get(pk=kwargs['project_id'])
         except Project.DoesNotExist:
-            logger.warning('[ProjectSeriesDetailsView] non existent project with id %d',
+            logger.warning('[ProjectVersionDetailsView] non existent project with id %d',
                            kwargs['project_id'])
             return None
 
         try:
-            series = project.series.get(pk=kwargs['series_id'])
+            version = project.series.get(pk=kwargs['series_id'])
         except ProjectSeries.DoesNotExist:
-            logger.warning('[ProjectSeriesDetailsView] non existent series with id %d',
+            logger.warning('[ProjectVersionDetailsView] non existent version with id %d',
                            kwargs['series_id'])
             return None
 
-        return series
+        return version
 
     def get_context_data(self, **kwargs):
         """Method used for populating the template context"""
