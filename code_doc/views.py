@@ -8,9 +8,7 @@ from django.db import transaction, IntegrityError
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User, Group
-from django.forms import ModelForm, Textarea, DateInput, CheckboxSelectMultiple
-from django.forms.widgets import Widget, MultiWidget
-from django.forms import ModelForm, Textarea, DateInput, CheckboxSelectMultiple
+from django.forms.widgets import MultiWidget, CheckboxSelectMultiple
 from django.utils.decorators import method_decorator
 
 from django.views.generic.base import RedirectView, View
@@ -26,13 +24,8 @@ from django.core.urlresolvers import reverse, reverse_lazy
 from django.core.exceptions import PermissionDenied
 
 import os
-import hashlib
-import tempfile
 import logging
 import json
-from functools import partial
-
-from django.conf import settings
 
 from code_doc.models import Project, Author, Topic, Artifact, ProjectSeries
 from code_doc.forms import ProjectSeriesForm
@@ -197,44 +190,6 @@ class ProjectListView(ListView):
 #
 # Series related
 ################################################################################################
-class ProjectSeriesForm(ModelForm):
-    """Form definition that is used when adding and editing a ProjectVersion"""
-    class Meta:
-        model = ProjectSeries
-        fields = (
-            'series', 'release_date', 'description_mk', 'view_users', 'view_groups',
-            'view_artifacts_users', 'view_artifacts_groups'
-        )
-        labels = {
-            'series': 'Series name',
-            'description_mk': 'Description'
-        }
-        help_texts = {
-            'description_mk': 'Description/content of the series in MarkDown format'
-        }
-        widgets = {
-            'series': Textarea(attrs={
-                                'cols': 120,
-                                'rows': 2,
-                                'style': "resize:none"
-                                }),
-            'description_mk': Textarea(attrs={
-                                        'cols': 120,
-                                        'rows': 10,
-                                        'style': "resize:vertical"
-                                        }),
-            'release_date': DateInput(attrs={
-                                        'class': 'datepicker',
-                                        'data-date-format': "dd/mm/yyyy",
-                                        'data-provide': 'datepicker'
-                                        },
-                                      format='%d/%m/%Y'),
-            'view_users': CheckboxSelectMultiple,
-            'view_groups': CheckboxSelectMultiple,
-            'view_artifacts_users': CheckboxSelectMultiple,
-            'view_artifacts_groups': CheckboxSelectMultiple
-        }
-
 
 # @todo: remove overlap with ProjectSeriesUpdateView
 class ProjectSeriesAddView(PermissionOnObjectViewMixin, CreateView):
@@ -364,7 +319,7 @@ class CredentialsWidget(MultiWidget):
 
     """
     def __init__(self, fields, name_mapping, attrs=None):
-        widgets = [forms.CheckboxSelectMultiple()]
+        widgets = [CheckboxSelectMultiple()]
         super(MultiWidget, self).__init__(widgets, attrs)
 
     def decompress(self, value):
