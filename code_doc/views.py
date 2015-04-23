@@ -234,6 +234,7 @@ class ProjectSeriesForm(ModelForm):
         }
 
 
+# @todo: remove overlap with ProjectSeriesUpdateView
 class ProjectSeriesAddView(PermissionOnObjectViewMixin, CreateView):
   """Generic view for adding a series into a specific project.
 
@@ -245,7 +246,7 @@ class ProjectSeriesAddView(PermissionOnObjectViewMixin, CreateView):
   form_class = ProjectSeriesForm
 
   model = ProjectSeries
-  template_name = "code_doc/project_revision/project_revision_add.html"
+  template_name = "code_doc/project_revision/project_revision_add_or_edit.html"
 
 
   # user should have the appropriate privileges on the object in order to be able to add anything
@@ -386,6 +387,7 @@ class EmptyWidget(CheckboxSelectMultiple):
       return ''
 
 
+# @todo: remove overlap with ProjectSeriesAddView
 class ProjectSeriesUpdateView(PermissionOnObjectViewMixin, UpdateView):
   """Update the content of a specific series.
 
@@ -398,7 +400,7 @@ class ProjectSeriesUpdateView(PermissionOnObjectViewMixin, UpdateView):
   # part of the url giving the proper object
   pk_url_kwarg  = 'series_id'
 
-  template_name = 'code_doc/project_revision/project_revision_edit.html'
+  template_name = 'code_doc/project_revision/project_revision_add_or_edit.html'
 
   # we should have admin priviledges on the object in order to be able to add anything
   permissions_on_object = ('code_doc.series_edit',)

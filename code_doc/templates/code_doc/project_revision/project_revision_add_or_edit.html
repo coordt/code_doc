@@ -1,7 +1,7 @@
 {% extends "code_doc/base_template.html" %}
 {% load staticfiles %}
 
-{% block title %}{{ project.name }}{% endblock %}
+{% block title %} {% if series.series %} {{series.series}} - {% endif %} {{ project.name }}{% endblock %}
 
 {% block additionalhead %}
   <link rel="stylesheet" href="{% static "datepicker3.css" %}">
@@ -10,10 +10,23 @@
 
 {% block content %}
 
-    <h1> <a href={% url 'project' project.id %}>{{ project.name }}</a> </h1>
-    <div class="alert alert-info" role="alert">
-        You are adding a new series to {{ project.name }}.
-    </div>
+    {% if series.series  %}
+
+      <h1>{{ project.name }} - Series <a href={% url 'project_revision' project.id series.id %}>{{series.series}}</a></h1>
+      <div class="alert alert-info" role="alert">
+        You are editing the series details
+      </div>
+
+    {% else %}
+
+      <h1> <a href={% url 'project' project.id %}>{{ project.name }}</a> </h1>
+      <div class="alert alert-info" role="alert">
+          You are adding a new series to {{ project.name }}.
+      </div>
+
+    {% endif %}
+
+
 
     {% if form.errors %}
         <div class="alert alert-danger" role="alert">The following error occurred with your submission {{form.errors}}</div>
@@ -74,56 +87,60 @@
                 </label>
               </td>
             </tr>
-        {% endfor %}
-      </tbody>
-
-     </table>
+            {% endfor %}
+        </tbody>
+        </table>
     <!-- <a type="button" class="btn btn-default btn-sm"><span class="glyphicon glyphicon-plus"></span></a>  -->
 
 
 
-    <h3>Groups</h3>
-    <p class="help-block">Indicate in the table below the permissions on this series granted to each group of users.</p>
-    <table class="table table-hover table-condensed">
-     <thead>
-       <tr>
-         <th width="30%">Permissions</th>
-         {% for header in permission_headers %}
-           <th>{{header}}</th>
-         {% endfor %}
-       </tr>
-      </thead>
+        <h3>Groups</h3>
+        <p class="help-block">Indicate in the table below the permissions on this series granted to each group of users.</p>
+        <table class="table table-hover table-condensed">
+         <thead>
+           <tr>
+             <th width="30%">Permissions</th>
+             {% for header in permission_headers %}
+               <th>{{header}}</th>
+             {% endfor %}
+           </tr>
+          </thead>
 
-      <tbody>
-        {% for index, group, check1, check2 in group_permissions %}
-        <tr>
-          <td width="30%">
-            {{group|title}}
-          </td>
-          <td>
-            <label for="{{check1.id_for_label}}">
-            <input
-            {% if check1.is_checked %}
-            checked="checked"
-            {% endif %}
-            id="{{check1.id_for_label}}" type="{{check1.input_type}}" value="{{check1.choice_value}}" name="{{check1.name}}"/>
-            </label>
-          </td>
-          <td>
-            <label for="{{check2.id_for_label}}">
-            <input
-            {% if check2.is_checked %}
-            checked="checked"
-            {% endif %}
-            id="{{check2.id_for_label}}" type="{{check2.input_type}}" value="{{check2.choice_value}}" name="{{check2.name}}"/>
-            </label>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+          <tbody>
+            {% for index, group, check1, check2 in group_permissions %}
+            <tr>
+              <td width="30%">
+                {{group|title}}
+              </td>
+              <td>
+                <label for="{{check1.id_for_label}}">
+                <input
+                {% if check1.is_checked %}
+                checked="checked"
+                {% endif %}
+                id="{{check1.id_for_label}}" type="{{check1.input_type}}" value="{{check1.choice_value}}" name="{{check1.name}}"/>
+                </label>
+              </td>
+              <td>
+                <label for="{{check2.id_for_label}}">
+                <input
+                {% if check2.is_checked %}
+                checked="checked"
+                {% endif %}
+                id="{{check2.id_for_label}}" type="{{check2.input_type}}" value="{{check2.choice_value}}" name="{{check2.name}}"/>
+                </label>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
 
-        <input type="submit" value="Create" />
+        {% if series.series %}
+          <input type="submit" value="Save" />
+        {% else %}
+          <input type="submit" value="Create" />
+        {% endif %}
+
     </form>
 
 {% endblock %}
