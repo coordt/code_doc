@@ -7,18 +7,18 @@
 
 
 {% block content %}
-  <h1><a href="{% url 'project' project.id %}">{{ project.name }}</a> - {{version.version}} {% button_edit_series_with_permission user version %}</h1>
+  <h1><a href="{% url 'project' project.id %}">{{ project.name }}</a> - {{series.series}} {% button_edit_series_with_permission user series %}</h1>
 
   <h3>Description</h3>
-  {{version.description_mk|markd|safe}}
-  
+  {{series.description_mk|markd|safe}}
+
   <h3>Details</h3>
-  
+
   <h3>Artifacts</h3>
-  
+
 
   {% if artifacts %}
-  
+
 	  <table class="table table-hover">
 	      <thead>
 	        <tr>
@@ -31,13 +31,13 @@
 	          <th>Uploaded by</th>
 	        </tr>
 	      </thead>
-	
+
 	    <tbody>
 	      {% for artifact in artifacts %}
 	        <tr>
 	          <td>{{artifact.pk}}</td>
 	          <td class="text-nowrap"><small><a href="{%get_media_prefix%}{{artifact.artifactfile}}">{{artifact.filename}}</a></small></td>
-	          
+
             <td>
             {% if artifact.is_documentation %}
               <span class="label label-info">doc</span>
@@ -50,18 +50,18 @@
 	          <td><small>{{artifact.description}}</small></td>
 	          <td><small>{{artifact.upload_date|date}}</small></td>
 	          <td>{% if artifact.uploaded_by %}<small>{{artifact.uploaded_by}}</small>{%endif%}</td>
-	          
+
 	        </tr>
 	      {%endfor%}
 	      <tr>
-	        <th>{% button_add_artifact_with_permission user version %}</th>
+	        <th>{% button_add_artifact_with_permission user series %}</th>
 	      </tr>
 	    </tbody>
-	  </table>  
-  
+	  </table>
+
   {% else %}
-      <p>No artifacts for this revision {{ version.version }}.</p>
-      <p>{% button_add_artifact_with_permission user version %}</p>
+      <p>No artifacts for this revision {{ series.series }}.</p>
+      <p>{% button_add_artifact_with_permission user series %}</p>
   {% endif %}
 
 
