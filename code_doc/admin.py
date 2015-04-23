@@ -6,10 +6,8 @@ from code_doc.models import Author, Project, ProjectSeries, Artifact, Copyright,
 # logger for this file
 logger = logging.getLogger(__name__)
 
+
 # Register your models here.
-
-from code_doc.models import Author, Project, ProjectSeries, Artifact, Copyright, CopyrightHolder, Topic
-
 admin.site.register(Author)
 admin.site.register(Artifact)
 admin.site.register(Copyright)
