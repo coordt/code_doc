@@ -10,7 +10,7 @@
 
 {% block content %}
 
-<h1>{{ project.name|title }} - Series <a href={% url 'project_revision' project.id series.id %}>{{series.series}}</a></h1>
+<h1>{{ project.name }} - Series <a href={% url 'project_revision' project.id series.id %}>{{series.series}}</a></h1>
   <div class="alert alert-info" role="alert">
     You are editing the series details
   </div>

@@ -8,6 +8,7 @@ from django.db import transaction, IntegrityError
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.forms import ModelForm, Textarea, DateInput, CheckboxSelectMultiple
 from django.utils.decorators import method_decorator
 
 from django.views.generic.base import RedirectView, View
@@ -195,6 +196,42 @@ class ProjectListView(ListView):
 #
 # Series related
 ################################################################################################
+class ProjectSeriesForm(ModelForm):
+    class Meta:
+        model = ProjectSeries
+        fields = (
+            'series', 'release_date', 'description_mk', 'view_users', 'view_groups',
+            'view_artifacts_users', 'view_artifacts_groups'
+        )
+        labels = {
+            'series': 'Series name',
+            'description_mk': 'Description'
+        }
+        help_texts = {
+            'description_mk': 'Description/content of the series in MarkDown format'
+        }
+        widgets = {
+            'series': Textarea(attrs={
+                                'cols': 120,
+                                'rows': 2,
+                                'style': "resize:none"
+                                }),
+            'description_mk': Textarea(attrs={
+                                        'cols': 120,
+                                        'rows': 10,
+                                        'style': "resize:vertical"
+                                        }),
+            'release_date': DateInput(attrs={
+                                        'class': 'datepicker',
+                                        'data-date-format': "dd/mm/yyyy",
+                                        'data-provide': 'datepicker'
+                                        },
+                                      format='%d/%m/%Y'),
+            'view_users': CheckboxSelectMultiple,
+            'view_groups': CheckboxSelectMultiple,
+            'view_artifacts_users': CheckboxSelectMultiple,
+            'view_artifacts_groups': CheckboxSelectMultiple
+        }
 
 
 class ProjectSeriesAddView(PermissionOnObjectViewMixin, CreateView):
@@ -204,9 +241,11 @@ class ProjectSeriesAddView(PermissionOnObjectViewMixin, CreateView):
             on the project object.
 
   """
+
+  form_class = ProjectSeriesForm
+
   model = ProjectSeries
   template_name = "code_doc/project_revision/project_revision_add.html"
-  fields = ['series', 'description_mk', 'release_date', 'is_public', 'view_users', 'view_groups']
 
 
   # user should have the appropriate privileges on the object in order to be able to add anything
@@ -229,9 +268,26 @@ class ProjectSeriesAddView(PermissionOnObjectViewMixin, CreateView):
     except Project.DoesNotExist:
       # this should not occur here
       raise
+    form = context['form']
 
     context['project'] = current_project
     context['project_id'] = current_project.id
+
+    context['automatic_fields'] = (form[i] for i in ('series', 'release_date', 'description_mk'))
+
+    context['active_users'] = User.objects.all()
+
+    context['permission_headers'] = ['View', 'Artifact view']
+    context['user_permissions'] = zip(xrange(len(context['active_users'])),
+                                      context['active_users'],
+                                      form['view_users'],
+                                      form['view_artifacts_users'])
+
+    context['active_groups'] = Group.objects.all()
+    context['group_permissions'] = zip(xrange(len(context['active_groups'])),
+                                       context['active_groups'],
+                                       form['view_groups'],
+                                       form['view_artifacts_groups'])
     return context
 
   def form_valid(self, form):
@@ -350,23 +406,7 @@ class ProjectSeriesUpdateView(PermissionOnObjectViewMixin, UpdateView):
 
   # for the form that is displayed
 
-  form_class = modelform_factory(ProjectSeries,
-                                 fields = ('series', 'release_date', 'description_mk', 'view_users', 'view_groups', 'view_artifacts_users', 'view_artifacts_groups'),
-                                 labels = {'series' : 'Series name',
-                                           'description_mk' : 'Description'},
-                                 help_texts = {'description_mk' : 'Description/content of the series in MarkDown format'},
-
-                                 widgets = {'series' : Textarea(attrs={'cols' : 120, 'rows' : 2, 'style' : "resize:none"}),
-                                            'description_mk' : Textarea(attrs={'cols' : 120, 'rows' : 10, 'style' : "resize:vertical"}),
-                                            'release_date' : DateInput(attrs={'class' : 'datepicker',
-                                                                              'data-date-format' : "dd/mm/yyyy",
-                                                                              'data-provide': 'datepicker'},
-                                                                       format='%d/%m/%Y'),
-                                            'view_users' : CheckboxSelectMultiple,
-                                            'view_groups': CheckboxSelectMultiple,
-                                            'view_artifacts_users' : CheckboxSelectMultiple,
-                                            'view_artifacts_groups' : CheckboxSelectMultiple})
-
+  form_class = ProjectSeriesForm
 
   def get_series_from_request(self, request, *args, **kwargs):
 
