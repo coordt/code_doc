@@ -366,6 +366,8 @@ class ProjectSeriesUpdateView(PermissionOnObjectViewMixin, UpdateView):
 
         assert(Project.objects.get(pk=self.kwargs['project_id']).id == series_object.project.id)
 
+        # We need this to distinguish between Adding and Editing a Series
+        context['series'] = series_object
         ProjectSeriesForm().set_context_for_template(context, self.kwargs['project_id'])
 
         return context
