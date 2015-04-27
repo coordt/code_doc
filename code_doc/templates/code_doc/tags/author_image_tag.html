@@ -1,16 +1,35 @@
 {% load gravatar %}
 {% load static %}
 
-<img class="media-object" src="
- {% if image %}
-    {% get_media_prefix %}{{image}}
- {% elif email %}
-    {% gravatar_url email %}
- {% else %}
-    {% get_static_prefix %}1409528757_f007-128.png
- {% endif %}  
-" 
- {% if size %}
-width="{{ size }}" height="{{ size }}"
- {% endif %}
-class="img-rounded" >
+{% if uploaded_image or gravatar_email %}
+<!-- Display or load img -->
+  <img src=
+  {% if image %}
+    "{% get_media_prefix %}{{image}}"
+  {% elif gravatar_email %}
+    "{% gravatar_url gravatar_email %}"
+  {% endif %}
+
+  {% if size %}
+    width="{{ size }}px" height="{{ size }}px"
+  {% else %}
+    width="40px" height="40px"
+  {% endif %}
+  class="img-rounded" >
+
+{% else %}
+<!-- Generate svg image -->
+<div class="svg-div-container"
+    {% if size %}
+      style="width:{{ size }}px; height:{{ size }}px;"
+    {% else %}
+      style="width:40px;height:40px;"
+    {% endif %}
+    >
+  <svg class="svg-container media-object img-rounded">
+    <rect x="0" y="0" width="100%" height="100%" fill="{{background_color}}" />
+    <text class="svg-text" x="50%" y="50%" dy=".4em">{{author_initial}}</text>
+  </svg>
+</div>
+
+{% endif %}
