@@ -16,7 +16,7 @@ class ProjectSeriesForm(ModelForm):
     class Meta:
         model = ProjectSeries
         fields = (
-            'series', 'release_date', 'description_mk', 'view_users', 'view_groups',
+            'series', 'release_date', 'description_mk', 'view_users', 'view_groups', 'is_public',
             'view_artifacts_users', 'view_artifacts_groups'
         )
         labels = {

@@ -230,7 +230,8 @@ class ProjectSeriesAddView(PermissionOnObjectViewMixin, CreateView):
         context['project'] = current_project
         context['project_id'] = current_project.id
 
-        context['automatic_fields'] = (form[i] for i in ('series', 'release_date', 'description_mk'))
+        context['automatic_fields'] = (form[i] for i in ('series', 'release_date',
+                                                         'description_mk', 'is_public'))
 
         context['active_users'] = User.objects.all()
 
@@ -397,7 +398,8 @@ class ProjectSeriesUpdateView(PermissionOnObjectViewMixin, UpdateView):
         context['artifacts'] = series_object.artifacts.all()
         context['permission_headers'] = ['View', 'Artifact view']
 
-        context['automatic_fields'] = (form[i] for i in ('series', 'release_date', 'description_mk'))
+        context['automatic_fields'] = (form[i] for i in ('series', 'release_date',
+                                                         'description_mk', 'is_public'))
 
         context['active_users'] = User.objects.all()  # set(series_object.view_users.all()) | set(series_object.view_artifacts_users.all())
         context['user_permissions'] = zip(xrange(len(context['active_users'])),
