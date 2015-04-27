@@ -109,14 +109,14 @@ class Project(models.Model):
     authors = models.ManyToManyField(Author)
 
     # the administrators of the project, have the rights to edit the
-    administrators = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, null=True)
+    administrators = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True)
 
     home_page_url = models.CharField(max_length=250, null=True, blank=True)
     code_source_url = models.CharField(max_length=250, null=True, blank=True)
     copyright = models.ForeignKey(Copyright, null=True, blank=True)
-    copyright_holder = models.ManyToManyField(CopyrightHolder, null=True, blank=True)
+    copyright_holder = models.ManyToManyField(CopyrightHolder, blank=True)
 
-    topics = models.ManyToManyField(Topic, null=True, blank=True)
+    topics = models.ManyToManyField(Topic, blank=True)
 
     def __unicode__(self):
         return "%s" % (self.name)
@@ -170,13 +170,13 @@ class ProjectSeries(models.Model):
 
     # the users and groups allowed to view the artifacts of the revision
     # and also this project series
-    view_users = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, null=True,
+    view_users = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True,
                                         related_name='view_users')
-    view_groups = models.ManyToManyField(Group, blank=True, null=True, related_name='view_groups')
+    view_groups = models.ManyToManyField(Group, blank=True, related_name='view_groups')
 
-    view_artifacts_users = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, null=True,
+    view_artifacts_users = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True,
                                                   related_name='view_artifact_users')
-    view_artifacts_groups = models.ManyToManyField(Group, blank=True, null=True,
+    view_artifacts_groups = models.ManyToManyField(Group, blank=True,
                                                    related_name='view_artifact_groups')
 
     class Meta:
