@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 from django.forms import Form, ModelForm, FileField, Textarea, DateInput, CheckboxSelectMultiple
 
-from code_doc.models import ProjectSeries
+from code_doc.models import ProjectSeries, Project
+from django.contrib.auth.models import User, Group
 
 
 class ArtifactForm(Form):
@@ -48,3 +49,32 @@ class ProjectSeriesForm(ModelForm):
             'view_artifacts_users': CheckboxSelectMultiple,
             'view_artifacts_groups': CheckboxSelectMultiple
         }
+
+    def set_context_for_template(self, context, project_id):
+        """Sets extra data that is used in the template for displaying the form"""
+        try:
+            current_project = Project.objects.get(pk=project_id)
+        except Project.DoesNotExist:
+            # this should not occur here
+            raise
+        form = context['form']
+
+        context['project'] = current_project
+        context['project_id'] = current_project.id
+
+        context['automatic_fields'] = (form[i] for i in ('series', 'release_date',
+                                                         'description_mk', 'is_public'))
+
+        context['active_users'] = User.objects.all()
+
+        context['permission_headers'] = ['View', 'Artifact view']
+        context['user_permissions'] = zip(xrange(len(context['active_users'])),
+                                          context['active_users'],
+                                          form['view_users'],
+                                          form['view_artifacts_users'])
+
+        context['active_groups'] = Group.objects.all()
+        context['group_permissions'] = zip(xrange(len(context['active_groups'])),
+                                           context['active_groups'],
+                                           form['view_groups'],
+                                           form['view_artifacts_groups'])

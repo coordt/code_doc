@@ -218,35 +218,12 @@ class ProjectSeriesAddView(PermissionOnObjectViewMixin, CreateView):
             return None
 
     def get_context_data(self, **kwargs):
-        """Method used for populating the template context"""
-        context = super(ProjectSeriesAddView, self).get_context_data(**kwargs)
-        try:
-            current_project = Project.objects.get(pk=self.kwargs['project_id'])
-        except Project.DoesNotExist:
-            # this should not occur here
-            raise
-        form = context['form']
+            """Method used for populating the template context"""
+            context = super(ProjectSeriesAddView, self).get_context_data(**kwargs)
+            project_id = self.kwargs['project_id']
+            ProjectSeriesForm().set_context_for_template(context, project_id)
 
-        context['project'] = current_project
-        context['project_id'] = current_project.id
-
-        context['automatic_fields'] = (form[i] for i in ('series', 'release_date',
-                                                         'description_mk', 'is_public'))
-
-        context['active_users'] = User.objects.all()
-
-        context['permission_headers'] = ['View', 'Artifact view']
-        context['user_permissions'] = zip(xrange(len(context['active_users'])),
-                                          context['active_users'],
-                                          form['view_users'],
-                                          form['view_artifacts_users'])
-
-        context['active_groups'] = Group.objects.all()
-        context['group_permissions'] = zip(xrange(len(context['active_groups'])),
-                                           context['active_groups'],
-                                           form['view_groups'],
-                                           form['view_artifacts_groups'])
-        return context
+            return context
 
     def form_valid(self, form):
         try:
@@ -385,38 +362,12 @@ class ProjectSeriesUpdateView(PermissionOnObjectViewMixin, UpdateView):
     def get_context_data(self, **kwargs):
         """Method used for populating the template context"""
         context = super(ProjectSeriesUpdateView, self).get_context_data(**kwargs)
-
         series_object = self.object
 
         assert(Project.objects.get(pk=self.kwargs['project_id']).id == series_object.project.id)
 
-        form = context['form']
+        ProjectSeriesForm().set_context_for_template(context, self.kwargs['project_id'])
 
-        context['series'] = series_object
-        context['project'] = series_object.project
-        context['project_id'] = series_object.project.id
-        context['artifacts'] = series_object.artifacts.all()
-        context['permission_headers'] = ['View', 'Artifact view']
-
-        context['automatic_fields'] = (form[i] for i in ('series', 'release_date',
-                                                         'description_mk', 'is_public'))
-
-        context['active_users'] = User.objects.all()  # set(series_object.view_users.all()) | set(series_object.view_artifacts_users.all())
-        context['user_permissions'] = zip(xrange(len(context['active_users'])),
-                                          context['active_users'],
-                                          form['view_users'],
-                                          form['view_artifacts_users'])
-
-        # context['active_groups'] = set(series_object.view_groups.all()) | set(series_object.view_artifacts_groups.all())
-        context['active_groups'] = Group.objects.all()
-        context['group_permissions'] = zip(xrange(len(context['active_groups'])),
-                                           context['active_groups'],
-                                           form['view_groups'],
-                                           form['view_artifacts_groups'])
-
-        # context['form']['view_groups'].is_hidden = True
-
-        print form.visible_fields()
         return context
 
 
