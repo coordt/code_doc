@@ -85,7 +85,7 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'code_doc',
 
-    # 'crowdrest',
+    'crowdrest',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -112,7 +112,7 @@ AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
     'code_doc.permissions.backend.CodedocPermissionBackend',
 
-    # 'crowdrest.backend.CrowdRestBackend',
+    'crowdrest.backend.CrowdRestBackend',
     )
 
 
@@ -120,19 +120,19 @@ AUTHENTICATION_BACKENDS = (
 
 # Uncomment for setting up the Crowd - authentification application
 
-# AUTH_CROWD_ALWAYS_UPDATE_USER = True
-# AUTH_CROWD_ALWAYS_UPDATE_GROUPS = True
-# AUTH_CROWD_CREATE_GROUPS = True
+AUTH_CROWD_ALWAYS_UPDATE_USER = True
+AUTH_CROWD_ALWAYS_UPDATE_GROUPS = True
+AUTH_CROWD_CREATE_GROUPS = True
 
-# AUTH_CROWD_STAFF_GROUP = 'jira-developers'
-# AUTH_CROWD_SUPERUSER_GROUP = 'jira-administrators'
+AUTH_CROWD_STAFF_GROUP = 'jira-developers'
+AUTH_CROWD_SUPERUSER_GROUP = 'jira-administrators'
 
-# # @todo: Configure the password for accessing CROWD
-# AUTH_CROWD_APPLICATION_USER = 'django-code-doc-test'
-# AUTH_CROWD_APPLICATION_PASSWORD = 'testcodedoc'
+# @todo: Configure the password for accessing CROWD
+AUTH_CROWD_APPLICATION_USER = 'django-code-doc-test'
+AUTH_CROWD_APPLICATION_PASSWORD = 'testcodedoc'
 
-# AUTH_CROWD_SERVER_REST_URI = 'http://seine.is.localnet:8095/crowd/rest/usermanagement/latest'
-# AUTH_CROWD_SERVER_TRUSTED_ROOT_CERTS_FILE = None
+AUTH_CROWD_SERVER_REST_URI = 'http://seine.is.localnet:8095/crowd/rest/usermanagement/latest'
+AUTH_CROWD_SERVER_TRUSTED_ROOT_CERTS_FILE = None
 
 
 LOGGING = {
@@ -190,6 +190,11 @@ LOGGING = {
           'level': 'WARNING',
           'propagate': True,
       },
+      'code_doc.signals': {
+          'handlers': ['console'],
+          'level': 'DEBUG',
+          'propagate': True,
+      }
   },
 }
 
