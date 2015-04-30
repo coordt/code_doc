@@ -71,7 +71,8 @@ class PermissionBackendTest(TestCase):
         self.assertFalse(self.first_user.has_perm('code_doc.non_existing', self.project))
 
     def test_all_permissions_user(self):
-        self.assertIn('code_doc.project_administrate', self.first_user.get_all_permissions(self.project))
+        self.assertIn('code_doc.project_administrate',
+                      self.first_user.get_all_permissions(self.project))
         self.assertNotIn('code_doc.project_administrate', self.first_user.get_all_permissions())
 
         user2 = User.objects.create_user(username='user2', password='user2')
