@@ -32,8 +32,17 @@ class Author(models.Model):
     lastname = models.CharField(max_length=50)
     firstname = models.CharField(max_length=50)
     gravatar_email = models.CharField(max_length=50, blank=True)
-    email = models.EmailField(max_length=50, unique=True, db_index=True)
+    # @todo(Stephan): Is it okay to remove the uniqueness assumption of the email?
+    #                 Since the email of the users are copied over to the authors now,
+    #                 the uniqueness is violated
+    email = models.EmailField(max_length=50,
+                              # unique=True,
+                              db_index=True)
     home_page_url = models.CharField(max_length=250)
+    django_user = models.OneToOneField(settings.AUTH_USER_MODEL,
+                                       related_name='author',
+                                       blank=True,
+                                       null=True)
 
     def __unicode__(self):
         return "%s %s (%s)" % (self.firstname, self.lastname, self.email)
