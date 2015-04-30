@@ -38,7 +38,7 @@ class Author(models.Model):
     email = models.EmailField(max_length=50,
                               # unique=True,
                               db_index=True)
-    home_page_url = models.CharField(max_length=250)
+    home_page_url = models.CharField(max_length=250, blank=True)
     django_user = models.OneToOneField(settings.AUTH_USER_MODEL,
                                        related_name='author',
                                        blank=True,
@@ -46,6 +46,17 @@ class Author(models.Model):
 
     def __unicode__(self):
         return "%s %s (%s)" % (self.firstname, self.lastname, self.email)
+
+    def has_user_author_edit_permission(self, user):
+        if hasattr(user, 'author'):
+            has_edit_permission = user.author == self
+        else:
+            has_edit_permission = False
+
+        return has_edit_permission
+
+    def get_absolute_url(self):
+        return reverse('author', kwargs={'author_id': self.pk})
 
 
 class CopyrightHolder(models.Model):

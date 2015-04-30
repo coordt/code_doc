@@ -75,6 +75,9 @@ urlpatterns = patterns(
     url(r'^authors/$', views.AuthorListView.as_view(), name='authors_list'),  # lists all authors
     url(r'^authors/(?P<author_id>\d+)/$', views.detail_author,
         name='author'),  # details about an author
+    url(r'^authors/(?P<author_id>\d+)/add$',
+        views.AuthorUpdateView.as_view(),
+        name='author_edit'),
 
   # url(r'^api/artifact/(?P<project_id>\d+)/(?P<project_revision_id>\d+)/(?P<filename>.+)$', views.FileUploadView.as_view(), name='fileupload'),
   # url(r'^api/artifact/(?P<project_revision_id>\d+)/$', views.FileUploadView.as_view(), name='fileupload_post'),

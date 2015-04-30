@@ -45,3 +45,11 @@ def button_edit_series_with_permission(user, revision):
   return {'permission_ok': project.has_user_project_series_add_permission(user),
           'user': user,
           'next' : reverse_lazy('project_revision_edit', args=[project.id, revision.id])}
+
+@register.inclusion_tag('code_doc/tags/button_edit_with_permission_tag.html')
+def button_edit_author_with_permission(user, author):
+    logger.debug('[templatetag|button artifact] User %s ', user)
+
+    return {'permission_ok': author.has_user_author_edit_permission(user),
+            'user': user,
+            'next': reverse_lazy('author_edit', args=[author.id])}

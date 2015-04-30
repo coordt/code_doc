@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from django.forms import Form, ModelForm, FileField, Textarea, DateInput, CheckboxSelectMultiple
 
-from code_doc.models import ProjectSeries, Project
+from code_doc.models import ProjectSeries, Project, Author
 from django.contrib.auth.models import User, Group
 
 
@@ -10,6 +10,12 @@ class ArtifactForm(Form):
         label='Select a file',
         help_text='max. 42 megabytes'
     )
+
+
+class AuthorForm(ModelForm):
+    class Meta:
+        model = Author
+        fields = '__all__'
 
 
 class ProjectSeriesForm(ModelForm):
