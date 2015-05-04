@@ -26,6 +26,24 @@ import functools
 logger = logging.getLogger(__name__)
 
 
+def get_author_image_location(instance, filename):
+
+    if (instance.firstname is not "") and (instance.lastname is not ""):
+        author_name = instance.firstname + instance.lastname
+    else:
+        author_name = 'default'
+
+    media_relative_dir = os.path.join('author_images',
+                                      author_name)
+
+    root_dir = os.path.join(settings.MEDIA_ROOT, media_relative_dir)
+
+    if not os.path.exists(root_dir):
+        os.makedirs(root_dir)
+
+    return os.path.join(media_relative_dir, filename)
+
+
 class Author(models.Model):
     """An author, may appear in several projects, and is not someone that is
     allowed to login (not a user of Django)."""
@@ -42,7 +60,9 @@ class Author(models.Model):
     django_user = models.OneToOneField(settings.AUTH_USER_MODEL,
                                        related_name='author',
                                        blank=True,
-                                       null=True)
+                                       null=True,
+                                       help_text='The Django User, this Author is corresponding to.')
+    image = models.ImageField(blank=True, null=True, upload_to=get_author_image_location)
 
     def __unicode__(self):
         return "%s %s (%s)" % (self.firstname, self.lastname, self.email)
