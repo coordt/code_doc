@@ -159,6 +159,11 @@ class Project(models.Model):
         artifact_counts = [rev.artifacts.count() for rev in self.series.all()]
         return sum(artifact_counts) if len(artifact_counts) > 0 else 0
 
+    def get_number_of_series(self):
+        """Returns the number of series for a project"""
+        return self.series.count()
+
+    # @todo(Stephan): Change this once we have revisions properly added
     def get_number_of_revisions(self):
         """Returns the number of revisions for a project"""
         return self.series.count()
@@ -226,6 +231,19 @@ class ProjectSeries(models.Model):
                                          self.view_artifacts_groups, False))
 
 
+class Revision(models.Model):
+    """A Revision is a collection of artifacts, that were produced by the same
+       state of the Project's code."""
+    # @todo(Stephan): Check the max_length
+    branch = models.CharField(max_length=50)
+    date_of_creation = models.DateTimeField('Time of creation',
+                                            auto_now_add=True,
+                                            help_text='Automatic field that is set when this revision is created')
+
+    class Meta:
+        get_latest_by = 'date_of_creation'
+
+
 def get_artifact_location(instance, filename):
     """An helper function to specify the storage location of an uploaded file"""
     def is_int(elem):
@@ -267,6 +285,8 @@ def get_deflation_directory(instance, without_media_root=False):
 class Artifact(models.Model):
     """An artifact is a downloadable file"""
     project_series = models.ForeignKey(ProjectSeries, related_name="artifacts")
+    # @todo(Stephan): make revision mandatory!
+    revision = models.ForeignKey(Revision, related_name='artifacts', blank=True, null=True)
     md5hash = models.CharField(max_length=1024)  # md5 hash
     description = models.TextField('description of the artifact', max_length=1024)
     artifactfile = models.FileField(upload_to=get_artifact_location,
@@ -286,7 +306,7 @@ class Artifact(models.Model):
                                                    'series_id': self.project_series.pk})
 
     def __unicode__(self):
-        return "%s | %s | %s" % (self.project_series, self.artifactfile.name, self.md5hash)
+        return "%s | %s | %s | %s" % (self.project_series, self.revision, self.artifactfile.name, self.md5hash)
 
     class Meta:
         # we allow only one version per project version
