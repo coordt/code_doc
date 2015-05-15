@@ -163,7 +163,6 @@ class Project(models.Model):
         """Returns the number of series for a project"""
         return self.series.count()
 
-    # @todo(Stephan): Change this once we have revisions properly added
     def get_number_of_revisions(self):
         """Returns the number of revisions for a project"""
         return self.revisions.count()
@@ -340,22 +339,11 @@ class Artifact(models.Model):
         deflate_directory = get_deflation_directory(self, without_media_root=True)
         return urllib.pathname2url(os.path.join(deflate_directory, self.documentation_entry_file))
 
-    # @todo(Stephan): Check if we can put this logic into the signal handling
     def promote_to_revision(self, new_revision):
         """Changes the revision an artifact belongs to.
            If the old revision does not contain any more artifacts, we delete it"""
-        old_revision = self.revision
-
-        should_delete = False
-        if old_revision.artifacts.count() == 1:
-            should_delete = True
-
-        # update the revision
         self.revision = new_revision
         self.save(update_fields=['revision'])
-
-        if should_delete:
-            old_revision.delete()
 
     def save(self, *args, **kwargs):
         import hashlib

@@ -228,7 +228,7 @@ class RevisionTest(TestCase):
         Revision.objects.get(revision='9993')
         Revision.objects.get(revision='9994')
 
-        # Revision 9991 was the earliest Revision we created, so it should be removed
+        # Revision 9991 was the earliest Revision we created, so it should be removed.
         with self.assertRaises(Revision.DoesNotExist):
             Revision.objects.get(revision='9991')
 

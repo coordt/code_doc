@@ -112,6 +112,33 @@ def is_deflated(instance):
         os.path.splitext(instance.artifactfile.name)[1] in ['.tar', '.bz2', '.gz']
 
 
+@receiver(pre_save, sender=Artifact)
+def callback_check_revision_artifact_count(sender, **kwargs):
+    artifact_instance = kwargs['instance']
+    updated_fields = kwargs['update_fields']
+
+    if updated_fields:
+        for field in updated_fields:
+            if field == 'revision':
+                if artifact_instance.id:    # If the object existed before
+                    # Get the Artifact before it was changed
+                    pre_saved_artifact = sender.objects.get(pk=artifact_instance.pk)
+                    pre_saved_revision = pre_saved_artifact.revision
+
+                    # Delete the revision if this Artifact is the only one it references
+                    if pre_saved_revision.artifacts.count() == 1:
+                        pre_saved_revision.delete()
+
+                        # @note(Stephan):
+                        # I don't know why we need this explicit save here.
+                        # If we don't have it, then the following Exception is raised:
+                        # DatabaseError("Save with update_fields did not affect any rows.")
+                        artifact_instance.save()
+
+                # We are not handling any other field updates manually
+                break
+
+
 @receiver(post_save, sender=Artifact)
 def callback_artifact_deflation_on_save(sender, instance, created, raw, **kwargs):
     """Callback received after an artifact has been saved in the database. In case of a documentation
