@@ -301,10 +301,20 @@ def main():
                        required=True,
                        help="""The name of the project concerned by this upload""")
 
-    group.add_argument('--artifact_version',
-                       dest='version',
+    group.add_argument('--artifact_series',
+                       dest='series',
                        required=True,
-                       help="""The name of the version concerned by this upload""")
+                       help="""The name of the series concerned by this upload""")
+
+    group.add_argument('--artifact_branch',
+                       dest='branch',
+                       required=True,
+                       help="""The name of the branch concerned by this upload""")
+
+    group.add_argument('--artifact_revision',
+                       dest='revision',
+                       required=True,
+                       help="""The name or hash of the revision concerned by this upload""")
 
     group.add_argument('--is_doc',
                        dest='is_doc',
