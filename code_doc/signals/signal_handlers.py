@@ -33,56 +33,76 @@ def linkToAuthor(sender, **kwargs):
         user_instance.author = linked_author
 
 
-@receiver(pre_delete, sender=settings.AUTH_USER_MODEL)
-def deleting(sender, **kwargs):
-    logger.debug('Deleting a user')
-
-
-# # Revision handling
-# @receiver(post_save, sender=Revision)
-# def check_revision_count_and_delete(sender, **kwargs):
-#     """ Checks if there are too many revisions.
-#         If not, we dont have to do anything.
-#         If yes, we have to delete the least recent revision of the branch this
-#         new revision belongs to.
-#     """
-#     revision_instance = kwargs['instance']
-
-#     branches = revision_instance.branches.all()
-
-#     for branch in branches:
-#         revisions_for_branch = None
-#         pass
-#         while revisions_for_branch.count() > branch.nr_of_revisions_kept:
-#             revision_to_delete = revisions_for_branch.earliest()
-#             # Check if this revision is referenced by multiple branches
-
-
-# @receiver(pre_delete, sender=Revision)
-# def delete_corresponding_artifacts(sender, **kwargs):
-#     """ Deletes all the artifacts, that belong to this revision"""
-#     revision_instance = kwargs['instance']
-
-#     for artifact in revision_instance.artifacts.all():
-#         # The proper deletion should be handled by the signal defined in models.py
-
-#         # @todo(Stephan): delete the artifacts here
-#         artifact.delete()
-
+# Relation between Branches and Revisions
 @receiver(m2m_changed, sender=Branch.revisions.through)
 def callback_check_revision_references(sender, **kwargs):
-    """Checks which revisions were removed from the branch. If those revisions
-       do not belong to any other branches, then we can delete the revision.
+    """Handles changes in the Branch <--> Revision relation.
+
+       Enforces the revision_limit for branches, and deletes
+       non-referenced Revisions.
     """
     action = kwargs['action']
-    if action == 'post_remove':
-        changed_objects = kwargs['pk_set']
 
-        for pk in changed_objects:
-            revision = Revision.objects.get(pk=pk)
+    if kwargs['reverse']:
+        # We modified the reverse relationship which means we
+        # modified revision.branches.
+        # kwargs['instance'] thus always returns a revision
+        if action == 'post_add':
+            # We have added a branch to a revision. Check if the maximum
+            # revision count for this branch is violated, and if it is,
+            # delete the earliest Revisions of this branch
+            changed_objects = kwargs['pk_set']
+            for pk in changed_objects:
+                branch = Branch.objects.get(pk=pk)
+                enforce_revision_limit_for_branch(branch)
 
-            if revision.branches.all().count() == 0:
-                revision.delete()
+        elif action == 'post_remove':
+            # We have removed a branch from a revision.
+            revision = kwargs['instance']
+            ensure_revision_references(revision)
+    else:
+        # We modified the forward relationship which means we
+        # modified branch.revisions.
+        # kwargs['instance'] thus always returns a branch
+        if action == 'post_add':
+            # We added a revision to a branch. Check if the maximum
+            # revision count is violated.
+            branch = kwargs['instance']
+            enforce_revision_limit_for_branch(branch)
+
+        elif action == 'post_remove':
+            # We removed a revision from a branch. Now we have to check
+            # if this removed revision is referenced by any other branch.
+            # If not, we can delete it.
+            changed_objects = kwargs['pk_set']
+            for pk in changed_objects:
+                revision = Revision.objects.get(pk=pk)
+                ensure_revision_references(revision)
+
+
+def ensure_revision_references(revision):
+    """Checks if the revision is still referenced by any branch.
+       If it is not, the revision can be deleted.
+    """
+    if revision.branches.all().count() == 0:
+        revision.delete()
+
+
+def enforce_revision_limit_for_branch(branch):
+    """Checks if the branch has too many Revisions. If it does,
+       we remove the earliest Revisions until the desired max amount
+       is reached.
+    """
+    while branch.revisions.count() > branch.nr_of_revisions_kept:
+        revision_to_remove = branch.revisions.earliest()
+        branch.revisions.remove(revision_to_remove)
+
+
+# Branches
+@receiver(post_save, sender=Branch)
+def callback_enforce_revision_limit_on_change(sender, **kwargs):
+    branch_instance = kwargs['instance']
+    enforce_revision_limit_for_branch(branch_instance)
 
 
 # Artifacts
@@ -90,23 +110,6 @@ def is_deflated(instance):
     """Returns true if the artifact instance should or have been deflated"""
     return instance.is_documentation and \
         os.path.splitext(instance.artifactfile.name)[1] in ['.tar', '.bz2', '.gz']
-
-
-# @receiver(pre_save, sender=Artifact)
-# def callback_revision_deletion_on_artifact_promotion(sender, **kwargs):
-#     """ Checks if the save affected the revision field of the Artifact.
-#         If it did, we check to see if we have to delete the old revision.
-#     """
-#     artifact_instance = kwargs['instance']
-
-#     update_fields = kwargs['update_fields']
-
-#     if update_fields:
-#         for (field, value) in update_fields:
-#             if field == 'revision':
-#                 old_revision = artifact_instance.revision
-#                 if old_revision.artifacts.count() == 1:
-#                     old_revision.delete()
 
 
 @receiver(post_save, sender=Artifact)
