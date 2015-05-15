@@ -166,7 +166,7 @@ class Project(models.Model):
     # @todo(Stephan): Change this once we have revisions properly added
     def get_number_of_revisions(self):
         """Returns the number of revisions for a project"""
-        return self.series.count()
+        return self.revisions.count()
 
     def save(self, *args, **kwargs):
         self.slug = slugify(self.name)
@@ -242,7 +242,6 @@ class Revision(models.Model):
 
     class Meta:
         get_latest_by = 'date_of_creation'
-        # @todo(Stephan): revision has to be unique for the project
         unique_together = (('project', 'revision'))
 
 
