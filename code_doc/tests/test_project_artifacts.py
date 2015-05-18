@@ -40,7 +40,11 @@ class ProjectSeriesArtifactTest(TestCase):
 
         import StringIO
         self.imgfile = StringIO.StringIO('GIF87a\x01\x00\x01\x00\x80\x01\x00\x00\x00\x00ccc,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;')
-        self.imgfile.name = 'test_img_file.gif'
+        self.imgfile.name = 'test_img_file1.gif'
+        self.imgfile1 = StringIO.StringIO('GIF87a\x11\x00\x01\x00\x80\x01\x00\x00\x00\x00ccc,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;')
+        self.imgfile1.name = 'test_img_file1.gif'
+        self.imgfile2 = StringIO.StringIO('GIF87a\x10\x00\x01\x00\x80\x01\x00\x00\x00\x00ccc,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;')
+        self.imgfile2.name = 'test_img_file2.gif'
 
     def test_series_uniqueness(self):
         with self.assertRaises(IntegrityError):
@@ -176,11 +180,100 @@ class ProjectSeriesArtifactTest(TestCase):
         self.assertEquals(artifact['md5'].upper(),
                           hashlib.md5(self.imgfile.getvalue()).hexdigest().upper())
 
-        # @todo(Stephan): Put these asserts into an isolated test
+    def test_revision_and_branch_creation_on_artifact_upload(self):
+        """Test if the on-the-fly Revision and Branch generation works, when we upload an Artifact
+        """
+
+        response = self.client.login(username='toto', password='titi')
+
+        initial_path = reverse(self.path, args=[self.project.id, self.new_series.id])
+        response = self.client.post(initial_path,
+                                    {'description': 'blabla',
+                                     'artifactfile': self.imgfile,
+                                     'is_documentation': False,
+                                     'branch': 'blah',
+                                     'revision': 'blah1'
+                                     },
+                                    follow=True)
+
         Revision.objects.get(revision='blah1')
         Branch.objects.get(name='blah')
         self.assertEqual(Branch.objects.get(name='blah').revisions.count(), 1)
 
+    def test_multiple_upload_of_artifacts_for_same_branch(self):
+        """Tests if we can upload multiple revisions for the same branch
+        """
+        response = self.client.login(username='toto', password='titi')
+
+        initial_path = reverse(self.path, args=[self.project.id, self.new_series.id])
+        self.client.post(initial_path,
+                         {'description': 'blabla',
+                          'artifactfile': self.imgfile,
+                          'is_documentation': False,
+                          'branch': 'blah',
+                          'revision': 'blah1'
+                          },
+                         follow=True)
+        self.client.post(initial_path,
+                         {'description': 'blabla',
+                          'artifactfile': self.imgfile1,
+                          'is_documentation': False,
+                          'branch': 'blah',
+                          'revision': 'blah2'
+                          },
+                         follow=True)
+        self.client.post(initial_path,
+                         {'description': 'blabla',
+                          'artifactfile': self.imgfile2,
+                          'is_documentation': False,
+                          'branch': 'blah',
+                          'revision': 'blah3'
+                          },
+                         follow=True)
+
+        Revision.objects.get(revision='blah1')
+        Revision.objects.get(revision='blah2')
+        Revision.objects.get(revision='blah3')
+        Branch.objects.get(name='blah')
+        self.assertEqual(Branch.objects.get(name='blah').revisions.count(), 3)
+        self.assertEqual(Branch.objects.count(), 1)
+
+    def test_multiple_upload_of_artifacts_for_same_revision(self):
+        """Tests if we can upload multiple Artifacts for the same revision
+        """
+        response = self.client.login(username='toto', password='titi')
+
+        initial_path = reverse(self.path, args=[self.project.id, self.new_series.id])
+        self.client.post(initial_path,
+                         {'description': 'blabla',
+                          'artifactfile': self.imgfile,
+                          'is_documentation': False,
+                          'branch': 'blah',
+                          'revision': 'blah1'
+                          },
+                         follow=True)
+        self.client.post(initial_path,
+                         {'description': 'blabla',
+                          'artifactfile': self.imgfile1,
+                          'is_documentation': False,
+                          'branch': 'blah',
+                          'revision': 'blah1'
+                          },
+                         follow=True)
+        self.client.post(initial_path,
+                         {'description': 'blabla',
+                          'artifactfile': self.imgfile2,
+                          'is_documentation': False,
+                          'branch': 'blah',
+                          'revision': 'blah1'
+                          },
+                         follow=True)
+
+        revision = Revision.objects.get(revision='blah1')
+        self.assertEqual(revision.artifacts.count(), 3)
+        Branch.objects.get(name='blah')
+        self.assertEqual(Branch.objects.get(name='blah').revisions.count(), 1)
+        self.assertEqual(Branch.objects.count(), 1)
 
 
     def test_send_new_artifact_with_login_twice(self):
