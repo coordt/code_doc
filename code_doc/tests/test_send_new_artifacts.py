@@ -42,7 +42,13 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
             f.seek(0)
 
             fields = {}
+
             fields['description'] = "revision from client based application"
+            fields['is_documentation'] = "False"
+            fields['documentation_entry_file'] = ''
+            fields['upload_date'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            fields['branch'] = 'blah'
+            fields['revision'] = 'blahblah'
 
             files = []
 

@@ -27,7 +27,7 @@ import os
 import logging
 import json
 
-from code_doc.models import Project, Author, Topic, Artifact, ProjectSeries
+from code_doc.models import Project, Author, Topic, Artifact, ProjectSeries, Branch, Revision
 from code_doc.forms import ProjectSeriesForm
 from code_doc.permissions.decorators import permission_required_on_object
 
@@ -455,7 +455,8 @@ class ProjectSeriesArtifactAddView(ProjectSeriesArtifactEditionFormsView, Create
     """Generic view for adding a series into a specific project"""
 
     template_name = "code_doc/project_artifacts/project_artifact_add.html"
-    fields = ['description', 'artifactfile', 'is_documentation', 'documentation_entry_file', 'upload_date']
+    fields = ['description', 'artifactfile', 'is_documentation', 'documentation_entry_file',
+              'upload_date']
 
     def form_valid(self, form):
 
@@ -464,6 +465,19 @@ class ProjectSeriesArtifactAddView(ProjectSeriesArtifactEditionFormsView, Create
         assert(str(current_project.id) == self.kwargs['project_id'])
 
         form.instance.project_series = current_series
+
+        # Get the raw data that was sent as the request
+        form_data_query_dict = self.request.POST
+        branch_name = form_data_query_dict.__getitem__('branch')
+        revision_name = form_data_query_dict.__getitem__('revision')
+
+        # Try to get already saved models from the database
+        revision, created = Revision.objects.get_or_create(revision=revision_name,
+                                                           project=current_project)
+        branch, created = Branch.objects.get_or_create(name=branch_name)
+        branch.revisions.add(revision)
+
+        form.instance.revision = revision
 
         try:
             with transaction.atomic():

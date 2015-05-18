@@ -374,8 +374,8 @@ def main():
                    password=args.password)
 
     # getting the location (id of the project and version) to which the upload should be done
-    logger.debug("[meta] Retrieving the project and versions IDs")
-    post_url = '/api/%s/%s/' % (args.project, args.version)
+    logger.debug("[meta] Retrieving the project and series IDs")
+    post_url = '/api/%s/%s/' % (args.project, args.series)
 
     try:
         response = instance.get(post_url)
@@ -387,7 +387,7 @@ def main():
         res = response.read()
         dic_ids = json.loads(res)
         project_id = int(dic_ids['project_id'])
-        version_id = int(dic_ids['version_id'])
+        series_id = int(dic_ids['series_id'])
     except Exception, e:
         logger.error("""[meta] an error occurred during the retrieval of the projects informations from %s:\n
                           \tError details %s""",
@@ -401,11 +401,13 @@ def main():
     fields['is_documentation'] = "True" if args.is_doc else "False"
     fields['documentation_entry_file'] = args.doc_entry if args.doc_entry is not None else ''
     fields['upload_date'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    fields['branch'] = args.branch
+    fields['revision'] = args.revision
 
     files = []
     files.append(('artifactfile', args.inputfile))
 
-    post_url = '/artifacts/%d/%d/add' % (project_id, version_id)
+    post_url = '/artifacts/%d/%d/add' % (project_id, series_id)
 
     # sending
     logger.debug("[transfer] Sending artifact")
@@ -422,7 +424,7 @@ def main():
     # checking artifact properly stored
     logger.debug("[integrity] Checking artifact")
 
-    post_url = '/artifacts/api/%d/%d' % (project_id, version_id)
+    post_url = '/artifacts/api/%d/%d' % (project_id, series_id)
     response = instance.get(post_url)
     if(response.code != 200):
         logger.error("[transfer] an error was returned by the server while querying for artifacts, return code is %d", response.code)

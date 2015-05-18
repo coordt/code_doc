@@ -3,7 +3,7 @@ from django.db import IntegrityError
 
 # Create your tests here.
 from django.test import Client
-from code_doc.models import Project, Author, ProjectSeries, Artifact
+from code_doc.models import Project, Author, ProjectSeries, Artifact, Branch, Revision
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 from django.core.files import File
@@ -129,7 +129,9 @@ class ProjectSeriesArtifactTest(TestCase):
         response = self.client.post(initial_path,
                                     {'description': 'blabla',
                                      'artifactfile': self.imgfile,
-                                     'is_documentation': False},
+                                     'is_documentation': False,
+                                     'branch': 'blahblah',
+                                     'revision': 'blah'},
                                     follow=True)
         self.assertNotIn('errorlist', response.content)
 
@@ -151,7 +153,10 @@ class ProjectSeriesArtifactTest(TestCase):
         response = self.client.post(initial_path,
                                     {'description': 'blabla',
                                      'artifactfile': self.imgfile,
-                                     'is_documentation': False},
+                                     'is_documentation': False,
+                                     'branch': 'blah',
+                                     'revision': 'blah1'
+                                     },
                                     follow=True)
 
         self.assertEqual(self.new_series.artifacts.count(), 1)
@@ -171,6 +176,13 @@ class ProjectSeriesArtifactTest(TestCase):
         self.assertEquals(artifact['md5'].upper(),
                           hashlib.md5(self.imgfile.getvalue()).hexdigest().upper())
 
+        # @todo(Stephan): Put these asserts into an isolated test
+        Revision.objects.get(revision='blah1')
+        Branch.objects.get(name='blah')
+        self.assertEqual(Branch.objects.get(name='blah').revisions.count(), 1)
+
+
+
     def test_send_new_artifact_with_login_twice(self):
         """Sending the same file twice should not create a new file"""
         response = self.client.login(username='toto', password='titi')
@@ -182,7 +194,9 @@ class ProjectSeriesArtifactTest(TestCase):
         response = self.client.post(initial_path,
                                     {'description': 'blabla',
                                      'artifactfile': self.imgfile,
-                                     'is_documentation': False},
+                                     'is_documentation': False,
+                                     'branch': 'blahblah',
+                                     'revision': 'blah'},
                                     follow=True)
 
         import hashlib
@@ -198,7 +212,9 @@ class ProjectSeriesArtifactTest(TestCase):
         response = self.client.post(initial_path,
                                     {'description': 'blabla',
                                      'artifactfile': self.imgfile,
-                                     'is_documentation': False},
+                                     'is_documentation': False,
+                                     'branch': 'blahblah',
+                                     'revision': 'blah'},
                                     follow=True)
 
         # indicates the conflict
