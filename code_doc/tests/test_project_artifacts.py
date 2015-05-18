@@ -275,7 +275,6 @@ class ProjectSeriesArtifactTest(TestCase):
         self.assertEqual(Branch.objects.get(name='blah').revisions.count(), 1)
         self.assertEqual(Branch.objects.count(), 1)
 
-
     def test_send_new_artifact_with_login_twice(self):
         """Sending the same file twice should not create a new file"""
         response = self.client.login(username='toto', password='titi')

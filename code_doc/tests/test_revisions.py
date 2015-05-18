@@ -137,6 +137,66 @@ class RevisionTest(TestCase):
         Revision.objects.get(revision='2')
         Revision.objects.get(revision='3')
 
+    def test_artifact_promotion_by_assigning_new_revision_no_deletion(self):
+        """Tests if we can promote an artifact to another revision by just settings the revision, and
+           saving the result. We do not go through the promote_to_revision function and thus we
+           do not explicitely specify the update_field of the save function.
+
+           This case should cause no deletions of Revisions.
+        """
+        rev3_artifact = Artifact.objects.create(project_series=self.new_series,
+                                                revision=self.revision3,
+                                                md5hash='4',
+                                                artifactfile=self.test_file)
+
+        # Add second Artifact to revision 3
+        Artifact.objects.create(project_series=self.new_series,
+                                revision=self.revision3,
+                                md5hash='5',
+                                artifactfile=self.test_file)
+
+        # Revision 3 now contains one Artifact
+        self.assertTrue(self.revision3.artifacts.count() == 2)
+
+        # Promote the artifact to a different revision manually
+        rev3_artifact.revision = self.revision1
+        rev3_artifact.save()
+
+        self.assertTrue(self.revision1.artifacts.count() == 1)
+        self.assertTrue(self.revision3.artifacts.count() == 1)
+
+        # We can still get revision 1, 2 and 3
+        Revision.objects.get(revision='1')
+        Revision.objects.get(revision='2')
+        Revision.objects.get(revision='3')
+
+    def test_artifact_promotion_by_assigning_new_revision_deletion(self):
+        """Tests if we can promote an artifact to another revision by just settings the revision, and
+           saving the result. We do not go through the promote_to_revision function and thus we
+           do not explicitely specify the update_field of the save function.
+
+           The deletion of the Revision3 should still happen, since it has no more Artifacts.
+        """
+        rev3_artifact = Artifact.objects.create(project_series=self.new_series,
+                                                revision=self.revision3,
+                                                md5hash='4',
+                                                artifactfile=self.test_file)
+        # Revision 3 now contains one Artifact
+        self.assertTrue(self.revision3.artifacts.count() == 1)
+
+        # Promote the artifact to a different revision manually
+        rev3_artifact.revision = self.revision1
+        rev3_artifact.save()
+
+        self.assertTrue(self.revision1.artifacts.count() == 1)
+
+        # We can still get revision 1 and 2
+        Revision.objects.get(revision='1')
+        Revision.objects.get(revision='2')
+        # Revision 3 should be deleted because it has no more artifacts
+        with self.assertRaises(Revision.DoesNotExist):
+            Revision.objects.get(revision='3')
+
     def test_artifact_persistence_on_multiple_references(self):
         """Tests that an Artifact persists in the database if we remove a revision of a branch,
            that is still referenced by another branch.

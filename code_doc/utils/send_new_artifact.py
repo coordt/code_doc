@@ -29,8 +29,6 @@ logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S
 logger = logging
 
 
-# @todo(Stephan): Add Revision-Hash and Branch-name to the upload script
-
 class PostMultipartWithSession(object):
     """Creates and maintains a session with a Django server, and allows to fill forms
     (any type of fields including files)
