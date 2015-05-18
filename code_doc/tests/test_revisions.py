@@ -140,7 +140,7 @@ class RevisionTest(TestCase):
     def test_artifact_promotion_by_assigning_new_revision_no_deletion(self):
         """Tests if we can promote an artifact to another revision by just settings the revision, and
            saving the result. We do not go through the promote_to_revision function and thus we
-           do not explicitely specify the update_field of the save function.
+           do not explicitly specify the update_field of the save function.
 
            This case should cause no deletions of Revisions.
         """
@@ -173,7 +173,7 @@ class RevisionTest(TestCase):
     def test_artifact_promotion_by_assigning_new_revision_deletion(self):
         """Tests if we can promote an artifact to another revision by just settings the revision, and
            saving the result. We do not go through the promote_to_revision function and thus we
-           do not explicitely specify the update_field of the save function.
+           do not explicitly specify the update_field of the save function.
 
            The deletion of the Revision3 should still happen, since it has no more Artifacts.
         """
