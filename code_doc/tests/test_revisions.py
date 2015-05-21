@@ -1,4 +1,11 @@
-# this file tests the correct behaviour of the Users and Authors
+""" These tests check the behavior of the Revision System.
+
+    They make sure
+    * that only the last N revisions are kept.
+    * that when revisions are, those that were added first are deleted
+    * that Artifacts can be promoted to different series.
+    * that Artifacts are deleted when there is no more reference to them
+"""
 
 from django.test import TestCase
 
@@ -23,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 class RevisionTest(TestCase):
+    """ Revision Test Case that tests the behavior of the Revision System"""
     def setUp(self):
         self.client = Client()
 
@@ -52,11 +60,34 @@ class RevisionTest(TestCase):
         self.revision2.branches.add(self.branch_develop, self.branch_master)
         self.revision3.branches.add(self.branch_develop, self.branch_master)
 
-        # Test the numberof revisions for each branch
-        self.assertTrue(self.branch_master.revisions.count() == 2)
-        self.assertTrue(self.branch_develop.revisions.count() == 3)
+        self.test_file = RevisionTest.get_test_file()
 
-        self.test_file = get_test_file()
+    @staticmethod
+    def get_test_file():
+        """Gets a test file that can be used to create an artifact"""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        with tempfile.NamedTemporaryFile(dir=settings.USER_UPLOAD_TEMPORARY_STORAGE,
+                                         suffix='.tar.bz2') as f:
+            # create a temporary tar object
+            tar = tarfile.open(fileobj=f, mode='w:bz2')
+
+            from inspect import getsourcefile
+            source_file = getsourcefile(lambda _: None)
+
+            tar.add(os.path.abspath(source_file), arcname=os.path.basename(source_file))
+            tar.close()
+
+            f.seek(0)
+            test_file = SimpleUploadedFile('filename.tar.bz2', f.read())
+
+        return test_file
+
+    def test_set_up(self):
+        """Tests the configuration after setting up the test"""
+        # Test the numberof revisions for each branch
+        self.assertEqual(self.branch_master.revisions.count(), 2)
+        self.assertEqual(self.branch_develop.revisions.count(), 3)
 
     def test_artifact_revision_correspondence(self):
         """Tests that Artifacts are correctly associated to Revisions"""
@@ -80,9 +111,9 @@ class RevisionTest(TestCase):
                                 artifactfile=self.test_file)
 
         # We added 4 Artifacts to the revision
-        self.assertTrue(self.revision1.artifacts.count() == 2)
-        self.assertTrue(self.revision2.artifacts.count() == 1)
-        self.assertTrue(self.revision3.artifacts.count() == 0)
+        self.assertEqual(self.revision1.artifacts.count(), 2)
+        self.assertEqual(self.revision2.artifacts.count(), 1)
+        self.assertEqual(self.revision3.artifacts.count(), 0)
 
     def test_artifact_promotion_with_resulting_revision_deletion(self):
         """Tests that we can promote an artifact to a new Revision (usually a stable revision).
@@ -93,12 +124,12 @@ class RevisionTest(TestCase):
                                                 md5hash='4',
                                                 artifactfile=self.test_file)
         # Revision 3 now contains one Artifact
-        self.assertTrue(self.revision3.artifacts.count() == 1)
+        self.assertEqual(self.revision3.artifacts.count(), 1)
 
         # Promote the artifact to a different revision
         rev3_artifact.promote_to_revision(self.revision1)
 
-        self.assertTrue(self.revision1.artifacts.count() == 1)
+        self.assertEqual(self.revision1.artifacts.count(), 1)
 
         # We can still get revision 1 and 2
         Revision.objects.get(revision='1')
@@ -124,13 +155,13 @@ class RevisionTest(TestCase):
                                 artifactfile=self.test_file)
 
         # Revision 3 now contains one Artifact
-        self.assertTrue(self.revision3.artifacts.count() == 2)
+        self.assertEqual(self.revision3.artifacts.count(), 2)
 
         # Promote the artifact to a different revision
         rev3_artifact.promote_to_revision(self.revision1)
 
-        self.assertTrue(self.revision1.artifacts.count() == 1)
-        self.assertTrue(self.revision3.artifacts.count() == 1)
+        self.assertEqual(self.revision1.artifacts.count(), 1)
+        self.assertEqual(self.revision3.artifacts.count(), 1)
 
         # We can still get revision 1, 2 and 3
         Revision.objects.get(revision='1')
@@ -156,14 +187,14 @@ class RevisionTest(TestCase):
                                 artifactfile=self.test_file)
 
         # Revision 3 now contains one Artifact
-        self.assertTrue(self.revision3.artifacts.count() == 2)
+        self.assertEqual(self.revision3.artifacts.count(), 2)
 
         # Promote the artifact to a different revision manually
         rev3_artifact.revision = self.revision1
         rev3_artifact.save()
 
-        self.assertTrue(self.revision1.artifacts.count() == 1)
-        self.assertTrue(self.revision3.artifacts.count() == 1)
+        self.assertEqual(self.revision1.artifacts.count(), 1)
+        self.assertEqual(self.revision3.artifacts.count(), 1)
 
         # We can still get revision 1, 2 and 3
         Revision.objects.get(revision='1')
@@ -182,13 +213,13 @@ class RevisionTest(TestCase):
                                                 md5hash='4',
                                                 artifactfile=self.test_file)
         # Revision 3 now contains one Artifact
-        self.assertTrue(self.revision3.artifacts.count() == 1)
+        self.assertEqual(self.revision3.artifacts.count(), 1)
 
         # Promote the artifact to a different revision manually
         rev3_artifact.revision = self.revision1
         rev3_artifact.save()
 
-        self.assertTrue(self.revision1.artifacts.count() == 1)
+        self.assertEqual(self.revision1.artifacts.count(), 1)
 
         # We can still get revision 1 and 2
         Revision.objects.get(revision='1')
@@ -247,15 +278,15 @@ class RevisionTest(TestCase):
                                                    project=self.project)
             new_revision.branches.add(self.branch_master)
 
-        self.assertTrue(self.branch_master.revisions.count() ==
-                        self.branch_master.nr_of_revisions_kept)
+        self.assertEqual(self.branch_master.revisions.count(),
+                         self.branch_master.nr_of_revisions_kept)
 
         # Add one more revision, the revision count of the branch should not go up
         new_revision = Revision.objects.create(revision='tooMuch', project=self.project)
         new_revision.branches.add(self.branch_master)
 
-        self.assertTrue(self.branch_master.revisions.count() ==
-                        self.branch_master.nr_of_revisions_kept)
+        self.assertEqual(self.branch_master.revisions.count(),
+                         self.branch_master.nr_of_revisions_kept)
 
     def test_change_branch_revision_limit(self):
         """Tests if we can change the number of Revisions a branch is
@@ -264,8 +295,8 @@ class RevisionTest(TestCase):
         self.branch_master.nr_of_revisions_kept = 1
         self.branch_master.save()
 
-        self.assertTrue(self.branch_master.revisions.count() ==
-                        self.branch_master.nr_of_revisions_kept)
+        self.assertEqual(self.branch_master.revisions.count(),
+                         self.branch_master.nr_of_revisions_kept)
 
     def test_remove_earliest_revision(self):
         """Tests that the earliest revision added to a branch is deleted if
@@ -282,7 +313,7 @@ class RevisionTest(TestCase):
 
         branch.revisions.add(revision4)
 
-        self.assertTrue(branch.revisions.count() == 3)
+        self.assertEqual(branch.revisions.count(), 3)
 
         Revision.objects.get(revision='9992')
         Revision.objects.get(revision='9993')
@@ -293,22 +324,4 @@ class RevisionTest(TestCase):
             Revision.objects.get(revision='9991')
 
 
-def get_test_file():
-    """Gets a test file that can be used to create an artifact"""
-    from django.core.files.uploadedfile import SimpleUploadedFile
 
-    with tempfile.NamedTemporaryFile(dir=settings.USER_UPLOAD_TEMPORARY_STORAGE,
-                                     suffix='.tar.bz2') as f:
-        # create a temporary tar object
-        tar = tarfile.open(fileobj=f, mode='w:bz2')
-
-        from inspect import getsourcefile
-        source_file = getsourcefile(lambda _: None)
-
-        tar.add(os.path.abspath(source_file), arcname=os.path.basename(source_file))
-        tar.close()
-
-        f.seek(0)
-        test_file = SimpleUploadedFile('filename.tar.bz2', f.read())
-
-    return test_file
