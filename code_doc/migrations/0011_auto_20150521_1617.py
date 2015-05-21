@@ -13,6 +13,10 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.AlterModelOptions(
+            name='author',
+            options={'permissions': (('author_edit', "Can edit the Author's details"),)},
+        ),
         migrations.AddField(
             model_name='author',
             name='image',
