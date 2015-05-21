@@ -540,6 +540,7 @@ def detail_author(request, author_id):
                    'coauthor_list': coauthor_list})
 
 
+# @todo(Stephan): Add permission handling to this view
 class AuthorUpdateView(UpdateView):
     """View for editing information about an Author"""
 
@@ -548,7 +549,3 @@ class AuthorUpdateView(UpdateView):
     template_name = "code_doc/authors/author_edit.html"
 
     pk_url_kwarg = 'author_id'
-
-    def form_valid(self, form):
-        # @todo: Better Error handling?
-        return super(AuthorUpdateView, self).form_valid(form)

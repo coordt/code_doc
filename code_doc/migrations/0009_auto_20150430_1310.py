@@ -18,9 +18,4 @@ class Migration(migrations.Migration):
             name='django_user',
             field=models.OneToOneField(related_name='author', null=True, blank=True, to=settings.AUTH_USER_MODEL),
         ),
-        migrations.AlterField(
-            model_name='author',
-            name='email',
-            field=models.EmailField(max_length=50, db_index=True),
-        ),
     ]

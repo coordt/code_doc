@@ -50,11 +50,8 @@ class Author(models.Model):
     lastname = models.CharField(max_length=50)
     firstname = models.CharField(max_length=50)
     gravatar_email = models.CharField(max_length=50, blank=True)
-    # @todo(Stephan): Is it okay to remove the uniqueness assumption of the email?
-    #                 Since the email of the users are copied over to the authors now,
-    #                 the uniqueness is violated
     email = models.EmailField(max_length=50,
-                              # unique=True,
+                              unique=True,
                               db_index=True)
     home_page_url = models.CharField(max_length=250, blank=True)
     django_user = models.OneToOneField(settings.AUTH_USER_MODEL,
@@ -68,12 +65,10 @@ class Author(models.Model):
         return "%s %s (%s)" % (self.firstname, self.lastname, self.email)
 
     def has_user_author_edit_permission(self, user):
-        if hasattr(user, 'author'):
-            has_edit_permission = user.author == self
-        else:
-            has_edit_permission = False
-
-        return has_edit_permission
+        """In order for a Django User to be allowed to edit the details of an Author,
+           he has to be a superuser or be the User, this Author is linked to.
+        """
+        return user.is_superuser or (hasattr(user, 'author') and (user.author == self))
 
     def get_absolute_url(self):
         return reverse('author', kwargs={'author_id': self.pk})
