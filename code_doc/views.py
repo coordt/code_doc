@@ -540,12 +540,27 @@ def detail_author(request, author_id):
                    'coauthor_list': coauthor_list})
 
 
-# @todo(Stephan): Add permission handling to this view
-class AuthorUpdateView(UpdateView):
-    """View for editing information about an Author"""
+class AuthorUpdateView(PermissionOnObjectViewMixin, UpdateView):
+    """View for editing information about an Author
+
+      .. note:: in order to be able to edit an Author, the user should have the
+                'code_doc.author_edit' permission on the Author object.
+    """
 
     form_class = AuthorForm
     model = Author
+
+    permissions_on_object = ('code_doc.author_edit',)
+    permissions_object_getter = 'get_author_from_request'
+
     template_name = "code_doc/authors/author_edit.html"
 
     pk_url_kwarg = 'author_id'
+
+    def get_author_from_request(self, request, *args, **kwargs):
+        try:
+            return Author.objects.get(pk=kwargs['author_id'])
+        except Author.DoesNotExist:
+            logger.warning('[AuthorUpdateView] non existent Author with id %s',
+                           kwargs['author_id'])
+            return None

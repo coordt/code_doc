@@ -45,8 +45,7 @@ class UserAuthorLinkTest(TestCase):
         self.assertEqual(linked_author.django_user, new_user)
 
     def test_has_user_author_edit_permission(self):
-        """Tests if the Users have the correct author_edit_permissions"""
-
+        """Tests the 'has_user_author_edit_permission' function of the Author"""
         author = self.user.author
         self.assertTrue(author.has_user_author_edit_permission(self.admin_user))
         self.assertTrue(author.has_user_author_edit_permission(self.user))
@@ -58,6 +57,28 @@ class UserAuthorLinkTest(TestCase):
         self.assertFalse(author.has_user_author_edit_permission(new_user))
         # We should however be able to edit the author we are linked to
         self.assertTrue(new_user.author.has_user_author_edit_permission(new_user))
+
+    def test_author_edit_permissions_for_admin(self):
+        """Test that an admin has author edit permissions on the Users"""
+
+        permission = 'code_doc.author_edit'
+
+        new_author = Author.objects.create(firstname='1', lastname='1', email="1@1.com")
+
+        self.assertTrue(self.admin_user.has_perm(permission, self.user.author))
+        self.assertTrue(self.admin_user.has_perm(permission, new_author))
+
+    def test_author_edit_permissions_for_non_admin(self):
+        """Tests that a User has the proper permissions on the Authors"""
+
+        permission = 'code_doc.author_edit'
+
+        self.assertIn(permission, self.user.get_all_permissions(self.user.author))
+
+        new_author = Author.objects.create(firstname='1', lastname='1', email="1@1.com")
+
+        self.assertNotIn(permission, self.user.get_all_permissions(new_author))
+        self.assertTrue(self.user.has_perm(permission, self.user.author))
 
     def test_author_creation_on_enough_information(self):
         """Tests that we create an Author if the User specifies enough information.

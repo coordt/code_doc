@@ -61,6 +61,11 @@ class Author(models.Model):
                                        help_text='The Django User, this Author is corresponding to.')
     image = models.ImageField(blank=True, null=True, upload_to=get_author_image_location)
 
+    class Meta:
+        permissions = (
+            ("author_edit", "Can edit the Author's details"),
+        )
+
     def __unicode__(self):
         return "%s %s (%s)" % (self.firstname, self.lastname, self.email)
 
