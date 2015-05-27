@@ -44,6 +44,37 @@ class UserAuthorLinkTest(TestCase):
         self.assertEqual(linked_author.email, 'test@test.com')
         self.assertEqual(linked_author.django_user, new_user)
 
+    def test_author_link_for_existing_author_and_new_corresponding_user(self):
+        """Tests that we map a new User correctly to an already existing Author"""
+        author = Author.objects.create(firstname='existing',
+                                       lastname='author',
+                                       email='existing.author@auth.org')
+
+        new_user = User.objects.create_user(username='new', password='user',
+                                            # Chosing different first and last name but same email
+                                            first_name='new', last_name='user',
+                                            email='existing.author@auth.org')
+        self.assertEqual(new_user.author, author)
+
+    def test_author_link_for_existing_author_and_non_corresponding_user(self):
+        """Tests that we do _not_ map a new User to an already existing Author
+           if the two objects differ in their email.
+        """
+        author = Author.objects.create(firstname='existing',
+                                       lastname='author',
+                                       email='existing.author@auth.org')
+
+        new_user = User.objects.create_user(username='new', password='user',
+                                            # Chosing same first and last name but different email
+                                            first_name='existing', last_name='author',
+                                            email='non_existing.author@auth.org')
+        # We should have created an author
+        self.assertIsNotNone(new_user.author)
+
+        # The new_user and author differ in their email, so we should not link them,
+        # even if they have the same first and last names.
+        self.assertNotEqual(new_user.author, author)
+
     def test_has_user_author_edit_permission(self):
         """Tests the 'has_user_author_edit_permission' function of the Author"""
         author = self.user.author

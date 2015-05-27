@@ -24,17 +24,20 @@ def linkToAuthor(sender, **kwargs):
 
     user_instance = kwargs['instance']
 
-    # @todo(Stephan): How do we check if an Author is already present?
-    #                 - Check for firstname + lastname?
-    #                 - Update email if a different one is given by the User?
-
     if not hasattr(user_instance, 'author'):
         if user_is_linkable_to_author(user_instance):
-            linked_author = Author.objects.create(
-                                   lastname=user_instance.last_name,
-                                   firstname=user_instance.first_name,
-                                   email=user_instance.email,
-                                   django_user=user_instance)
+
+            # @note(Stephan):
+            # We cannot use get_or_create here since in the get we only care about
+            # the email (since it is the primary key of the Author).
+            if Author.objects.filter(email=user_instance.email).count() == 1:
+                linked_author = Author.objects.get(email=user_instance.email)
+            else:
+                linked_author = Author.objects.create(
+                                       lastname=user_instance.last_name,
+                                       firstname=user_instance.first_name,
+                                       email=user_instance.email,
+                                       django_user=user_instance)
             user_instance.author = linked_author
             user_instance.save()
 
