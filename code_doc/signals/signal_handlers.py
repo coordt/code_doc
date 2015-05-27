@@ -32,6 +32,18 @@ def linkToAuthor(sender, **kwargs):
         linked_author.save()
         user_instance.author = linked_author
 
+# @receiver(m2m_changed, sender=Artifact.project_series.through)
+# def callback_check_revision_references(sender, **kwargs):
+#     """If an artifact is removed from a series, we have to check if the
+#        revision it belonged to still contains artifacts.
+
+#        If an artifact is added to a series, a revision is implicitely "added" to
+#        to this series
+#     """
+#     # @todo(Stephan):
+#     # Probably use get_all_referencing_series and get_all_revisions here
+#     pass
+
 
 # Relation between Branches and Revisions
 @receiver(m2m_changed, sender=Branch.revisions.through)

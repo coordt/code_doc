@@ -229,6 +229,13 @@ class ProjectSeries(models.Model):
              manage_permission_on_object(userobj, self.view_artifacts_users,
                                          self.view_artifacts_groups, False))
 
+    # @todo(Stephan): Check this tomorrow
+    #  is there a more functional way of doing this?
+    # def get_all_revisions(self):
+    #     list_of_revisions = []
+    #     for artifact in self.artifacts:
+    #         list_of_revisions.append(artifact.revision)
+
 
 class Revision(models.Model):
     """A Revision is a collection of artifacts, that were produced by the same
@@ -242,6 +249,14 @@ class Revision(models.Model):
     class Meta:
         get_latest_by = 'commit_time'
         unique_together = (('project', 'revision'))
+
+    # @todo(Stephan): check this tomorrow
+    #  is there a more functional way of doing this?
+    # def get_all_referencing_series(self):
+    #     list_of_series = []
+    #     for artifact in self.artifacts:
+    #         list_of_series += artifact.project_series.all()
+    #     return list_of_series
 
 
 class Branch(models.Model):
@@ -294,6 +309,8 @@ def get_deflation_directory(instance, without_media_root=False):
 
 class Artifact(models.Model):
     """An artifact is a downloadable file"""
+    # @todo(Stephan): An Artifact can belong to several series -> ManyToMany Relationship
+    # project_series = models.ManyToManyField(ProjectSeries, related_name='artifacts')
     project_series = models.ForeignKey(ProjectSeries, related_name="artifacts")
     # @todo(Stephan): make revision mandatory!
     revision = models.ForeignKey(Revision, related_name='artifacts', blank=True, null=True)
@@ -339,6 +356,14 @@ class Artifact(models.Model):
         deflate_directory = get_deflation_directory(self, without_media_root=True)
         return urllib.pathname2url(os.path.join(deflate_directory, self.documentation_entry_file))
 
+    # @todo(Stephan):
+    # Promoting an artifact adds a series to it and thus also the revision
+    # The promotion is independent of the revision, it only changes the series!
+    # def promote_to_series(self, new_series):
+    #     """Adds a new series to the list of series, this artifact belongs to"""
+    #     self.series.add(new_series)
+    #     # todo(Stephan): Handle this in the resulting m2m_changed signal
+    #
     def promote_to_revision(self, new_revision):
         """Changes the revision an artifact belongs to.
            If the old revision does not contain any more artifacts, we delete it"""
