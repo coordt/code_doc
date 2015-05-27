@@ -132,8 +132,17 @@ class RevisionTest(TestCase):
         self.assertEqual(self.revision1.artifacts.count(), 1)
 
         # We can still get revision 1 and 2
-        Revision.objects.get(revision='1')
-        Revision.objects.get(revision='2')
+        try:
+            Revision.objects.get(revision='1')
+            Revision.objects.get(revision='2')
+        except Revision.DoesNotExist:
+            self.fail("[DoesNotExist] One of the Revisions returned no object from the get query")
+        except Revision.MultipleObjectsReturned:
+            self.fail("[MultipleObjectsReturned] One of the Revisions returned more than one object from the get query")
+        except:
+            self.fail("Unexpected Exception in get query")
+            raise
+
         # Revision 3 should be deleted because it has no more artifacts
         with self.assertRaises(Revision.DoesNotExist):
             Revision.objects.get(revision='3')
@@ -164,9 +173,17 @@ class RevisionTest(TestCase):
         self.assertEqual(self.revision3.artifacts.count(), 1)
 
         # We can still get revision 1, 2 and 3
-        Revision.objects.get(revision='1')
-        Revision.objects.get(revision='2')
-        Revision.objects.get(revision='3')
+        try:
+            Revision.objects.get(revision='1')
+            Revision.objects.get(revision='2')
+            Revision.objects.get(revision='3')
+        except Revision.DoesNotExist:
+            self.fail("[DoesNotExist] One of the Revisions returned no object from the get query")
+        except Revision.MultipleObjectsReturned:
+            self.fail("[MultipleObjectsReturned] One of the Revisions returned more than one object from the get query")
+        except:
+            self.fail("Unexpected Exception in get query")
+            raise
 
     def test_artifact_promotion_by_assigning_new_revision_no_deletion(self):
         """Tests if we can promote an artifact to another revision by just settings the revision, and
@@ -197,9 +214,17 @@ class RevisionTest(TestCase):
         self.assertEqual(self.revision3.artifacts.count(), 1)
 
         # We can still get revision 1, 2 and 3
-        Revision.objects.get(revision='1')
-        Revision.objects.get(revision='2')
-        Revision.objects.get(revision='3')
+        try:
+            Revision.objects.get(revision='1')
+            Revision.objects.get(revision='2')
+            Revision.objects.get(revision='3')
+        except Revision.DoesNotExist:
+            self.fail("[DoesNotExist] One of the Revisions returned no object from the get query")
+        except Revision.MultipleObjectsReturned:
+            self.fail("[MultipleObjectsReturned] One of the Revisions returned more than one object from the get query")
+        except:
+            self.fail("Unexpected Exception in get query")
+            raise
 
     def test_artifact_promotion_by_assigning_new_revision_deletion(self):
         """Tests if we can promote an artifact to another revision by just settings the revision, and
@@ -222,8 +247,17 @@ class RevisionTest(TestCase):
         self.assertEqual(self.revision1.artifacts.count(), 1)
 
         # We can still get revision 1 and 2
-        Revision.objects.get(revision='1')
-        Revision.objects.get(revision='2')
+        try:
+            Revision.objects.get(revision='1')
+            Revision.objects.get(revision='2')
+        except Revision.DoesNotExist:
+            self.fail("[DoesNotExist] One of the Revisions returned no object from the get query")
+        except Revision.MultipleObjectsReturned:
+            self.fail("[MultipleObjectsReturned] One of the Revisions returned more than one object from the get query")
+        except:
+            self.fail("Unexpected Exception in get query")
+            raise
+
         # Revision 3 should be deleted because it has no more artifacts
         with self.assertRaises(Revision.DoesNotExist):
             Revision.objects.get(revision='3')
@@ -238,13 +272,27 @@ class RevisionTest(TestCase):
                                 artifactfile=self.test_file)
 
         # We should be able to get this
-        Artifact.objects.get(md5hash='6')
+        try:
+            Artifact.objects.get(md5hash='6')
+        except Artifact.DoesNotExist:
+            self.fail("[Artifact.DoesNotExist] The Artifacts returned no object from the get query")
+        except Artifact.MultipleObjectsReturned:
+            self.fail("[Artifact.MultipleObjectsReturned] The Artifacts returned more than one object from the get query")
+        except:
+            self.fail("Unexpected Exception in get query")
+            raise
 
         self.branch_develop.revisions.remove(self.revision2)
 
-        # These should still be there
-        Artifact.objects.get(md5hash='6')
-        Revision.objects.get(revision='2')
+        try:
+            Revision.objects.get(revision='2')
+        except Revision.DoesNotExist:
+            self.fail("[Revision.DoesNotExist] The Revisions returned no object from the get query")
+        except Revision.MultipleObjectsReturned:
+            self.fail("[Revision.MultipleObjectsReturned] The Revisions returned more than one object from the get query")
+        except:
+            self.fail("Unexpected Exception in get query")
+            raise
 
     def test_artifact_deletion_on_no_more_references(self):
         """Tests that an Artifact is deleted when there are no more revisions reference to it.
@@ -254,8 +302,16 @@ class RevisionTest(TestCase):
                                 md5hash='7',
                                 artifactfile=self.test_file)
 
-        # We should be able to get this
-        Artifact.objects.get(md5hash='7')
+        # We should be able to get the Artifact from the database
+        try:
+            Artifact.objects.get(md5hash='7')
+        except Artifact.DoesNotExist:
+            self.fail("[Artifact.DoesNotExist] The Artifacts returned no object from the get query")
+        except Artifact.MultipleObjectsReturned:
+            self.fail("[Artifact.MultipleObjectsReturned] The Artifacts returned more than one object from the get query")
+        except:
+            self.fail("Unexpected Exception in get query")
+            raise
 
         self.branch_develop.revisions.remove(self.revision1)
 
@@ -315,13 +371,56 @@ class RevisionTest(TestCase):
 
         self.assertEqual(branch.revisions.count(), 3)
 
-        Revision.objects.get(revision='9992')
-        Revision.objects.get(revision='9993')
-        Revision.objects.get(revision='9994')
+        try:
+            Revision.objects.get(revision='9992')
+            Revision.objects.get(revision='9993')
+            Revision.objects.get(revision='9994')
+        except Revision.DoesNotExist:
+            self.fail("[DoesNotExist] One of the Revisions returned no object from the get query")
+        except Revision.MultipleObjectsReturned:
+            self.fail("[MultipleObjectsReturned] One of the Revisions returned more than one object from the get query")
+        except:
+            self.fail("Unexpected Exception in get query")
+            raise
 
         # Revision 9991 was the earliest Revision we created, so it should be removed.
         with self.assertRaises(Revision.DoesNotExist):
             Revision.objects.get(revision='9991')
 
+    def test_revision_persistance_if_referenced_by_different_branch(self):
+        """Tests that the revision persists if it is removed from one branch but
+           still referenced in a different branch.
+        """
+        branch1 = Branch.objects.create(name='branch', nr_of_revisions_kept=3)
+        branch2 = Branch.objects.create(name='also_referencing_revision1', nr_of_revisions_kept=10)
 
+        revision1 = Revision.objects.create(revision='9991', project=self.project)
+        revision2 = Revision.objects.create(revision='9992', project=self.project)
+        revision3 = Revision.objects.create(revision='9993', project=self.project)
+        revision4 = Revision.objects.create(revision='9994', project=self.project)
 
+        branch1.revisions.add(revision1, revision2, revision3)
+        branch2.revisions.add(revision1)
+
+        # Add one to many revisions to branch1
+        branch1.revisions.add(revision4)
+
+        self.assertEqual(branch1.revisions.count(), 3)
+        self.assertEqual(branch2.revisions.count(), 1)
+
+        self.assertNotIn(revision1, branch1.revisions.all())
+        self.assertIn(revision1, branch2.revisions.all())
+
+        # All of the Revisions should still be in the database
+        try:
+            Revision.objects.get(revision='9991')
+            Revision.objects.get(revision='9992')
+            Revision.objects.get(revision='9993')
+            Revision.objects.get(revision='9994')
+        except Revision.DoesNotExist:
+            self.fail("[DoesNotExist] One of the Revisions returned no object from the get query")
+        except Revision.MultipleObjectsReturned:
+            self.fail("[MultipleObjectsReturned] One of the Revisions returned more than one object from the get query")
+        except:
+            self.fail("Unexpected Exception in get query")
+            raise

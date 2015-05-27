@@ -24,11 +24,11 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('revision', models.CharField(max_length=200)),
-                ('date_of_creation', models.DateTimeField(help_text=b'Automatic field that is set when this revision is created', verbose_name=b'Time of creation', auto_now_add=True)),
+                ('commit_time', models.DateTimeField(help_text=b'Automatic field that is set when this revision is created', verbose_name=b'Time of creation', auto_now_add=True)),
                 ('project', models.ForeignKey(related_name='revisions', to='code_doc.Project')),
             ],
             options={
-                'get_latest_by': 'date_of_creation',
+                'get_latest_by': 'commit_time',
             },
         ),
         migrations.AddField(

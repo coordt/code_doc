@@ -150,7 +150,7 @@ class ProjectView(DetailView):
 
     model = Project
     pk_url_kwarg = 'project_id'
-    template_name = 'code_doc/project_revision/project_details.html'
+    template_name = 'code_doc/project_series/project_details.html'
 
     def get_context_data(self, **kwargs):
         context = super(ProjectView, self).get_context_data(**kwargs)
@@ -203,7 +203,7 @@ class ProjectSeriesAddView(PermissionOnObjectViewMixin, CreateView):
     form_class = ProjectSeriesForm
 
     model = ProjectSeries
-    template_name = "code_doc/project_revision/project_revision_add_or_edit.html"
+    template_name = "code_doc/project_series/project_series_add_or_edit.html"
 
     # user should have the appropriate privileges on the object in order to be able to add anything
     permissions_on_object = ('code_doc.project_series_add',)
@@ -251,7 +251,7 @@ class ProjectSeriesDetailsView(PermissionOnObjectViewMixin, DetailView):
     # part of the url giving the proper object
     pk_url_kwarg = 'series_id'
 
-    template_name = 'code_doc/project_revision/project_revision_details.html'
+    template_name = 'code_doc/project_series/project_series_details.html'
 
     # we should have admin priviledges on the object in order to be able to add anything
     permissions_on_object = ('code_doc.series_view', 'code_doc.series_artifact_view')
@@ -331,7 +331,7 @@ class ProjectSeriesUpdateView(PermissionOnObjectViewMixin, UpdateView):
     # part of the url giving the proper object
     pk_url_kwarg = 'series_id'
 
-    template_name = 'code_doc/project_revision/project_revision_add_or_edit.html'
+    template_name = 'code_doc/project_series/project_series_add_or_edit.html'
 
     # we should have admin priviledges on the object in order to be able to add anything
     permissions_on_object = ('code_doc.series_edit',)
@@ -377,13 +377,13 @@ class ProjectSeriesDetailsShortcutView(RedirectView):
     """A shortcut for being able to reach a project and a series with only their respective name"""
     permanent = False
     query_string = True
-    pattern_name = 'project_revision'
+    pattern_name = 'project_series'
 
     def get_redirect_url(self, *args, **kwargs):
         logger.debug('[project_series_redirection] %s', kwargs)
         project = get_object_or_404(Project, name=kwargs['project_name'])
         series = get_object_or_404(ProjectSeries, series=kwargs['series_number'], project=project)
-        return reverse('project_revision', args=[project.id, series.id])
+        return reverse('project_series', args=[project.id, series.id])
 
 
 class APIGetArtifacts(ProjectSeriesDetailsView, DetailView):
@@ -446,7 +446,7 @@ class ProjectSeriesArtifactEditionFormsView(PermissionOnObjectViewMixin):
         return context
 
     def get_success_url(self):
-        return reverse('project_revision',
+        return reverse('project_series',
                        kwargs={'project_id': self.object.project_series.project.pk,
                                'series_id': self.object.project_series.pk})
 

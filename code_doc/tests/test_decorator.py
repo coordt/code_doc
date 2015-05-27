@@ -23,7 +23,7 @@ class DecoratorSimpleTest(TestCase):
         self.client = Client()
 
         # path for the queries to the project details
-        self.path = 'project_revisions_all'
+        self.path = 'project_series_all'
 
         # dummy setup
         self.first_user = User.objects.create_user(username='toto', password='titi')

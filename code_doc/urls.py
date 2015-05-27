@@ -18,23 +18,23 @@ urlpatterns = patterns(
     # details of a particular project
     url(r'^project/(?P<project_id>\d+)/$', views.ProjectView.as_view(), name='project'),
 
-    # revisions
-    # lists all revisions of a project
-    url(r'^revisions/(?P<project_id>\d+)/$',
+    # Series
+    # lists all series of a project
+    url(r'^series/(?P<project_id>\d+)/$',
         views.ProjectView.as_view(),
-        name='project_revisions_all'),
-    # details about a particular revision of a project
-    url(r'^revisions/(?P<project_id>\d+)/(?P<series_id>\d+)/$',
+        name='project_series_all'),
+    # details about a particular series of a project
+    url(r'^series/(?P<project_id>\d+)/(?P<series_id>\d+)/$',
         views.ProjectSeriesDetailsView.as_view(),
-        name='project_revision'),
+        name='project_series'),
     # edition of a particular project series
     url(r'^project/(?P<project_id>\d+)/(?P<series_id>\w+)/edit',
         views.ProjectSeriesUpdateView.as_view(),
-        name='project_revision_edit'),
+        name='project_series_edit'),
     # adding a revision to the project
-    url(r'^revisions/(?P<project_id>\d+)/add/$',
+    url(r'^series/(?P<project_id>\d+)/add/$',
         views.ProjectSeriesAddView.as_view(),
-        name='project_revision_add'),
+        name='project_series_add'),
 
     # @todo update and delete of a series
 

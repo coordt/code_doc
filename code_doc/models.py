@@ -205,8 +205,8 @@ class ProjectSeries(models.Model):
         return "[%s @ %s] [%s]" % (self.project.name, self.series, self.release_date)
 
     def get_absolute_url(self):
-        return reverse('project_revision', kwargs={'project_id': self.project.pk,
-                                                   'series_id': self.pk})
+        return reverse('project_series', kwargs={'project_id': self.project.pk,
+                                                 'series_id': self.pk})
 
     def has_user_series_view_permission(self, userobj):
         """Returns true if the user has view permission on this series, False otherwise"""
@@ -235,12 +235,12 @@ class Revision(models.Model):
        state of the Project's code."""
     revision = models.CharField(max_length=200)  # can be md5 hash
     project = models.ForeignKey(Project, related_name='revisions')
-    date_of_creation = models.DateTimeField('Time of creation',
-                                            auto_now_add=True,
-                                            help_text='Automatic field that is set when this revision is created')
+    commit_time = models.DateTimeField('Time of creation',
+                                       auto_now_add=True,
+                                       help_text='Automatic field that is set when this revision is created')
 
     class Meta:
-        get_latest_by = 'date_of_creation'
+        get_latest_by = 'commit_time'
         unique_together = (('project', 'revision'))
 
 
@@ -312,8 +312,8 @@ class Artifact(models.Model):
                                    null=True, blank=True)
 
     def get_absolute_url(self):
-        return reverse('project_revision', kwargs={'project_id': self.project_series.project.pk,
-                                                   'series_id': self.project_series.pk})
+        return reverse('project_series', kwargs={'project_id': self.project_series.project.pk,
+                                                 'series_id': self.project_series.pk})
 
     def __unicode__(self):
         return "%s | %s | %s | %s" % (self.project_series, self.revision, self.artifactfile.name, self.md5hash)

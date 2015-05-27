@@ -16,7 +16,7 @@ def button_add_series_with_permission(user, project):
   logger.debug('[templatetag|button series] User %s ', user)
   return {'permission_ok': project.has_user_project_series_add_permission(user),
           'user': user,
-          'next': reverse_lazy('project_revision_add', args=[project.id])}
+          'next': reverse_lazy('project_series_add', args=[project.id])}
 
 
 @register.inclusion_tag('code_doc/tags/button_add_with_permission_tag.html')
@@ -44,4 +44,4 @@ def button_edit_series_with_permission(user, revision):
   logger.debug('[templatetag|button artifact] User %s ', user)
   return {'permission_ok': project.has_user_project_series_add_permission(user),
           'user': user,
-          'next' : reverse_lazy('project_revision_edit', args=[project.id, revision.id])}
+          'next' : reverse_lazy('project_series_edit', args=[project.id, revision.id])}

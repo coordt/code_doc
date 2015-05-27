@@ -112,7 +112,7 @@ AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
     'code_doc.permissions.backend.CodedocPermissionBackend',
 
-    'crowdrest.backend.CrowdRestBackend',
+    # 'crowdrest.backend.CrowdRestBackend',
     )
 
 

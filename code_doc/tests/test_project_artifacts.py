@@ -51,7 +51,7 @@ class ProjectSeriesArtifactTest(TestCase):
             new_series = ProjectSeries.objects.create(series="12345", project=self.project,
                                                       release_date=datetime.datetime.now())
 
-    def test_project_revision_artifact_wrong(self):
+    def test_project_series_artifact_wrong(self):
         """Test if giving the wrong series yields the proper error"""
         initial_path = reverse(self.path, args=[self.project.id, self.new_series.id + 1])
         response = self.client.login(username='toto', password='titi')
@@ -61,7 +61,7 @@ class ProjectSeriesArtifactTest(TestCase):
         # ON PURPOSE
         self.assertEqual(response.status_code, 401)
 
-    def test_project_revision_artifact_no_anonymous_access(self):
+    def test_project_series_artifact_no_anonymous_access(self):
         """Creation of a new project series and its artifacts not allowed for anonymous"""
         initial_path = reverse(self.path, args=[self.project.id, self.new_series.id])
         response = self.client.get(initial_path, follow=False)
@@ -74,7 +74,7 @@ class ProjectSeriesArtifactTest(TestCase):
         self.assertRedirects(response, reverse('login') + '?next=' + initial_path)
         self.assertEqual(response.status_code, 200)
 
-    def test_project_revision_artifact_possible_for_admins(self):
+    def test_project_series_artifact_possible_for_admins(self):
         """Creation of a new project series and its artifacts always possible for admins"""
         admin_user = User.objects.create_superuser(username='admin', email='bla@bla.com',
                                                    password='admin')
@@ -139,7 +139,24 @@ class ProjectSeriesArtifactTest(TestCase):
                                     follow=True)
         self.assertNotIn('errorlist', response.content)
 
+        # Test that the on the fly generation was successfull and that
+        # the new artifact properly references the Revision.
         self.assertEqual(self.new_series.artifacts.count(), 1)
+        self.assertEqual(Revision.objects.count(), 1)
+        self.assertEqual(Branch.objects.count(), 1)
+
+        artifact = self.new_series.artifacts.all()[0]
+        revision = Revision.objects.get(revision='blah')
+        branch = Branch.objects.get(name='blahblah')
+
+        self.assertEqual(artifact.project_series, self.new_series)
+        self.assertEqual(artifact.revision, revision)
+
+        # Check if the Revision is referenced by the correct branch and project
+        self.assertEqual(artifact.revision.project, self.project)
+        self.assertIn(branch, artifact.revision.branches.all())
+
+        # Check the response content
         self.assertEqual(response.status_code, 200)
         self.assertIn(hashlib.md5(self.imgfile.getvalue()).hexdigest().upper(), response.content)
 
@@ -175,9 +192,28 @@ class ProjectSeriesArtifactTest(TestCase):
         self.assertEquals(len(dic_ids['artifacts']), 1)
         self.assertTrue(dic_ids['artifacts'].has_key(str(Artifact.objects.first().id)))
 
-        artifact = dic_ids['artifacts'][str(Artifact.objects.first().id)]
+        artifact_dict_entry = dic_ids['artifacts'][str(Artifact.objects.first().id)]
 
-        self.assertEquals(artifact['md5'].upper(),
+        artifact_object = Artifact.objects.get(md5hash=artifact_dict_entry['md5'])
+
+        # Test that the on the fly generation was successfull and that
+        # the new artifact properly references the Revision.
+        self.assertEqual(Revision.objects.count(), 1)
+        self.assertEqual(Branch.objects.count(), 1)
+
+        revision = Revision.objects.get(revision='blah1')
+        branch = Branch.objects.get(name='blah')
+
+        # self.fail(artifact)
+
+        self.assertEqual(artifact_object.project_series, self.new_series)
+        self.assertEqual(artifact_object.revision, revision)
+
+        # Check if the Revision is referenced by the correct branch and project
+        self.assertEqual(artifact_object.revision.project, self.project)
+        self.assertIn(branch, artifact_object.revision.branches.all())
+
+        self.assertEquals(artifact_dict_entry['md5'].upper(),
                           hashlib.md5(self.imgfile.getvalue()).hexdigest().upper())
 
     def test_revision_and_branch_creation_on_artifact_upload(self):
@@ -196,9 +232,29 @@ class ProjectSeriesArtifactTest(TestCase):
                                      },
                                     follow=True)
 
-        Revision.objects.get(revision='blah1')
-        Branch.objects.get(name='blah')
-        self.assertEqual(Branch.objects.get(name='blah').revisions.count(), 1)
+        try:
+            Revision.objects.get(revision='blah1')
+        except Revision.DoesNotExist:
+            self.fail("[Revision.DoesNotExist] The Revisions returned no object from the get query")
+        except Revision.MultipleObjectsReturned:
+            self.fail("[Revision.MultipleObjectsReturned] The Revisions returned more than one object from the get query")
+        except:
+            self.fail("Unexpected Exception in get query")
+            raise
+
+        try:
+            Branch.objects.get(name='blah')
+        except Branch.DoesNotExist:
+            self.fail("[Branch.DoesNotExist] The Branches returned no object from the get query")
+        except Branch.MultipleObjectsReturned:
+            self.fail("[Branch.MultipleObjectsReturned] The Branches returned more than one object from the get query")
+        except:
+            self.fail("Unexpected Exception in get query")
+            raise
+
+        # We tested that this get returns exactly 1 element.
+        branch = Branch.objects.get(name='blah')
+        self.assertEqual(branch.revisions.count(), 1)
 
     def test_multiple_upload_of_artifacts_for_same_branch(self):
         """Tests if we can upload multiple revisions for the same branch
@@ -231,11 +287,32 @@ class ProjectSeriesArtifactTest(TestCase):
                           },
                          follow=True)
 
-        Revision.objects.get(revision='blah1')
-        Revision.objects.get(revision='blah2')
-        Revision.objects.get(revision='blah3')
-        Branch.objects.get(name='blah')
-        self.assertEqual(Branch.objects.get(name='blah').revisions.count(), 3)
+        try:
+            Revision.objects.get(revision='blah1')
+            Revision.objects.get(revision='blah2')
+            Revision.objects.get(revision='blah3')
+        except Revision.DoesNotExist:
+            self.fail("[DoesNotExist] One of the Revisions returned no object from the get query")
+        except Revision.MultipleObjectsReturned:
+            self.fail("[MultipleObjectsReturned] One of the Revisions returned more than one object from the get query")
+        except:
+            self.fail("Unexpected Exception in get query")
+            raise
+
+        try:
+            Branch.objects.get(name='blah')
+        except Branch.DoesNotExist:
+            self.fail("[Branch.DoesNotExist] The Branches returned no object from the get query")
+        except Branch.MultipleObjectsReturned:
+            self.fail("[Branch.MultipleObjectsReturned] The Branches returned more than one object from the get query")
+        except:
+            self.fail("Unexpected Exception in get query")
+            raise
+
+        # Returns exactly one element
+        branch = Branch.objects.get(name='blah')
+
+        self.assertEqual(branch.revisions.count(), 3)
         self.assertEqual(Branch.objects.count(), 1)
 
     def test_multiple_upload_of_artifacts_for_same_revision(self):
@@ -269,10 +346,31 @@ class ProjectSeriesArtifactTest(TestCase):
                           },
                          follow=True)
 
+        try:
+            Revision.objects.get(revision='blah1')
+        except Revision.DoesNotExist:
+            self.fail("[Revision.DoesNotExist] The Revisions returned no object from the get query")
+        except Revision.MultipleObjectsReturned:
+            self.fail("[Revision.MultipleObjectsReturned] The Revisions returned more than one object from the get query")
+        except:
+            self.fail("Unexpected Exception in get query")
+            raise
+
         revision = Revision.objects.get(revision='blah1')
         self.assertEqual(revision.artifacts.count(), 3)
-        Branch.objects.get(name='blah')
-        self.assertEqual(Branch.objects.get(name='blah').revisions.count(), 1)
+
+        try:
+            Branch.objects.get(name='blah')
+        except Branch.DoesNotExist:
+            self.fail("[Branch.DoesNotExist] The Branches returned no object from the get query")
+        except Branch.MultipleObjectsReturned:
+            self.fail("[Branch.MultipleObjectsReturned] The Branches returned more than one object from the get query")
+        except:
+            self.fail("Unexpected Exception in get query")
+            raise
+
+        branch = Branch.objects.get(name='blah')
+        self.assertEqual(branch.revisions.count(), 1)
         self.assertEqual(Branch.objects.count(), 1)
 
     def test_send_new_artifact_with_login_twice(self):
