@@ -165,7 +165,7 @@ class ProjectView(DetailView):
             assert(self.request.user.has_perm('code_doc.series_view', v))
             # if not self.request.user.has_perm('code_doc.series_view', v):
             #  continue
-            current_update = Artifact.objects.filter(project_series=v).order_by('upload_date').last()
+            current_update = v.artifacts.order_by('upload_date').last()
             if(current_update is not None):
                 last_update[v] = current_update.upload_date
             else:
@@ -447,8 +447,8 @@ class ProjectSeriesArtifactEditionFormsView(PermissionOnObjectViewMixin):
 
     def get_success_url(self):
         return reverse('project_series',
-                       kwargs={'project_id': self.object.project_series.project.pk,
-                               'series_id': self.object.project_series.pk})
+                       kwargs={'project_id': self.object.revision.project.pk,
+                               'series_id': self.object.project_series.all()[0].pk})
 
 
 class ProjectSeriesArtifactAddView(ProjectSeriesArtifactEditionFormsView, CreateView):
@@ -464,20 +464,31 @@ class ProjectSeriesArtifactAddView(ProjectSeriesArtifactEditionFormsView, Create
         current_project = current_series.project
         assert(str(current_project.id) == self.kwargs['project_id'])
 
-        form.instance.project_series = current_series
 
         # Get the raw data that was sent as the request
         form_data_query_dict = self.request.POST
-        branch_name = form_data_query_dict.__getitem__('branch')
-        revision_name = form_data_query_dict.__getitem__('revision')
+        branch_name = form_data_query_dict['branch']
+        revision_name = form_data_query_dict['revision']
 
         # Try to get already saved models from the database
         revision, created = Revision.objects.get_or_create(revision=revision_name,
                                                            project=current_project)
         branch, created = Branch.objects.get_or_create(name=branch_name)
         branch.revisions.add(revision)
-
+        form.instance.project = current_project
         form.instance.revision = revision
+
+        # @todo(Stephan):
+        # Put all atomic transactions together
+        # Refactoring!
+        try:
+            with transaction.atomic():
+                form.instance.save()
+        except IntegrityError, e:
+            logging.error("[fileupload] error during the save %s", e)
+            return HttpResponse('Conflict %s' % form.instance.md5hash.upper(), status=409)
+
+        form.instance.project_series = [current_series]
 
         try:
             with transaction.atomic():

@@ -1,9 +1,10 @@
+from django.db import IntegrityError
 from django.db.models.signals import pre_save, post_save, pre_delete, post_delete, m2m_changed
 from django.dispatch import receiver
 
 from django.conf import settings
 
-from code_doc.models import Author, Revision, Branch, Artifact, get_deflation_directory
+from code_doc.models import Author, Revision, Branch, Artifact, get_deflation_directory, ProjectSeries
 
 import logging
 import tempfile
@@ -32,64 +33,111 @@ def linkToAuthor(sender, **kwargs):
         linked_author.save()
         user_instance.author = linked_author
 
-# @receiver(m2m_changed, sender=Artifact.project_series.through)
-# def callback_check_revision_references(sender, **kwargs):
-#     """If an artifact is removed from a series, we have to check if the
-#        revision it belonged to still contains artifacts.
 
-#        If an artifact is added to a series, a revision is implicitely "added" to
-#        to this series
-#     """
-#     # @todo(Stephan):
-#     # Probably use get_all_referencing_series and get_all_revisions here
-#     pass
-
-
-# Relation between Branches and Revisions
-@receiver(m2m_changed, sender=Branch.revisions.through)
+@receiver(m2m_changed, sender=Artifact.project_series.through)
 def callback_check_revision_references(sender, **kwargs):
-    """Handles changes in the Branch <--> Revision relation.
+    """If an artifact is removed from a series, we have to check if the
+       revision it belonged to still contains artifacts.
 
-       Enforces the revision_limit for branches, and deletes
-       non-referenced Revisions.
+       If an artifact is added to a series, a revision is implicitely "added" to
+       to this series
     """
     action = kwargs['action']
 
     if kwargs['reverse']:
         # We modified the reverse relationship which means we
-        # modified revision.branches.
-        # kwargs['instance'] thus always returns a revision
-        if action == 'post_add':
-            # We have added a branch to a revision. Check if the maximum
-            # revision count for this branch is violated, and if it is,
-            # delete the earliest Revisions of this branch
-            changed_objects = kwargs['pk_set']
-            for pk in changed_objects:
-                branch = Branch.objects.get(pk=pk)
-                enforce_revision_limit_for_branch(branch)
+        # modified series.artifact.
+        #
+        # @todo(Stephan): Unit test!
+        #
+        if action == 'pre_add':
+            # We want to add an Artifact to a Series
+            project_series = kwargs['instance']
+            changed_artifacts_pks = kwargs['pk_set']
+            for pk in changed_artifacts_pks:
+                artifact = Artifact.objects.get(pk=pk)
+                if artifact.project != project_series.project:
+                    raise IntegrityError
 
         elif action == 'post_remove':
-            # We have removed a branch from a revision.
-            revision = kwargs['instance']
-            ensure_revision_references(revision)
+            # Removing Artifacts from a Series, we have to check if this
+            # Artifact's Revision is referenced anywhere.
+            changed_artifacts = kwargs['pk_set']
+            for pk in changed_artifacts:
+                artifact = Artifact.objects.get(pk=pk)
+                artifact_revision = artifact.revision
+
+                if len(artifact_revision.get_all_referencing_series()) == 0:
+                    artifact_revision.delete()
     else:
         # We modified the forward relationship which means we
-        # modified branch.revisions.
-        # kwargs['instance'] thus always returns a branch
-        if action == 'post_add':
-            # We added a revision to a branch. Check if the maximum
-            # revision count is violated.
-            branch = kwargs['instance']
-            enforce_revision_limit_for_branch(branch)
+        # modified artifact.project_series.
+        #
+        # @todo(Stephan): Unit test!
+        #
+        if action == 'pre_add':
+            # We want to add a Series to an Artifact, we need to check that
+            # this Series belongs to the same Project that the Artifact does
+            artifact = kwargs['instance']
+
+            added_series_pks = kwargs['pk_set']
+            for pk in added_series_pks:
+                series = ProjectSeries.objects.get(pk=pk)
+                if series.project != artifact.project:
+                    raise IntegrityError
 
         elif action == 'post_remove':
-            # We removed a revision from a branch. Now we have to check
-            # if this removed revision is referenced by any other branch.
-            # If not, we can delete it.
-            changed_objects = kwargs['pk_set']
-            for pk in changed_objects:
-                revision = Revision.objects.get(pk=pk)
-                ensure_revision_references(revision)
+            artifact = kwargs['instance']
+            revision = artifact.revision
+
+            if len(revision.get_all_referencing_series()) == 0:
+                revision.delete()
+
+# Relation between Branches and Revisions
+# @receiver(m2m_changed, sender=Branch.revisions.through)
+# def callback_check_revision_references(sender, **kwargs):
+#     """Handles changes in the Branch <--> Revision relation.
+
+#        Enforces the revision_limit for branches, and deletes
+#        non-referenced Revisions.
+#     """
+#     action = kwargs['action']
+
+#     if kwargs['reverse']:
+#         # We modified the reverse relationship which means we
+#         # modified revision.branches.
+#         # kwargs['instance'] thus always returns a revision
+#         if action == 'post_add':
+#             # We have added a branch to a revision. Check if the maximum
+#             # revision count for this branch is violated, and if it is,
+#             # delete the earliest Revisions of this branch
+#             changed_objects = kwargs['pk_set']
+#             for pk in changed_objects:
+#                 branch = Branch.objects.get(pk=pk)
+#                 enforce_revision_limit_for_branch(branch)
+
+#         elif action == 'post_remove':
+#             # We have removed a branch from a revision.
+#             revision = kwargs['instance']
+#             ensure_revision_references(revision)
+#     else:
+#         # We modified the forward relationship which means we
+#         # modified branch.revisions.
+#         # kwargs['instance'] thus always returns a branch
+#         if action == 'post_add':
+#             # We added a revision to a branch. Check if the maximum
+#             # revision count is violated.
+#             branch = kwargs['instance']
+#             enforce_revision_limit_for_branch(branch)
+
+#         elif action == 'post_remove':
+#             # We removed a revision from a branch. Now we have to check
+#             # if this removed revision is referenced by any other branch.
+#             # If not, we can delete it.
+#             changed_objects = kwargs['pk_set']
+#             for pk in changed_objects:
+#                 revision = Revision.objects.get(pk=pk)
+#                 ensure_revision_references(revision)
 
 
 def ensure_revision_references(revision):
@@ -122,25 +170,6 @@ def is_deflated(instance):
     """Returns true if the artifact instance should or have been deflated"""
     return instance.is_documentation and \
         os.path.splitext(instance.artifactfile.name)[1] in ['.tar', '.bz2', '.gz']
-
-
-@receiver(pre_save, sender=Artifact)
-def callback_check_revision_artifact_count(sender, **kwargs):
-    artifact_instance = kwargs['instance']
-
-    if artifact_instance.id:
-        pre_saved_artifact_query = sender.objects.filter(pk=artifact_instance.pk)
-
-        if pre_saved_artifact_query.count() == 1:
-            pre_saved_artifact = pre_saved_artifact_query[0]
-            pre_saved_revision = pre_saved_artifact.revision
-
-            if artifact_instance.revision != pre_saved_revision:
-                # The Revision has changed. We check if the previous revision
-                # only references this one artifact.
-                if pre_saved_revision.artifacts.count() == 1:
-                    pre_saved_revision.delete()
-                    artifact_instance.save()
 
 
 @receiver(post_save, sender=Artifact)

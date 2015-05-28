@@ -8,7 +8,8 @@ from django.contrib.auth.models import AbstractUser, Group
 from django.core.urlresolvers import reverse
 
 from django.template.defaultfilters import slugify
-from django.db.models.signals import post_save, pre_delete, post_delete
+from django.db import IntegrityError
+
 from django.dispatch import receiver
 
 
@@ -32,11 +33,8 @@ class Author(models.Model):
     lastname = models.CharField(max_length=50)
     firstname = models.CharField(max_length=50)
     gravatar_email = models.CharField(max_length=50, blank=True)
-    # @todo(Stephan): Is it okay to remove the uniqueness assumption of the email?
-    #                 Since the email of the users are copied over to the authors now,
-    #                 the uniqueness is violated
     email = models.EmailField(max_length=50,
-                              # unique=True,
+                              unique=True,
                               db_index=True)
     home_page_url = models.CharField(max_length=250)
     django_user = models.OneToOneField(settings.AUTH_USER_MODEL,
@@ -229,12 +227,21 @@ class ProjectSeries(models.Model):
              manage_permission_on_object(userobj, self.view_artifacts_users,
                                          self.view_artifacts_groups, False))
 
-    # @todo(Stephan): Check this tomorrow
-    #  is there a more functional way of doing this?
-    # def get_all_revisions(self):
-    #     list_of_revisions = []
-    #     for artifact in self.artifacts:
-    #         list_of_revisions.append(artifact.revision)
+    # @todo(Stephan): Which implementation is the best?
+    def get_all_revisions(self):
+        # list_of_revisions = []
+        # for artifact in self.artifacts:
+        #     list_of_revisions.append(artifact.revision)
+
+        # return list(set(list_of_revisions))
+        #
+        # list_of_revisions = []
+        # for artifact in self.artifacts:
+        #       if artifact not in list_of_revisions:
+        #           list_of_revisions.append(artifact)
+        # return list_of_revisions
+
+        return list(set(map(Artifact.get_revision, self.artifacts.all())))
 
 
 class Revision(models.Model):
@@ -250,13 +257,12 @@ class Revision(models.Model):
         get_latest_by = 'commit_time'
         unique_together = (('project', 'revision'))
 
-    # @todo(Stephan): check this tomorrow
-    #  is there a more functional way of doing this?
-    # def get_all_referencing_series(self):
-    #     list_of_series = []
-    #     for artifact in self.artifacts:
-    #         list_of_series += artifact.project_series.all()
-    #     return list_of_series
+    # @todo(Stephan): Use other implementation? Remove duplicates at each stage of the loop?
+    def get_all_referencing_series(self):
+        list_of_series = []
+        for artifact in self.artifacts.all():
+            list_of_series += artifact.project_series.all()
+        return list(set(list_of_series))
 
 
 class Branch(models.Model):
@@ -277,9 +283,10 @@ def get_artifact_location(instance, filename):
         except ValueError, e:
             return False, 0
 
+    # @todo(Stephan): Old versions need to be updated!
     media_relative_dir = os.path.join("artifacts",
-                                      instance.project_series.project.name,
-                                      instance.project_series.series)
+                                      instance.revision.project.name,
+                                      instance.revision.revision)
     root_dir = os.path.join(settings.MEDIA_ROOT, media_relative_dir)
 
     if os.path.exists(root_dir):
@@ -309,11 +316,10 @@ def get_deflation_directory(instance, without_media_root=False):
 
 class Artifact(models.Model):
     """An artifact is a downloadable file"""
-    # @todo(Stephan): An Artifact can belong to several series -> ManyToMany Relationship
-    # project_series = models.ManyToManyField(ProjectSeries, related_name='artifacts')
-    project_series = models.ForeignKey(ProjectSeries, related_name="artifacts")
-    # @todo(Stephan): make revision mandatory!
-    revision = models.ForeignKey(Revision, related_name='artifacts', blank=True, null=True)
+    project = models.ForeignKey(Project, related_name='artifacts')
+
+    project_series = models.ManyToManyField(ProjectSeries, related_name='artifacts')
+    revision = models.ForeignKey(Revision, related_name='artifacts')
     md5hash = models.CharField(max_length=1024)  # md5 hash
     description = models.TextField('description of the artifact', max_length=1024)
     artifactfile = models.FileField(upload_to=get_artifact_location,
@@ -329,16 +335,17 @@ class Artifact(models.Model):
                                    null=True, blank=True)
 
     def get_absolute_url(self):
-        return reverse('project_series', kwargs={'project_id': self.project_series.project.pk,
-                                                 'series_id': self.project_series.pk})
+        return reverse('project_series', kwargs={'project_id': self.revision.project.pk,
+                                                 'series_id': self.project_series.all()[0].pk})
 
     def __unicode__(self):
-        return "%s | %s | %s | %s" % (self.project_series, self.revision, self.artifactfile.name, self.md5hash)
+        return "%s | %s | %s" % (self.revision, self.artifactfile.name, self.md5hash)
 
     class Meta:
-        # we allow only one version per project version
-        # (we can however have the same file in several versions)
-        unique_together = (("project_series", "md5hash"), )
+        # we allow only one version per project
+        # (we can however have the same file in several Series)
+        unique_together = (("project", "md5hash"), )
+        pass
 
     def filename(self):
         return os.path.basename(self.artifactfile.name)
@@ -356,24 +363,28 @@ class Artifact(models.Model):
         deflate_directory = get_deflation_directory(self, without_media_root=True)
         return urllib.pathname2url(os.path.join(deflate_directory, self.documentation_entry_file))
 
-    # @todo(Stephan):
-    # Promoting an artifact adds a series to it and thus also the revision
-    # The promotion is independent of the revision, it only changes the series!
-    # def promote_to_series(self, new_series):
-    #     """Adds a new series to the list of series, this artifact belongs to"""
-    #     self.series.add(new_series)
-    #     # todo(Stephan): Handle this in the resulting m2m_changed signal
-    #
-    def promote_to_revision(self, new_revision):
-        """Changes the revision an artifact belongs to.
-           If the old revision does not contain any more artifacts, we delete it"""
-        self.revision = new_revision
-        self.save(update_fields=['revision'])
+    @staticmethod
+    def get_revision(artifact):
+        return artifact.revision
+
+    @staticmethod
+    def md5_equals(md5_1, md5_2):
+        return md5_1.upper() == md5_2.upper()
+
+    def promote_to_series(self, new_series):
+        """Adds a new series to the list of series, this artifact belongs to"""
+        self.project_series.add(new_series)
 
     def save(self, *args, **kwargs):
-        import hashlib
-        m = hashlib.md5()
+        # @note(Stephan):
+        # We use the m2m_changed Signal of the Artifact in order to check that
+        # if we add a ProjectSeries to the Artifact, this new ProjectSeries
+        # belongs to the same Project the Artifact does
+
+        # Compute md5 hash if not given
         if not self.md5hash:
+            import hashlib
+            m = hashlib.md5()
             for chunk in self.artifactfile.chunks():
                 m.update(chunk)
             self.md5hash = m.hexdigest()

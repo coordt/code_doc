@@ -42,7 +42,7 @@ class ProjectTest(TestCase):
         """Tests if the admins only have the right to modify the project configuration"""
 
         # user2 is not admin
-        user2 = User.objects.create_user(username='user2', password='user2')
+        user2 = User.objects.create_user(username='user2', password='user2', email="c@c.com")
 
         self.assertFalse(self.project.has_user_project_series_add_permission(user2))
         self.assertTrue(self.project.has_user_project_series_add_permission(self.first_user))
@@ -69,9 +69,14 @@ class ProjectTest(TestCase):
 
         new_series = ProjectSeries.objects.create(series="1234", project=self.project,
                                                   release_date=datetime.datetime.now())
-        new_artifact = Artifact.objects.create(project_series=new_series, md5hash='0')
+        revision = Revision.objects.create(revision='1', project=self.project)
+
+        new_artifact = Artifact.objects.create(project=self.project, revision=revision, md5hash='0')
+        new_artifact.project_series.add(new_series)
 
         self.assertEqual(self.project.get_number_of_files(), 1)
 
-        new_artifact2 = Artifact.objects.create(project_series=new_series, md5hash='1')
+        new_artifact2 = Artifact.objects.create(project=self.project, revision=revision, md5hash='1')
+        new_artifact2.project_series.add(new_series)
+
         self.assertEqual(self.project.get_number_of_files(), 2)

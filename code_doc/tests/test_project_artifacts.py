@@ -26,7 +26,7 @@ class ProjectSeriesArtifactTest(TestCase):
         # path for the queries to the project details
         self.path = 'project_artifacts_add'
 
-        self.first_user = User.objects.create_user(username='toto', password='titi')  # , is_active=True)
+        self.first_user = User.objects.create_user(username='toto', password='titi', email="b@b.com")  # , is_active=True)
 
         self.author1 = Author.objects.create(lastname='1', firstname='1f', gravatar_email='',
                                              email='1@1.fr', home_page_url='')
@@ -36,7 +36,7 @@ class ProjectSeriesArtifactTest(TestCase):
 
         self.new_series = ProjectSeries.objects.create(series="12345", project=self.project,
                                                        release_date=datetime.datetime.now())
-        self.new_series.save()
+        self.revision = Revision.objects.create(project=self.project, revision="FEDABC")
 
         import StringIO
         self.imgfile = StringIO.StringIO('GIF87a\x01\x00\x01\x00\x80\x01\x00\x00\x00\x00ccc,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;')
@@ -142,14 +142,15 @@ class ProjectSeriesArtifactTest(TestCase):
         # Test that the on the fly generation was successfull and that
         # the new artifact properly references the Revision.
         self.assertEqual(self.new_series.artifacts.count(), 1)
-        self.assertEqual(Revision.objects.count(), 1)
+        self.assertEqual(Revision.objects.count(), 2)  # self.revision and revision 'blah'
         self.assertEqual(Branch.objects.count(), 1)
 
         artifact = self.new_series.artifacts.all()[0]
         revision = Revision.objects.get(revision='blah')
         branch = Branch.objects.get(name='blahblah')
 
-        self.assertEqual(artifact.project_series, self.new_series)
+        self.assertEqual(artifact.project_series.count(), 1)
+        self.assertEqual(artifact.project_series.all()[0], self.new_series)
         self.assertEqual(artifact.revision, revision)
 
         # Check if the Revision is referenced by the correct branch and project
@@ -198,15 +199,15 @@ class ProjectSeriesArtifactTest(TestCase):
 
         # Test that the on the fly generation was successfull and that
         # the new artifact properly references the Revision.
-        self.assertEqual(Revision.objects.count(), 1)
+        self.assertEqual(Revision.objects.count(), 2)  # self.revision and revision 'blah1'
         self.assertEqual(Branch.objects.count(), 1)
 
         revision = Revision.objects.get(revision='blah1')
         branch = Branch.objects.get(name='blah')
 
         # self.fail(artifact)
-
-        self.assertEqual(artifact_object.project_series, self.new_series)
+        self.assertEqual(artifact_object.project_series.count(), 1)
+        self.assertEqual(artifact_object.project_series.all()[0], self.new_series)
         self.assertEqual(artifact_object.revision, revision)
 
         # Check if the Revision is referenced by the correct branch and project
@@ -432,14 +433,14 @@ class ProjectSeriesArtifactTest(TestCase):
             test_file = SimpleUploadedFile('filename.tar.bz2', f.read())
 
             new_artifact = Artifact.objects.create(
-                              project_series=self.new_series,
+                              project=self.project,
+                              revision=self.revision,
                               md5hash='1',
                               description='test artifact',
                               is_documentation=True,
                               documentation_entry_file=os.path.basename(__file__),
                               artifactfile=test_file)
-
-            new_artifact.save()
+            new_artifact.project_series.add(self.new_series)
 
             # not a documentation artifact
             self.assertTrue(os.path.exists(get_deflation_directory(new_artifact)))
@@ -466,12 +467,14 @@ class ProjectSeriesArtifactTest(TestCase):
             test_file = SimpleUploadedFile('filename.tar.bz2', f.read())
 
             new_artifact = Artifact.objects.create(
-                              project_series=self.new_series,
+                              project=self.project,
+                              revision=self.revision,
                               md5hash='1',
                               description='test artifact',
                               is_documentation=False,
                               documentation_entry_file=os.path.basename(__file__),
                               artifactfile=test_file)
+            new_artifact.project_series.add(self.new_series)
 
             test_file.close()
 
@@ -515,12 +518,14 @@ class ProjectSeriesArtifactTest(TestCase):
             test_file = SimpleUploadedFile('filename.tar.bz2', f.read())
 
             new_artifact = Artifact.objects.create(
-                              project_series=self.new_series,
+                              project=self.project,
+                              revision=self.revision,
                               md5hash='1',
                               description='test artifact',
                               is_documentation=True,
                               documentation_entry_file=os.path.basename(__file__),
                               artifactfile=test_file)
+            new_artifact.project_series.add(self.new_series)
 
             test_file.close()
 

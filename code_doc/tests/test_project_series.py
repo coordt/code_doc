@@ -22,7 +22,8 @@ class ProjectSeriesTest(TestCase):
         self.path = 'project_series_all'
 
         self.first_user = User.objects.create_user(username='test_series_user',
-                                                   password='test_series_user')
+                                                   password='test_series_user',
+                                                   email="b@b.com")
 
         self.author1 = Author.objects.create(lastname='1', firstname='1f', gravatar_email='',
                                              email='1@1.fr', home_page_url='')
@@ -87,7 +88,7 @@ class ProjectSeriesTest(TestCase):
             and the others don't"""
 
         # user2 is not admin of this project
-        user2 = User.objects.create_user(username='user2', password='user2')
+        user2 = User.objects.create_user(username='user2', password='user2', email="c@c.com")
         response = self.client.login(username='user2', password='user2')
         self.assertTrue(response)
         response = self.client.get(reverse("project_series_add", args=[self.project.id]))
@@ -106,7 +107,7 @@ class ProjectSeriesTest(TestCase):
         self.assertIn(current_permission, self.first_user.get_all_permissions(new_series))
         self.assertNotIn(current_permission, self.first_user.get_all_permissions())
 
-        user2 = User.objects.create_user(username='user2', password='user2')
+        user2 = User.objects.create_user(username='user2', password='user2', email="c@c.com")
         self.assertTrue(user2.has_perm(current_permission, new_series))
         self.assertIn(current_permission, user2.get_all_permissions(new_series))
         self.assertNotIn(current_permission, user2.get_all_permissions())
@@ -123,7 +124,7 @@ class ProjectSeriesTest(TestCase):
         self.assertIn(current_permission, self.first_user.get_all_permissions(new_series))
         self.assertNotIn(current_permission, self.first_user.get_all_permissions())
 
-        user2 = User.objects.create_user(username='user2', password='user2')
+        user2 = User.objects.create_user(username='user2', password='user2', email="c@c.com")
         self.assertFalse(user2.has_perm(current_permission, new_series))
         self.assertNotIn(current_permission, user2.get_all_permissions(new_series))
         self.assertNotIn(current_permission, user2.get_all_permissions())
@@ -131,7 +132,7 @@ class ProjectSeriesTest(TestCase):
     def test_series_view_with_restriction_on_series_through_groups(self):
 
         newgroup = Group.objects.create(name='group1')
-        user2 = User.objects.create_user(username='user2', password='user2')
+        user2 = User.objects.create_user(username='user2', password='user2', email="c@c.com")
         user2.groups.add(newgroup)
 
         new_series = ProjectSeries.objects.create(series="1234", project=self.project,
