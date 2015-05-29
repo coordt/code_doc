@@ -5,7 +5,7 @@ __doc__ = """
 The intent of this module is to send "artifacts" to a code_doc server, without using any of the Django related stuff
 and possibly no extra packages. This is done by
 
-* loging into the code_doc server using credentials and storing the cookies associated to this session
+* logging into the code_doc server using credentials and storing the cookies associated to this session
 * filling a form that contains the details of the artifact to send
 * sending the content
 
@@ -391,7 +391,7 @@ def main():
   except Exception, e:
     logger.error("""[meta] an error occurred during the retrieval of the projects informations from %s:\n
                       \tError details %s""",
-                      self.host + post_url, 
+                      args.url + post_url, 
                       e)     
   
 
@@ -419,7 +419,7 @@ def main():
           avoid_redirections = False)
 
   if(response.code != 200):
-    logger.error("[transfer] an error was returned by the server during the transfer of the file, return code is %d", ret.code)
+    logger.error("[transfer] an error was returned by the server during the transfer of the file, return code is %d", response.code)
     raise Exception("[transfer] an error was returned by the server during the transfer of the file")
 
   
@@ -429,7 +429,7 @@ def main():
   post_url = '/artifacts/api/%d/%d' % (project_id, version_id)
   response = instance.get(post_url) 
   if(response.code != 200):
-    logger.error("[transfer] an error was returned by the server while querying for artifacts, return code is %d", ret.code)
+    logger.error("[transfer] an error was returned by the server while querying for artifacts, return code is %d", response.code)
     raise Exception("[transfer] an error was returned by the server during the transfer of the file")
   
   

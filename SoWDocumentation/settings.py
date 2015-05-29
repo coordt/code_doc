@@ -84,6 +84,8 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'code_doc',
+
+    'crowdrest',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -102,14 +104,36 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.core.context_processors.media',
     'django.core.context_processors.static',
     'django.core.context_processors.tz',
-    'django.core.context_processors.request', # this one is missing by default
+    'django.core.context_processors.request',  # this one is missing by default
     'django.contrib.messages.context_processors.messages',
 )
 
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
     'code_doc.permissions.backend.CodedocPermissionBackend',
+
+    # 'crowdrest.backend.CrowdRestBackend',
     )
+
+
+# Crowdrest Settings
+
+# Uncomment for setting up the Crowd - authentification application
+
+AUTH_CROWD_ALWAYS_UPDATE_USER = True
+AUTH_CROWD_ALWAYS_UPDATE_GROUPS = True
+AUTH_CROWD_CREATE_GROUPS = True
+
+AUTH_CROWD_STAFF_GROUP = 'jira-developers'
+AUTH_CROWD_SUPERUSER_GROUP = 'jira-administrators'
+
+# @todo: Configure the password for accessing CROWD
+AUTH_CROWD_APPLICATION_USER = 'django-code-doc-test'
+AUTH_CROWD_APPLICATION_PASSWORD = 'testcodedoc'
+
+AUTH_CROWD_SERVER_REST_URI = 'http://seine.is.localnet:8095/crowd/rest/usermanagement/latest'
+AUTH_CROWD_SERVER_TRUSTED_ROOT_CERTS_FILE = None
+
 
 LOGGING = {
   'version': 1,
@@ -121,19 +145,19 @@ LOGGING = {
       'simple': {
           'format': '%(levelname)s %(message)s'
       },
-  },  
+  },
   'handlers': {
       'file': {
           'level': 'DEBUG',
           'class': 'logging.FileHandler',
           'filename': FILE_LOGGING_LOCATION,
       },
-        
-      'console':{
+
+      'console': {
          'level': 'DEBUG',
          'class': 'logging.StreamHandler',
          'formatter': 'verbose'
-      },               
+      },
   },
   'loggers': {
       'code_doc.views': {
@@ -145,7 +169,7 @@ LOGGING = {
           'handlers': ['console'],
           'level': 'DEBUG',
           'propagate': True,
-      },  
+      },
       'code_doc.templatetags.button_add_with_permission': {
           'handlers': ['console'],
           'level': 'DEBUG',
@@ -155,21 +179,24 @@ LOGGING = {
           'handlers': ['console'],
           'level': 'DEBUG',
           'propagate': True,
-      },  
+      },
       'code_doc.models': {
           'handlers': ['console'],
           'level': 'DEBUG',
           'propagate': True,
-      },  
+      },
       'code_doc.permissions': {
           'handlers': ['console'],
           'level': 'WARNING',
           'propagate': True,
-      },  
+      },
+      'code_doc.signals': {
+          'handlers': ['console'],
+          'level': 'DEBUG',
+          'propagate': True,
+      }
   },
 }
-
-
 
 ROOT_URLCONF = 'SoWDocumentation.urls'
 

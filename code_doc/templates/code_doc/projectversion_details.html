@@ -13,15 +13,15 @@
   {{ project.description_mk|markd|safe }}
 
 
-  <h1>Details for version {{version.version}}</h1>
-  
-  {{ version.description_mk|markd|safe }}
-  
-  
+  <h1>Details for series {{series.series}}</h1>
+
+  {{ series.description_mk|markd|safe }}
+
+
   <h3>Artifacts</h3>
   {% if artifacts %}
-  
-    
+
+
     <div class="media">
       {% for artifact in artifacts %}
 
@@ -31,7 +31,7 @@
         </div>
       {% endfor %}
     </div>
-  
+
   {% else %}
       <p>No artifacts.</p>
   {% endif %}

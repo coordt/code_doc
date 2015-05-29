@@ -1,0 +1,38 @@
+{% extends "code_doc/base_template.html" %}
+{% load staticfiles %}
+
+{% block title %} Edit Author: {{ author.firstname }} {{ author.lastname }} {% endblock %}
+
+{% block content %}
+
+  <h1><a href={% url 'author' author.id %}>{{ author.firstname }} {{ author.lastname }}</a></h1>
+  <div class="alert alert-info" role="alert">
+    You are editing the Author's details
+  </div>
+
+{% if form.errors %}
+    <div class="alert alert-danger" role="alert">The following error occurred with your submission {{form.errors}}</div>
+{% endif %}
+
+
+ <form class="form-horizontal" enctype="multipart/form-data" action="" method="post" role="form">
+    {% csrf_token %}
+
+    {% for field in form %}
+        <div class="form-group">
+            {{ field.errors }}
+
+            <label for="{{ field.id_for_label }}"  class="col-sm-2 control-label">{{ field.label }}</label>
+
+            <div class="col-sm-10">
+              {{ field }}
+              <p class="help-block">{{ field.help_text }}</p>
+            </div>
+        </div>
+    {% endfor %}
+
+  <input type="submit" value="Save" />
+ </form>
+
+
+{% endblock %}

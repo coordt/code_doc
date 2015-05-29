@@ -13,7 +13,6 @@
 
   {{ project.short_description }}
 
-
   <div class="row">
     <div class="col-md-8">
       <h3>Description</h3>
@@ -22,27 +21,26 @@
     <div class="col-sm-4">
       <h4>Authors</h4>
       {% if project.authors %}
-  
-  
-				<div class="row">
-				  <div class="col-xs-8 col-sm-4">
+
+        <div class="row">
+          <div class="col-xs-8 col-sm-4">
 				    {% for author in project.authors.all %}
-		        <a href="{% url 'author' author.id %}" class="thumbnail" alt="{{author.firstname}} {{author.lastname}}">
-		          <img data-src="holder.js/100%x64" > 
-		          {% author_image author.id %}
-		        </a>
+		        <a href="{% url 'author' author.id %}" title="{{author.firstname}} {{author.lastname}}" alt="{{author.firstname}} {{author.lastname}}">
+		          {% author_image author.id 50 %}
+            </a>
+            <div class="author-seperator"></div>
 				    {% endfor %}
 				  </div>
-				  
-				</div>  
+
+				</div>
       {% else %}
         <p>No author.</p>
       {% endif %}
-      
-      
+
+
       <h4>Maintained by</h4>
 		  {% if project.administrators.count > 0 %}
-		  
+
 		    <ul>
 		    {% for maintainer in project.administrators.all %}
 		      <li>
@@ -50,66 +48,58 @@
 		      </li>
 		    {% endfor %}
 		    </ul>
-		  
+
 		  {% else %}
 		      <p>No registered maintainer.</p>
-		  {% endif %}      
-      
-    </div>  
-  
+		  {% endif %}
+
+    </div>
+
   </div>
 
-  
-  
 
- 
- 
- 
-  <h3>Versions {% button_add_version_with_permission user project %}
+  <h3>Series {% button_add_series_with_permission user project %}
   </h3>
 
   {% if last_update %}
-  
+
     <table class="table table-hover">
         <thead>
           <tr>
-            <th>Version</th>
+            <th>Series</th>
             <th>Visibility</th>
             <th>Release date</th>
             <th># files</th>
             <th>Last updated</th>
             <th>Description</th>
-            
+
           </tr>
         </thead>
-  
-      {% for version, current_last_update in last_update.items %}
+
+      {% for series, current_last_update in last_update.items %}
 
         <tbody>
           <tr>
-            <th class="text-nowrap"><a href="{% url 'project_revision' project.id version.id %}" >{{ version.version }}</a></th>
+            <th class="text-nowrap"><a href="{% url 'project_revision' project.id series.id %}" >{{ series.series }}</a></th>
             <td>
-            {% if version.is_public %}
+            {% if series.is_public %}
               <span class="label label-success">Public</span>
             {% else %}
               <span class="label label-warning">Restricted</span>
             {% endif %}</td>
-            <td>{{ version.release_date }}</td>
-            <td>{{ version.artifacts.count }}</td>
+            <td>{{ series.release_date }}</td>
+            <td>{{ series.artifacts.count }}</td>
             <td>{{ current_last_update|date }}</td>
-            <td>{{ version.description_mk|markd|safe }}</td>
+            <td>{{ series.description_mk|markd|safe }}</td>
           </tr>
          <tbody>
 
       {%endfor%}
-      
-    </table>    
-  
 
-  
+    </table>
+
   {% else %}
-      <p>No known released versions.</p>
+      <p>No known released series.</p>
   {% endif %}
-
 
 {% endblock %}

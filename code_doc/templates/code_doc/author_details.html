@@ -1,10 +1,11 @@
 {% extends "code_doc/base_template.html" %}
+{% load button_add_with_permission %}
 
-{% block title %}{{ author.firstname }} {{ author.lastname }}{% endblock %}
+{% block title %}{{ author.firstname }} {{ author.lastname }} {% endblock %}
 
 
 {% block content %}
-<h1>{{ author.firstname }} {{ author.lastname }}</h1>
+<h1>{{ author.firstname }} {{ author.lastname }} {% button_edit_author_with_permission user author %} </h1>
   <h2>Contributed projects</h2>
   {% if project_list %}
     <ul>
@@ -26,8 +27,8 @@
   {% else %}
     <p>No known coauthor.</p>
   {% endif %}
-  
 
 
-  
+
+
 {% endblock %}
