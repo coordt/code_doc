@@ -80,7 +80,7 @@
 
         <tbody>
           <tr>
-            <th class="text-nowrap"><a href="{% url 'project_revision' project.id series.id %}" >{{ series.series }}</a></th>
+            <th class="text-nowrap"><a href="{% url 'project_series' project.id series.id %}" >{{ series.series }}</a></th>
             <td>
             {% if series.is_public %}
               <span class="label label-success">Public</span>

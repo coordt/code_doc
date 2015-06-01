@@ -4,11 +4,11 @@
 {% block title %}Projects list{% endblock %}
 
 {% block paginated_content %}
- 
+
  <h1>Hosted projects</h1>
 
  {% if projects %}
- 
+
     <ul class="media-list">
       {% for project in projects %}
         <li class="media">
@@ -27,15 +27,15 @@
             <span class="glyphicon glyphicon-floppy-disk"></span> {{ project.get_number_of_files }} files
           </p>
           <p>
-            <span class="glyphicon glyphicon-tags"></span> {{ project.get_number_of_revisions }} revisions
+            <span class="glyphicon glyphicon-tags"></span> {{ project.get_number_of_series }} series
           </p>
         </div>
         </li>
       {% endfor %}
-    </ul> 
- 
+    </ul>
+
  {% else %}
    <p>No registered project.</p>
- {% endif %}  
+ {% endif %}
 
 {% endblock %}

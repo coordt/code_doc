@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.db import IntegrityError
 
 from django.test import Client
-from code_doc.models import Project, Author, ProjectSeries, Artifact
+from code_doc.models import Project, Author, ProjectSeries, Artifact, Revision
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 
@@ -42,18 +42,25 @@ class ProjectTest(TestCase):
         """Tests if the admins only have the right to modify the project configuration"""
 
         # user2 is not admin
-        user2 = User.objects.create_user(username='user2', password='user2')
+        user2 = User.objects.create_user(username='user2', password='user2', email="c@c.com")
 
         self.assertFalse(self.project.has_user_project_series_add_permission(user2))
         self.assertTrue(self.project.has_user_project_series_add_permission(self.first_user))
 
-    def test_project_get_number_of_revisions(self):
+    def test_project_get_number_of_series(self):
         """Number of revisions tests"""
-        self.assertEqual(self.project.get_number_of_revisions(), 0)
+        self.assertEqual(self.project.get_number_of_series(), 0)
 
         new_series = ProjectSeries.objects.create(series="1234", project=self.project,
                                                   release_date=datetime.datetime.now())
+        self.assertEqual(self.project.get_number_of_series(), 1)
+
+    def test_project_get_number_of_revisions(self):
+        self.assertEqual(self.project.get_number_of_revisions(), 0)
+        revision = Revision.objects.create(revision='1', project=self.project)
+
         self.assertEqual(self.project.get_number_of_revisions(), 1)
+
 
     def test_project_get_number_of_files(self):
         """Number of files tests"""
@@ -62,9 +69,14 @@ class ProjectTest(TestCase):
 
         new_series = ProjectSeries.objects.create(series="1234", project=self.project,
                                                   release_date=datetime.datetime.now())
-        new_artifact = Artifact.objects.create(project_series=new_series, md5hash='0')
+        revision = Revision.objects.create(revision='1', project=self.project)
+
+        new_artifact = Artifact.objects.create(project=self.project, revision=revision, md5hash='0')
+        new_artifact.project_series.add(new_series)
 
         self.assertEqual(self.project.get_number_of_files(), 1)
 
-        new_artifact2 = Artifact.objects.create(project_series=new_series, md5hash='1')
+        new_artifact2 = Artifact.objects.create(project=self.project, revision=revision, md5hash='1')
+        new_artifact2.project_series.add(new_series)
+
         self.assertEqual(self.project.get_number_of_files(), 2)

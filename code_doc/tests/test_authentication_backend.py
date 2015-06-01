@@ -22,7 +22,7 @@ class AuthenticationBackendTest(TestCase):
     def setUp(self):
         self.client = Client()
 
-        self.user = User.objects.create_user(username='toto', password='titi')
+        self.user = User.objects.create_user(username='toto', password='titi', email="b@b.com")
 
     def test_authenticate_existing_user(self):
         """Authenticate an existing user"""
@@ -48,7 +48,7 @@ class AuthenticationBackendTest(TestCase):
 class PermissionBackendTest(TestCase):
     def setUp(self):
         self.client = Client()
-        self.first_user = User.objects.create_user(username='toto', password='titi')  # , is_active=True)
+        self.first_user = User.objects.create_user(username='toto', password='titi', email="b@b.com")  # , is_active=True)
 
         self.author1 = Author.objects.create(lastname='1', firstname='1f', gravatar_email='',
                                              email='1@1.fr', home_page_url='')
@@ -75,7 +75,7 @@ class PermissionBackendTest(TestCase):
                       self.first_user.get_all_permissions(self.project))
         self.assertNotIn('code_doc.project_administrate', self.first_user.get_all_permissions())
 
-        user2 = User.objects.create_user(username='user2', password='user2')
+        user2 = User.objects.create_user(username='user2', password='user2', email="c@c.com")
         self.assertNotIn('code_doc.project_administrate', user2.get_all_permissions(self.project))
         self.assertNotIn('code_doc.project_administrate', user2.get_all_permissions())
 
