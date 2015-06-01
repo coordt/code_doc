@@ -3,7 +3,7 @@ from django.db import IntegrityError
 
 # Create your tests here.
 from django.test import Client
-from code_doc.models import Project, Author, ProjectSeries, Artifact
+from code_doc.models import Project, Author, ProjectSeries, Artifact, Branch, Revision
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 from django.core.files import File
@@ -26,7 +26,7 @@ class ProjectSeriesArtifactTest(TestCase):
         # path for the queries to the project details
         self.path = 'project_artifacts_add'
 
-        self.first_user = User.objects.create_user(username='toto', password='titi')  # , is_active=True)
+        self.first_user = User.objects.create_user(username='toto', password='titi', email="b@b.com")  # , is_active=True)
 
         self.author1 = Author.objects.create(lastname='1', firstname='1f', gravatar_email='',
                                              email='1@1.fr', home_page_url='')
@@ -36,18 +36,22 @@ class ProjectSeriesArtifactTest(TestCase):
 
         self.new_series = ProjectSeries.objects.create(series="12345", project=self.project,
                                                        release_date=datetime.datetime.now())
-        self.new_series.save()
+        self.revision = Revision.objects.create(project=self.project, revision="FEDABC")
 
         import StringIO
         self.imgfile = StringIO.StringIO('GIF87a\x01\x00\x01\x00\x80\x01\x00\x00\x00\x00ccc,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;')
-        self.imgfile.name = 'test_img_file.gif'
+        self.imgfile.name = 'test_img_file1.gif'
+        self.imgfile1 = StringIO.StringIO('GIF87a\x11\x00\x01\x00\x80\x01\x00\x00\x00\x00ccc,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;')
+        self.imgfile1.name = 'test_img_file1.gif'
+        self.imgfile2 = StringIO.StringIO('GIF87a\x10\x00\x01\x00\x80\x01\x00\x00\x00\x00ccc,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;')
+        self.imgfile2.name = 'test_img_file2.gif'
 
     def test_series_uniqueness(self):
         with self.assertRaises(IntegrityError):
             new_series = ProjectSeries.objects.create(series="12345", project=self.project,
                                                       release_date=datetime.datetime.now())
 
-    def test_project_revision_artifact_wrong(self):
+    def test_project_series_artifact_wrong(self):
         """Test if giving the wrong series yields the proper error"""
         initial_path = reverse(self.path, args=[self.project.id, self.new_series.id + 1])
         response = self.client.login(username='toto', password='titi')
@@ -57,7 +61,7 @@ class ProjectSeriesArtifactTest(TestCase):
         # ON PURPOSE
         self.assertEqual(response.status_code, 401)
 
-    def test_project_revision_artifact_no_anonymous_access(self):
+    def test_project_series_artifact_no_anonymous_access(self):
         """Creation of a new project series and its artifacts not allowed for anonymous"""
         initial_path = reverse(self.path, args=[self.project.id, self.new_series.id])
         response = self.client.get(initial_path, follow=False)
@@ -70,7 +74,7 @@ class ProjectSeriesArtifactTest(TestCase):
         self.assertRedirects(response, reverse('login') + '?next=' + initial_path)
         self.assertEqual(response.status_code, 200)
 
-    def test_project_revision_artifact_possible_for_admins(self):
+    def test_project_series_artifact_possible_for_admins(self):
         """Creation of a new project series and its artifacts always possible for admins"""
         admin_user = User.objects.create_superuser(username='admin', email='bla@bla.com',
                                                    password='admin')
@@ -129,11 +133,31 @@ class ProjectSeriesArtifactTest(TestCase):
         response = self.client.post(initial_path,
                                     {'description': 'blabla',
                                      'artifactfile': self.imgfile,
-                                     'is_documentation': False},
+                                     'is_documentation': False,
+                                     'branch': 'blahblah',
+                                     'revision': 'blah'},
                                     follow=True)
         self.assertNotIn('errorlist', response.content)
 
+        # Test that the on the fly generation was successfull and that
+        # the new artifact properly references the Revision.
         self.assertEqual(self.new_series.artifacts.count(), 1)
+        self.assertEqual(Revision.objects.count(), 2)  # self.revision and revision 'blah'
+        self.assertEqual(Branch.objects.count(), 1)
+
+        artifact = self.new_series.artifacts.all()[0]
+        revision = Revision.objects.get(revision='blah')
+        branch = Branch.objects.get(name='blahblah')
+
+        self.assertEqual(artifact.project_series.count(), 1)
+        self.assertEqual(artifact.project_series.all()[0], self.new_series)
+        self.assertEqual(artifact.revision, revision)
+
+        # Check if the Revision is referenced by the correct branch and project
+        self.assertEqual(artifact.revision.project, self.project)
+        self.assertIn(branch, artifact.revision.branches.all())
+
+        # Check the response content
         self.assertEqual(response.status_code, 200)
         self.assertIn(hashlib.md5(self.imgfile.getvalue()).hexdigest().upper(), response.content)
 
@@ -151,7 +175,10 @@ class ProjectSeriesArtifactTest(TestCase):
         response = self.client.post(initial_path,
                                     {'description': 'blabla',
                                      'artifactfile': self.imgfile,
-                                     'is_documentation': False},
+                                     'is_documentation': False,
+                                     'branch': 'blah',
+                                     'revision': 'blah1'
+                                     },
                                     follow=True)
 
         self.assertEqual(self.new_series.artifacts.count(), 1)
@@ -166,10 +193,186 @@ class ProjectSeriesArtifactTest(TestCase):
         self.assertEquals(len(dic_ids['artifacts']), 1)
         self.assertTrue(dic_ids['artifacts'].has_key(str(Artifact.objects.first().id)))
 
-        artifact = dic_ids['artifacts'][str(Artifact.objects.first().id)]
+        artifact_dict_entry = dic_ids['artifacts'][str(Artifact.objects.first().id)]
 
-        self.assertEquals(artifact['md5'].upper(),
+        artifact_object = Artifact.objects.get(md5hash=artifact_dict_entry['md5'])
+
+        # Test that the on the fly generation was successfull and that
+        # the new artifact properly references the Revision.
+        self.assertEqual(Revision.objects.count(), 2)  # self.revision and revision 'blah1'
+        self.assertEqual(Branch.objects.count(), 1)
+
+        revision = Revision.objects.get(revision='blah1')
+        branch = Branch.objects.get(name='blah')
+
+        # self.fail(artifact)
+        self.assertEqual(artifact_object.project_series.count(), 1)
+        self.assertEqual(artifact_object.project_series.all()[0], self.new_series)
+        self.assertEqual(artifact_object.revision, revision)
+
+        # Check if the Revision is referenced by the correct branch and project
+        self.assertEqual(artifact_object.revision.project, self.project)
+        self.assertIn(branch, artifact_object.revision.branches.all())
+
+        self.assertEquals(artifact_dict_entry['md5'].upper(),
                           hashlib.md5(self.imgfile.getvalue()).hexdigest().upper())
+
+    def test_revision_and_branch_creation_on_artifact_upload(self):
+        """Test if the on-the-fly Revision and Branch generation works, when we upload an Artifact
+        """
+
+        response = self.client.login(username='toto', password='titi')
+
+        initial_path = reverse(self.path, args=[self.project.id, self.new_series.id])
+        response = self.client.post(initial_path,
+                                    {'description': 'blabla',
+                                     'artifactfile': self.imgfile,
+                                     'is_documentation': False,
+                                     'branch': 'blah',
+                                     'revision': 'blah1'
+                                     },
+                                    follow=True)
+
+        try:
+            Revision.objects.get(revision='blah1')
+        except Revision.DoesNotExist:
+            self.fail("[Revision.DoesNotExist] The Revisions returned no object from the get query")
+        except Revision.MultipleObjectsReturned:
+            self.fail("[Revision.MultipleObjectsReturned] The Revisions returned more than one object from the get query")
+        except:
+            self.fail("Unexpected Exception in get query")
+            raise
+
+        try:
+            Branch.objects.get(name='blah')
+        except Branch.DoesNotExist:
+            self.fail("[Branch.DoesNotExist] The Branches returned no object from the get query")
+        except Branch.MultipleObjectsReturned:
+            self.fail("[Branch.MultipleObjectsReturned] The Branches returned more than one object from the get query")
+        except:
+            self.fail("Unexpected Exception in get query")
+            raise
+
+        # We tested that this get returns exactly 1 element.
+        branch = Branch.objects.get(name='blah')
+        self.assertEqual(branch.revisions.count(), 1)
+
+    def test_multiple_upload_of_artifacts_for_same_branch(self):
+        """Tests if we can upload multiple revisions for the same branch
+        """
+        response = self.client.login(username='toto', password='titi')
+
+        initial_path = reverse(self.path, args=[self.project.id, self.new_series.id])
+        self.client.post(initial_path,
+                         {'description': 'blabla',
+                          'artifactfile': self.imgfile,
+                          'is_documentation': False,
+                          'branch': 'blah',
+                          'revision': 'blah1'
+                          },
+                         follow=True)
+        self.client.post(initial_path,
+                         {'description': 'blabla',
+                          'artifactfile': self.imgfile1,
+                          'is_documentation': False,
+                          'branch': 'blah',
+                          'revision': 'blah2'
+                          },
+                         follow=True)
+        self.client.post(initial_path,
+                         {'description': 'blabla',
+                          'artifactfile': self.imgfile2,
+                          'is_documentation': False,
+                          'branch': 'blah',
+                          'revision': 'blah3'
+                          },
+                         follow=True)
+
+        try:
+            Revision.objects.get(revision='blah1')
+            Revision.objects.get(revision='blah2')
+            Revision.objects.get(revision='blah3')
+        except Revision.DoesNotExist:
+            self.fail("[DoesNotExist] One of the Revisions returned no object from the get query")
+        except Revision.MultipleObjectsReturned:
+            self.fail("[MultipleObjectsReturned] One of the Revisions returned more than one object from the get query")
+        except:
+            self.fail("Unexpected Exception in get query")
+            raise
+
+        try:
+            Branch.objects.get(name='blah')
+        except Branch.DoesNotExist:
+            self.fail("[Branch.DoesNotExist] The Branches returned no object from the get query")
+        except Branch.MultipleObjectsReturned:
+            self.fail("[Branch.MultipleObjectsReturned] The Branches returned more than one object from the get query")
+        except:
+            self.fail("Unexpected Exception in get query")
+            raise
+
+        # Returns exactly one element
+        branch = Branch.objects.get(name='blah')
+
+        self.assertEqual(branch.revisions.count(), 3)
+        self.assertEqual(Branch.objects.count(), 1)
+
+    def test_multiple_upload_of_artifacts_for_same_revision(self):
+        """Tests if we can upload multiple Artifacts for the same revision
+        """
+        response = self.client.login(username='toto', password='titi')
+
+        initial_path = reverse(self.path, args=[self.project.id, self.new_series.id])
+        self.client.post(initial_path,
+                         {'description': 'blabla',
+                          'artifactfile': self.imgfile,
+                          'is_documentation': False,
+                          'branch': 'blah',
+                          'revision': 'blah1'
+                          },
+                         follow=True)
+        self.client.post(initial_path,
+                         {'description': 'blabla',
+                          'artifactfile': self.imgfile1,
+                          'is_documentation': False,
+                          'branch': 'blah',
+                          'revision': 'blah1'
+                          },
+                         follow=True)
+        self.client.post(initial_path,
+                         {'description': 'blabla',
+                          'artifactfile': self.imgfile2,
+                          'is_documentation': False,
+                          'branch': 'blah',
+                          'revision': 'blah1'
+                          },
+                         follow=True)
+
+        try:
+            Revision.objects.get(revision='blah1')
+        except Revision.DoesNotExist:
+            self.fail("[Revision.DoesNotExist] The Revisions returned no object from the get query")
+        except Revision.MultipleObjectsReturned:
+            self.fail("[Revision.MultipleObjectsReturned] The Revisions returned more than one object from the get query")
+        except:
+            self.fail("Unexpected Exception in get query")
+            raise
+
+        revision = Revision.objects.get(revision='blah1')
+        self.assertEqual(revision.artifacts.count(), 3)
+
+        try:
+            Branch.objects.get(name='blah')
+        except Branch.DoesNotExist:
+            self.fail("[Branch.DoesNotExist] The Branches returned no object from the get query")
+        except Branch.MultipleObjectsReturned:
+            self.fail("[Branch.MultipleObjectsReturned] The Branches returned more than one object from the get query")
+        except:
+            self.fail("Unexpected Exception in get query")
+            raise
+
+        branch = Branch.objects.get(name='blah')
+        self.assertEqual(branch.revisions.count(), 1)
+        self.assertEqual(Branch.objects.count(), 1)
 
     def test_send_new_artifact_with_login_twice(self):
         """Sending the same file twice should not create a new file"""
@@ -182,7 +385,9 @@ class ProjectSeriesArtifactTest(TestCase):
         response = self.client.post(initial_path,
                                     {'description': 'blabla',
                                      'artifactfile': self.imgfile,
-                                     'is_documentation': False},
+                                     'is_documentation': False,
+                                     'branch': 'blahblah',
+                                     'revision': 'blah'},
                                     follow=True)
 
         import hashlib
@@ -198,7 +403,9 @@ class ProjectSeriesArtifactTest(TestCase):
         response = self.client.post(initial_path,
                                     {'description': 'blabla',
                                      'artifactfile': self.imgfile,
-                                     'is_documentation': False},
+                                     'is_documentation': False,
+                                     'branch': 'blahblah',
+                                     'revision': 'blah'},
                                     follow=True)
 
         # indicates the conflict
@@ -226,14 +433,14 @@ class ProjectSeriesArtifactTest(TestCase):
             test_file = SimpleUploadedFile('filename.tar.bz2', f.read())
 
             new_artifact = Artifact.objects.create(
-                              project_series=self.new_series,
+                              project=self.project,
+                              revision=self.revision,
                               md5hash='1',
                               description='test artifact',
                               is_documentation=True,
                               documentation_entry_file=os.path.basename(__file__),
                               artifactfile=test_file)
-
-            new_artifact.save()
+            new_artifact.project_series.add(self.new_series)
 
             # not a documentation artifact
             self.assertTrue(os.path.exists(get_deflation_directory(new_artifact)))
@@ -260,12 +467,14 @@ class ProjectSeriesArtifactTest(TestCase):
             test_file = SimpleUploadedFile('filename.tar.bz2', f.read())
 
             new_artifact = Artifact.objects.create(
-                              project_series=self.new_series,
+                              project=self.project,
+                              revision=self.revision,
                               md5hash='1',
                               description='test artifact',
                               is_documentation=False,
                               documentation_entry_file=os.path.basename(__file__),
                               artifactfile=test_file)
+            new_artifact.project_series.add(self.new_series)
 
             test_file.close()
 
@@ -309,12 +518,14 @@ class ProjectSeriesArtifactTest(TestCase):
             test_file = SimpleUploadedFile('filename.tar.bz2', f.read())
 
             new_artifact = Artifact.objects.create(
-                              project_series=self.new_series,
+                              project=self.project,
+                              revision=self.revision,
                               md5hash='1',
                               description='test artifact',
                               is_documentation=True,
                               documentation_entry_file=os.path.basename(__file__),
                               artifactfile=test_file)
+            new_artifact.project_series.add(self.new_series)
 
             test_file.close()
 

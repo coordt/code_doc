@@ -194,7 +194,12 @@ LOGGING = {
           'handlers': ['console'],
           'level': 'DEBUG',
           'propagate': True,
-      }
+      },
+      'code_doc.migrations': {
+          'handlers': ['console'],
+          'level': 'DEBUG',
+          'propagate': True,
+      },
   },
 }
 

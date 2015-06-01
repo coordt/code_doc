@@ -19,7 +19,7 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
         self.client = Client()
 
         # path for the queries to the project details
-        self.path = 'project_revisions_all'
+        self.path = 'project_series_all'
 
         self.first_user = User.objects.create_user(username='test_series_user',
                                                    password='test_series_user')
@@ -42,7 +42,13 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
             f.seek(0)
 
             fields = {}
+
             fields['description'] = "revision from client based application"
+            fields['is_documentation'] = "False"
+            fields['documentation_entry_file'] = ''
+            fields['upload_date'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            fields['branch'] = 'blah'
+            fields['revision'] = 'blahblah'
 
             files = []
 
@@ -81,7 +87,7 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
         post_url = '/s/%s/%s/' % (self.project.name, self.series.series)
         response = instance.get(post_url)
         redir = instance.get_redirection(post_url)
-        self.assertEqual(redir, reverse('project_revision', args=[self.project.id, self.series.id]))
+        self.assertEqual(redir, reverse('project_series', args=[self.project.id, self.series.id]))
 
     def test_get_json_for_project_id(self):
         """Tests if the json mapping the name of project/series to ids is ok"""
