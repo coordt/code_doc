@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-from django.forms import Form, ModelForm, FileField, Textarea, DateInput, CheckboxSelectMultiple
+from django.forms import Form, ModelForm, FileField, Textarea, DateInput, CheckboxSelectMultiple, TextInput, EmailInput, Select
 
-from code_doc.models import ProjectSeries, Project
+from code_doc.models import ProjectSeries, Project, Author
 from django.contrib.auth.models import User, Group
 
 
@@ -10,6 +10,19 @@ class ArtifactForm(Form):
         label='Select a file',
         help_text='max. 42 megabytes'
     )
+
+
+class AuthorForm(ModelForm):
+    class Meta:
+        model = Author
+        fields = '__all__'
+        widgets = {
+            'firstname': TextInput(attrs={'size': 50}),
+            'lastname': TextInput(attrs={'size': 50}),
+            'email': EmailInput(attrs={'size': 50}),
+            'gravatar_email': EmailInput(attrs={'size': 50}),
+            'home_page_url': TextInput(attrs={'size': 50}),
+        }
 
 
 class ProjectSeriesForm(ModelForm):

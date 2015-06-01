@@ -28,7 +28,7 @@ import logging
 import json
 
 from code_doc.models import Project, Author, Topic, Artifact, ProjectSeries
-from code_doc.forms import ProjectSeriesForm
+from code_doc.forms import ProjectSeriesForm, AuthorForm
 from code_doc.permissions.decorators import permission_required_on_object
 
 # logger for this file
@@ -531,8 +531,36 @@ def detail_author(request, author_id):
 
     project_list = Project.objects.filter(authors=author)
     coauthor_list = Author.objects.filter(project__in=project_list).distinct().exclude(pk=author_id)
+
     return render(request,
                   'code_doc/author_details.html',
                   {'project_list': project_list,
                    'author': author,
+                   'user': request.user,
                    'coauthor_list': coauthor_list})
+
+
+class AuthorUpdateView(PermissionOnObjectViewMixin, UpdateView):
+    """View for editing information about an Author
+
+      .. note:: in order to be able to edit an Author, the user should have the
+                'code_doc.author_edit' permission on the Author object.
+    """
+
+    form_class = AuthorForm
+    model = Author
+
+    permissions_on_object = ('code_doc.author_edit',)
+    permissions_object_getter = 'get_author_from_request'
+
+    template_name = "code_doc/authors/author_edit.html"
+
+    pk_url_kwarg = 'author_id'
+
+    def get_author_from_request(self, request, *args, **kwargs):
+        try:
+            return Author.objects.get(pk=kwargs['author_id'])
+        except Author.DoesNotExist:
+            logger.warning('[AuthorUpdateView] non existent Author with id %s',
+                           kwargs['author_id'])
+            return None

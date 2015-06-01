@@ -4,8 +4,8 @@
 {% if uploaded_image or gravatar_email %}
 <!-- Display or load img -->
   <img src=
-  {% if image %}
-    "{% get_media_prefix %}{{image}}"
+  {% if uploaded_image %}
+    "{% get_media_prefix %}{{uploaded_image}}"
   {% elif gravatar_email %}
     "{% gravatar_url gravatar_email %}"
   {% endif %}
