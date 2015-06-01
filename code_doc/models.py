@@ -261,20 +261,7 @@ class ProjectSeries(models.Model):
              manage_permission_on_object(userobj, self.view_artifacts_users,
                                          self.view_artifacts_groups, False))
 
-    # @todo(Stephan): Which implementation is the best?
     def get_all_revisions(self):
-        # list_of_revisions = []
-        # for artifact in self.artifacts:
-        #     list_of_revisions.append(artifact.revision)
-
-        # return list(set(list_of_revisions))
-        #
-        # list_of_revisions = []
-        # for artifact in self.artifacts:
-        #       if artifact not in list_of_revisions:
-        #           list_of_revisions.append(artifact)
-        # return list_of_revisions
-
         return list(set(map(Artifact.get_revision, self.artifacts.all())))
 
 
@@ -286,12 +273,13 @@ class Revision(models.Model):
     commit_time = models.DateTimeField('Time of creation',
                                        auto_now_add=True,
                                        help_text='Automatic field that is set when this revision is created')
+    def __unicode__(self):
+        return "[%s] %s" % (self.project.name, self.revision)
 
     class Meta:
         get_latest_by = 'commit_time'
         unique_together = (('project', 'revision'))
 
-    # @todo(Stephan): Use other implementation? Remove duplicates at each stage of the loop?
     def get_all_referencing_series(self):
         list_of_series = []
         for artifact in self.artifacts.all():
@@ -317,7 +305,6 @@ def get_artifact_location(instance, filename):
         except ValueError, e:
             return False, 0
 
-    # @todo(Stephan): Old versions need to be updated!
     media_relative_dir = os.path.join("artifacts",
                                       instance.revision.project.name,
                                       instance.revision.revision)

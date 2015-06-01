@@ -27,14 +27,17 @@ def set_project_for_artifact(apps, schema_editor):
     for art in Artifact.objects.all():
         art.project = art.project_series_backup.project
         if art.project_series_backup.project is None:
-            logger.debug('Managed to create Revision')
+            logger.debug('Failed to link artifact %s to any project', art)
+            
+        art.project_series.add(art.project_series_backup)
+        logger.debug('Artifact %s linked to series %s', art.artifactfile, art.project_series_backup.series)
         art.save()
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('code_doc', '0011_artifact_project_series'),
+        ('code_doc', '0013_artifact_project_series'),
     ]
 
     operations = [

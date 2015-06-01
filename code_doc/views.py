@@ -274,7 +274,7 @@ class ProjectSeriesDetailsView(PermissionOnObjectViewMixin, DetailView):
             logger.warning('[ProjectSeriesDetailsView] non existent series with id %d',
                            kwargs['series_id'])
             return None
-
+        
         return series
 
     def get_context_data(self, **kwargs):
@@ -289,6 +289,7 @@ class ProjectSeriesDetailsView(PermissionOnObjectViewMixin, DetailView):
         context['project'] = series_object.project
         context['project_id'] = series_object.project.id
         context['artifacts'] = series_object.artifacts.all()
+
         return context
 
 

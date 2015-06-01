@@ -7,7 +7,7 @@ from django.db import models, migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('code_doc', '0012_artifact_revision_mandatory'),
+        ('code_doc', '0014_artifact_revision_mandatory'),
     ]
 
     operations = [
