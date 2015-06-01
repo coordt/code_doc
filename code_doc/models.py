@@ -8,7 +8,8 @@ from django.contrib.auth.models import AbstractUser, Group
 from django.core.urlresolvers import reverse
 
 from django.template.defaultfilters import slugify
-from django.db.models.signals import post_save, pre_delete, post_delete
+from django.db import IntegrityError
+
 from django.dispatch import receiver
 
 
@@ -190,9 +191,13 @@ class Project(models.Model):
         artifact_counts = [rev.artifacts.count() for rev in self.series.all()]
         return sum(artifact_counts) if len(artifact_counts) > 0 else 0
 
+    def get_number_of_series(self):
+        """Returns the number of series for a project"""
+        return self.series.count()
+
     def get_number_of_revisions(self):
         """Returns the number of revisions for a project"""
-        return self.series.count()
+        return self.revisions.count()
 
     def save(self, *args, **kwargs):
         self.slug = slugify(self.name)
@@ -232,8 +237,8 @@ class ProjectSeries(models.Model):
         return "[%s @ %s] [%s]" % (self.project.name, self.series, self.release_date)
 
     def get_absolute_url(self):
-        return reverse('project_revision', kwargs={'project_id': self.project.pk,
-                                                   'series_id': self.pk})
+        return reverse('project_series', kwargs={'project_id': self.project.pk,
+                                                 'series_id': self.pk})
 
     def has_user_series_view_permission(self, userobj):
         """Returns true if the user has view permission on this series, False otherwise"""
@@ -256,6 +261,53 @@ class ProjectSeries(models.Model):
              manage_permission_on_object(userobj, self.view_artifacts_users,
                                          self.view_artifacts_groups, False))
 
+    # @todo(Stephan): Which implementation is the best?
+    def get_all_revisions(self):
+        # list_of_revisions = []
+        # for artifact in self.artifacts:
+        #     list_of_revisions.append(artifact.revision)
+
+        # return list(set(list_of_revisions))
+        #
+        # list_of_revisions = []
+        # for artifact in self.artifacts:
+        #       if artifact not in list_of_revisions:
+        #           list_of_revisions.append(artifact)
+        # return list_of_revisions
+
+        return list(set(map(Artifact.get_revision, self.artifacts.all())))
+
+
+class Revision(models.Model):
+    """A Revision is a collection of artifacts, that were produced by the same
+       state of the Project's code."""
+    revision = models.CharField(max_length=200)  # can be md5 hash
+    project = models.ForeignKey(Project, related_name='revisions')
+    commit_time = models.DateTimeField('Time of creation',
+                                       auto_now_add=True,
+                                       help_text='Automatic field that is set when this revision is created')
+
+    class Meta:
+        get_latest_by = 'commit_time'
+        unique_together = (('project', 'revision'))
+
+    # @todo(Stephan): Use other implementation? Remove duplicates at each stage of the loop?
+    def get_all_referencing_series(self):
+        list_of_series = []
+        for artifact in self.artifacts.all():
+            list_of_series += artifact.project_series.all()
+        return list(set(list_of_series))
+
+
+class Branch(models.Model):
+    """A Branch is referenced by a Revision in order to group Revisions by the branch it was
+       created from.
+
+       It stores how many Revisions we allow this Branch to have."""
+    name = models.CharField(max_length=100)
+    nr_of_revisions_kept = models.IntegerField(default=15)
+    revisions = models.ManyToManyField(Revision, related_name='branches')
+
 
 def get_artifact_location(instance, filename):
     """An helper function to specify the storage location of an uploaded file"""
@@ -265,9 +317,10 @@ def get_artifact_location(instance, filename):
         except ValueError, e:
             return False, 0
 
+    # @todo(Stephan): Old versions need to be updated!
     media_relative_dir = os.path.join("artifacts",
-                                      instance.project_series.project.name,
-                                      instance.project_series.series)
+                                      instance.revision.project.name,
+                                      instance.revision.revision)
     root_dir = os.path.join(settings.MEDIA_ROOT, media_relative_dir)
 
     if os.path.exists(root_dir):
@@ -297,7 +350,10 @@ def get_deflation_directory(instance, without_media_root=False):
 
 class Artifact(models.Model):
     """An artifact is a downloadable file"""
-    project_series = models.ForeignKey(ProjectSeries, related_name="artifacts")
+    project = models.ForeignKey(Project, related_name='artifacts')
+
+    project_series = models.ManyToManyField(ProjectSeries, related_name='artifacts')
+    revision = models.ForeignKey(Revision, related_name='artifacts')
     md5hash = models.CharField(max_length=1024)  # md5 hash
     description = models.TextField('description of the artifact', max_length=1024)
     artifactfile = models.FileField(upload_to=get_artifact_location,
@@ -313,16 +369,17 @@ class Artifact(models.Model):
                                    null=True, blank=True)
 
     def get_absolute_url(self):
-        return reverse('project_revision', kwargs={'project_id': self.project_series.project.pk,
-                                                   'series_id': self.project_series.pk})
+        return reverse('project_series', kwargs={'project_id': self.revision.project.pk,
+                                                 'series_id': self.project_series.all()[0].pk})
 
     def __unicode__(self):
-        return "%s | %s | %s" % (self.project_series, self.artifactfile.name, self.md5hash)
+        return "%s | %s | %s" % (self.revision, self.artifactfile.name, self.md5hash)
 
     class Meta:
-        # we allow only one version per project version
-        # (we can however have the same file in several versions)
-        unique_together = (("project_series", "md5hash"), )
+        # we allow only one version per project
+        # (we can however have the same file in several Series)
+        unique_together = (("project", "md5hash"), )
+        pass
 
     def filename(self):
         return os.path.basename(self.artifactfile.name)
@@ -340,95 +397,30 @@ class Artifact(models.Model):
         deflate_directory = get_deflation_directory(self, without_media_root=True)
         return urllib.pathname2url(os.path.join(deflate_directory, self.documentation_entry_file))
 
+    @staticmethod
+    def get_revision(artifact):
+        return artifact.revision
+
+    @staticmethod
+    def md5_equals(md5_1, md5_2):
+        return md5_1.upper() == md5_2.upper()
+
+    def promote_to_series(self, new_series):
+        """Adds a new series to the list of series, this artifact belongs to"""
+        self.project_series.add(new_series)
+
     def save(self, *args, **kwargs):
-        import hashlib
-        m = hashlib.md5()
+        # @note(Stephan):
+        # We use the m2m_changed Signal of the Artifact in order to check that
+        # if we add a ProjectSeries to the Artifact, this new ProjectSeries
+        # belongs to the same Project the Artifact does
+
+        # Compute md5 hash if not given
         if not self.md5hash:
+            import hashlib
+            m = hashlib.md5()
             for chunk in self.artifactfile.chunks():
                 m.update(chunk)
             self.md5hash = m.hexdigest()
 
         super(Artifact, self).save(*args, **kwargs)  # Call the "real" save() method.
-
-
-def is_deflated(instance):
-    """Returns true if the artifact instance should or have been deflated"""
-    return instance.is_documentation and \
-        os.path.splitext(instance.artifactfile.name)[1] in ['.tar', '.bz2', '.gz']
-
-
-@receiver(post_save, sender=Artifact)
-def callback_artifact_deflation_on_save(sender, instance, created, raw, **kwargs):
-    """Callback received after an artifact has been saved in the database. In case of a documentation
-    artifact, and in case the artifact is a zip/archive, we deflate it"""
-
-    # logger.debug('[project artifact] post_save artifact %s', instance)
-
-    # we do not perform any deflation in case of database populating action
-    if raw:
-        return
-
-    # we do not perform any action in case of save failure
-    if not created:
-        return
-
-    # deflate if documentation
-    if is_deflated(instance):
-
-        # I do not know if this one is needed in fact, it is if we are in the save method of
-        # Artifact but from here the file should be fully accessible
-        with tempfile.NamedTemporaryFile(dir=settings.USER_UPLOAD_TEMPORARY_STORAGE) as f:
-            for chunk in instance.artifactfile.chunks():
-                f.write(chunk)
-            f.seek(0)
-            instance.artifactfile.close()
-
-            deflate_directory = get_deflation_directory(instance)
-            # logger.debug('[project artifact] deflating artifact %s to %s', instance, deflate_directory)
-            tar = tarfile.open(fileobj=f)
-
-            curdir = os.path.abspath(os.curdir)
-            if(not os.path.exists(deflate_directory)):
-                os.makedirs(deflate_directory)
-            os.chdir(deflate_directory)
-            tar.extractall()  # path = deflate_directory)
-            os.chdir(curdir)
-
-    pass
-
-
-@receiver(pre_delete, sender=Artifact)
-def callback_artifact_documentation_delete(sender, instance, using, **kwargs):
-    """Callback received before an artifact has is being removed from the database. In case of
-    a documentation artifact, and in case the artifact is a zip/archive, the deflated directory
-    is removed."""
-    # logger.debug('[project artifact] pre_delete artifact %s', instance)
-
-    # deflate if documentation and archive
-    if is_deflated(instance):
-        deflate_directory = get_deflation_directory(instance)
-        if(os.path.exists(deflate_directory)):
-            # logger.debug('[project artifact] removing deflated artifact %s from %s', instance, deflate_directory)
-
-            def on_error(instance, function, path, excinfo):
-                logger.warning('[project artifact] error removing %s for instance %s',
-                               path, instance)
-                return
-
-            shutil.rmtree(deflate_directory, False, functools.partial(on_error, instance=instance))
-
-    # removing the file on post delete
-    pass
-
-
-@receiver(post_delete, sender=Artifact)
-def callback_artifact_delete(sender, instance, using, **kwargs):
-    # logger.debug('[project artifact] post_delete artifact %s', instance)
-    storage, path = instance.artifactfile.storage, instance.artifactfile.path
-    storage.delete(path)
-    try:
-        storage.delete(path)
-    except WindowsError, e:
-        logger.warning('[project artifact] error removing %s for instance %s', path, instance)
-    # if(os.path.exists(instance.full_path_name())):
-    #    os.remove(instance.full_path_name())

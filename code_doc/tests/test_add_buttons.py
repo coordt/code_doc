@@ -19,7 +19,7 @@ class TemplateAddButtonTest(TestCase):
         self.client = Client()
 
         # path for the queries to the project details
-        self.path = 'project_revisions_all'
+        self.path = 'project_series_all'
 
         # dummy setup
         self.first_user = User.objects.create_user(username='toto', password='titi',
@@ -52,7 +52,7 @@ class TemplateAddButtonTest(TestCase):
         """Tests the button is disabled for non maintainer"""
         from django.template import Context, Template
 
-        not_allowed_for_project = User.objects.create_user(username='not', password='allowed')
+        not_allowed_for_project = User.objects.create_user(username='not', password='allowed', email="a@a.com")
         response = self.client.login(username='not', password='allowed')
         self.assertTrue(response)
 

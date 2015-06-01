@@ -27,7 +27,7 @@ import os
 import logging
 import json
 
-from code_doc.models import Project, Author, Topic, Artifact, ProjectSeries
+from code_doc.models import Project, Author, Topic, Artifact, ProjectSeries, Branch, Revision
 from code_doc.forms import ProjectSeriesForm, AuthorForm
 from code_doc.permissions.decorators import permission_required_on_object
 
@@ -150,7 +150,7 @@ class ProjectView(DetailView):
 
     model = Project
     pk_url_kwarg = 'project_id'
-    template_name = 'code_doc/project_revision/project_details.html'
+    template_name = 'code_doc/project_series/project_details.html'
 
     def get_context_data(self, **kwargs):
         context = super(ProjectView, self).get_context_data(**kwargs)
@@ -165,7 +165,7 @@ class ProjectView(DetailView):
             assert(self.request.user.has_perm('code_doc.series_view', v))
             # if not self.request.user.has_perm('code_doc.series_view', v):
             #  continue
-            current_update = Artifact.objects.filter(project_series=v).order_by('upload_date').last()
+            current_update = v.artifacts.order_by('upload_date').last()
             if(current_update is not None):
                 last_update[v] = current_update.upload_date
             else:
@@ -203,7 +203,7 @@ class ProjectSeriesAddView(PermissionOnObjectViewMixin, CreateView):
     form_class = ProjectSeriesForm
 
     model = ProjectSeries
-    template_name = "code_doc/project_revision/project_revision_add_or_edit.html"
+    template_name = "code_doc/project_series/project_series_add_or_edit.html"
 
     # user should have the appropriate privileges on the object in order to be able to add anything
     permissions_on_object = ('code_doc.project_series_add',)
@@ -251,7 +251,7 @@ class ProjectSeriesDetailsView(PermissionOnObjectViewMixin, DetailView):
     # part of the url giving the proper object
     pk_url_kwarg = 'series_id'
 
-    template_name = 'code_doc/project_revision/project_revision_details.html'
+    template_name = 'code_doc/project_series/project_series_details.html'
 
     # we should have admin priviledges on the object in order to be able to add anything
     permissions_on_object = ('code_doc.series_view', 'code_doc.series_artifact_view')
@@ -331,7 +331,7 @@ class ProjectSeriesUpdateView(PermissionOnObjectViewMixin, UpdateView):
     # part of the url giving the proper object
     pk_url_kwarg = 'series_id'
 
-    template_name = 'code_doc/project_revision/project_revision_add_or_edit.html'
+    template_name = 'code_doc/project_series/project_series_add_or_edit.html'
 
     # we should have admin priviledges on the object in order to be able to add anything
     permissions_on_object = ('code_doc.series_edit',)
@@ -377,13 +377,13 @@ class ProjectSeriesDetailsShortcutView(RedirectView):
     """A shortcut for being able to reach a project and a series with only their respective name"""
     permanent = False
     query_string = True
-    pattern_name = 'project_revision'
+    pattern_name = 'project_series'
 
     def get_redirect_url(self, *args, **kwargs):
         logger.debug('[project_series_redirection] %s', kwargs)
         project = get_object_or_404(Project, name=kwargs['project_name'])
         series = get_object_or_404(ProjectSeries, series=kwargs['series_number'], project=project)
-        return reverse('project_revision', args=[project.id, series.id])
+        return reverse('project_series', args=[project.id, series.id])
 
 
 class APIGetArtifacts(ProjectSeriesDetailsView, DetailView):
@@ -446,16 +446,17 @@ class ProjectSeriesArtifactEditionFormsView(PermissionOnObjectViewMixin):
         return context
 
     def get_success_url(self):
-        return reverse('project_revision',
-                       kwargs={'project_id': self.object.project_series.project.pk,
-                               'series_id': self.object.project_series.pk})
+        return reverse('project_series',
+                       kwargs={'project_id': self.object.revision.project.pk,
+                               'series_id': self.object.project_series.all()[0].pk})
 
 
 class ProjectSeriesArtifactAddView(ProjectSeriesArtifactEditionFormsView, CreateView):
     """Generic view for adding a series into a specific project"""
 
     template_name = "code_doc/project_artifacts/project_artifact_add.html"
-    fields = ['description', 'artifactfile', 'is_documentation', 'documentation_entry_file', 'upload_date']
+    fields = ['description', 'artifactfile', 'is_documentation', 'documentation_entry_file',
+              'upload_date']
 
     def form_valid(self, form):
 
@@ -463,7 +464,31 @@ class ProjectSeriesArtifactAddView(ProjectSeriesArtifactEditionFormsView, Create
         current_project = current_series.project
         assert(str(current_project.id) == self.kwargs['project_id'])
 
-        form.instance.project_series = current_series
+
+        # Get the raw data that was sent as the request
+        form_data_query_dict = self.request.POST
+        branch_name = form_data_query_dict['branch']
+        revision_name = form_data_query_dict['revision']
+
+        # Try to get already saved models from the database
+        revision, created = Revision.objects.get_or_create(revision=revision_name,
+                                                           project=current_project)
+        branch, created = Branch.objects.get_or_create(name=branch_name)
+        branch.revisions.add(revision)
+        form.instance.project = current_project
+        form.instance.revision = revision
+
+        # @todo(Stephan):
+        # Put all atomic transactions together
+        # Refactoring!
+        try:
+            with transaction.atomic():
+                form.instance.save()
+        except IntegrityError, e:
+            logging.error("[fileupload] error during the save %s", e)
+            return HttpResponse('Conflict %s' % form.instance.md5hash.upper(), status=409)
+
+        form.instance.project_series = [current_series]
 
         try:
             with transaction.atomic():
