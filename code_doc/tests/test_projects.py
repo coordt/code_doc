@@ -35,7 +35,7 @@ class ProjectTest(TestCase):
         self.assertEqual(len(response.context['authors']), len(self.project.authors.all()))
 
         # non existing project
-        response = self.client.get(reverse(self.path, args=[self.project.id+1]))
+        response = self.client.get(reverse(self.path, args=[self.project.id + 1]))
         self.assertEqual(response.status_code, 404)
 
     def test_project_administrator(self):
@@ -60,7 +60,6 @@ class ProjectTest(TestCase):
         revision = Revision.objects.create(revision='1', project=self.project)
 
         self.assertEqual(self.project.get_number_of_revisions(), 1)
-
 
     def test_project_get_number_of_files(self):
         """Number of files tests"""

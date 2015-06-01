@@ -293,29 +293,6 @@ class ProjectSeriesDetailsView(PermissionOnObjectViewMixin, DetailView):
         return context
 
 
-class CredentialsWidget(MultiWidget):
-    """
-
-    """
-    def __init__(self, fields, name_mapping, attrs=None):
-        widgets = [CheckboxSelectMultiple()]
-        super(MultiWidget, self).__init__(widgets, attrs)
-
-    def decompress(self, value):
-        if value:
-            return [value.date(), value.time().replace(microsecond=0)]
-        return [None, None]
-
-
-class EmptyWidget(CheckboxSelectMultiple):
-    """
-
-    """
-    def __init__(self, attrs=None):
-        super(EmptyWidget, self).__init__(attrs)
-
-    def render(self, name, value, attrs=None):
-        return ''
 
 
 # @todo: remove overlap with ProjectSeriesAddView
