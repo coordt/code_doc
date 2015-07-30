@@ -274,7 +274,7 @@ class ProjectSeriesDetailsView(PermissionOnObjectViewMixin, DetailView):
             logger.warning('[ProjectSeriesDetailsView] non existent series with id %d',
                            kwargs['series_id'])
             return None
-        
+
         return series
 
     def get_context_data(self, **kwargs):
@@ -445,16 +445,30 @@ class ProjectSeriesArtifactAddView(ProjectSeriesArtifactEditionFormsView, Create
 
         # Get the raw data that was sent as the request
         form_data_query_dict = self.request.POST
-        branch_name = form_data_query_dict['branch']
-        revision_name = form_data_query_dict['revision']
 
-        # Try to get already saved models from the database
-        revision, created = Revision.objects.get_or_create(revision=revision_name,
-                                                           project=current_project)
-        branch, created = Branch.objects.get_or_create(name=branch_name)
-        branch.revisions.add(revision)
+        if 'branch' in form_data_query_dict:
+            branch_name = form_data_query_dict['branch']
+            branch, branch_created = Branch.objects.get_or_create(name=branch_name)
+        else:
+            branch = None
+            branch_created = False
+
+        if 'revision' in form_data_query_dict:
+            revision_name = form_data_query_dict['revision']
+            # Try to get already saved models from the database
+            revision, revision_created = Revision.objects.get_or_create(revision=revision_name,
+                                                                        project=current_project)
+        else:
+            revision = None
+            revision_created = False
+
+        if branch is not None and revision is not None:
+            branch.revisions.add(revision)
+
         form.instance.project = current_project
-        form.instance.revision = revision
+
+        if revision is not None:
+            form.instance.revision = revision
 
         # @todo(Stephan):
         # Put all atomic transactions together

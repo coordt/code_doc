@@ -150,24 +150,24 @@ class Project(models.Model):
     authors = models.ManyToManyField(Author)
 
     # the administrators of the project, have the rights to edit the
-    administrators = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, null=True)
+    administrators = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True)
 
     home_page_url = models.CharField(max_length=250, null=True, blank=True)
     code_source_url = models.CharField(max_length=250, null=True, blank=True)
     copyright = models.ForeignKey(Copyright, null=True, blank=True)
-    copyright_holder = models.ManyToManyField(CopyrightHolder, null=True, blank=True)
+    copyright_holder = models.ManyToManyField(CopyrightHolder, blank=True)
 
-    topics = models.ManyToManyField(Topic, null=True, blank=True)
+    topics = models.ManyToManyField(Topic, blank=True)
 
     def __unicode__(self):
         return "%s" % (self.name)
 
     class Meta:
         permissions = (
-         ("project_view",          "Can see the project"),
-         ("project_administrate",  "Can administrate the project"),
-         ("project_series_add",   "Can add a series to the project"),
-         ("project_artifact_add",  "Can add an artifact to the project"),
+         ("project_view", "Can see the project"),
+         ("project_administrate", "Can administrate the project"),
+         ("project_series_add", "Can add a series to the project"),
+         ("project_artifact_add", "Can add an artifact to the project"),
         )
 
     def has_user_project_administrate_permission(self, user):
@@ -215,22 +215,22 @@ class ProjectSeries(models.Model):
 
     # the users and groups allowed to view the artifacts of the revision
     # and also this project series
-    view_users = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, null=True,
+    view_users = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True,
                                         related_name='view_users')
-    view_groups = models.ManyToManyField(Group, blank=True, null=True, related_name='view_groups')
+    view_groups = models.ManyToManyField(Group, blank=True, related_name='view_groups')
 
-    view_artifacts_users = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, null=True,
+    view_artifacts_users = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True,
                                                   related_name='view_artifact_users')
-    view_artifacts_groups = models.ManyToManyField(Group, blank=True, null=True,
+    view_artifacts_groups = models.ManyToManyField(Group, blank=True,
                                                    related_name='view_artifact_groups')
 
     class Meta:
-        unique_together = (("project", "series"), )
+        unique_together = (("project", "series"),)
         permissions = (
-          ("series_view",  "User of group has access to this revision"),
-          ("series_edit",  "User can edit the content of this series"),
+          ("series_view", "User of group has access to this revision"),
+          ("series_edit", "User can edit the content of this series"),
           # This is a refinement of series_view
-          ("series_artifact_view",  "Access to the artifacts of this revision"),
+          ("series_artifact_view", "Access to the artifacts of this revision"),
         )
 
     def __unicode__(self):
@@ -340,7 +340,7 @@ class Artifact(models.Model):
     project = models.ForeignKey(Project, related_name='artifacts')
 
     project_series = models.ManyToManyField(ProjectSeries, related_name='artifacts')
-    revision = models.ForeignKey(Revision, related_name='artifacts')
+    revision = models.ForeignKey(Revision, related_name='artifacts', null=True, blank=True)
     md5hash = models.CharField(max_length=1024)  # md5 hash
     description = models.TextField('description of the artifact', max_length=1024)
     artifactfile = models.FileField(upload_to=get_artifact_location,
@@ -365,7 +365,7 @@ class Artifact(models.Model):
     class Meta:
         # we allow only one version per project
         # (we can however have the same file in several Series)
-        unique_together = (("project", "md5hash"), )
+        unique_together = (("project", "md5hash"),)
         pass
 
     def filename(self):
