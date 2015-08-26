@@ -34,22 +34,24 @@ class ProjectSeriesForm(ModelForm):
             'view_artifacts_users', 'view_artifacts_groups'
         )
         labels = {
-            'series': 'Series name',
+            'series': 'Name',
             'description_mk': 'Description'
         }
         help_texts = {
+            'is_public': 'If checked, the serie will be visible from everyone. If not you have to specify the users/groups to which'
+            'you are granting access',
             'description_mk': 'Description/content of the series in MarkDown format'
         }
         widgets = {
             'series': Textarea(attrs={
-                                'cols': 120,
+                                'cols': 60,
                                 'rows': 2,
-                                'style': "resize:none"
+                                'style': "resize:none; width: 100%;"
                                 }),
             'description_mk': Textarea(attrs={
-                                        'cols': 120,
+                                        'cols': 60,
                                         'rows': 10,
-                                        'style': "resize:vertical"
+                                        'style': "resize:vertical; width: 100%; min-height: 50px;"
                                         }),
             'release_date': DateInput(attrs={
                                         'class': 'datepicker',
@@ -78,9 +80,11 @@ class ProjectSeriesForm(ModelForm):
         context['automatic_fields'] = (form[i] for i in ('series', 'release_date',
                                                          'description_mk', 'is_public'))
 
+        context['permission_headers'] = ['View', 'Artifact view']
+
+        # filter out users that do not have access to the project?
         context['active_users'] = User.objects.all()
 
-        context['permission_headers'] = ['View', 'Artifact view']
         context['user_permissions'] = zip(xrange(len(context['active_users'])),
                                           context['active_users'],
                                           form['view_users'],

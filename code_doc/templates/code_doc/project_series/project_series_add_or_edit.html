@@ -21,9 +21,16 @@
 
       <h1> <a href={% url 'project' project.id %}>{{ project.name }}</a> </h1>
       <div class="alert alert-info" role="alert">
-          You are adding a new series to {{ project.name }}.
+          You are adding a new series to the project {{ project.name }}.</br> 
       </div>
-
+      
+      <div class="alert alert-tip" role="alert">
+          A serie is a line of development, and contains the artefacts of those developments. For instance "night-builds", "stable", "experimental", etc.</br>
+          Once created, a serie can receive files, documentations, revision and branches.</br> 
+          A serie can also have restricted accesses, which allows a subset of
+          users sharing common interests on this line of development to access those artifacts.    
+          
+	  </div>	
     {% endif %}
 
 
@@ -41,15 +48,20 @@
             <div class="form-group">
                 {{ field.errors }}
 
-                <label for="{{ field.id_for_label }}"  class="col-sm-2 control-label">{{ field.label }}</label>
-
-                <div class="col-sm-10">
+                <label for="{{ field.id_for_label }}" class="col-sm-1 control-label">{{ field.label }}</label>
+				
+                <div class="col-sm-8">
                   {{ field }}
-                  <p class="help-block">{{ field.help_text }}</p>
                 </div>
+
+                <div class="col-sm-3">
+                	<p class="help-block">{{ field.help_text }}</p>
+                </div>
+
             </div>
         {% endfor %}
-
+        
+        
         <h3>Users</h3>
         <p class="help-block">Indicate in the table below the permissions on this series granted to each user.</p>
         <table class="table table-hover table-condensed">
@@ -66,7 +78,7 @@
             {% for index, user, check1, check2 in user_permissions %}
             <tr>
               <td width="30%">
-                {{user|title}}
+                {{user.firstname}} {{user|title}}
               </td>
               <td>
                 <label for="{{check1.id_for_label}}">
