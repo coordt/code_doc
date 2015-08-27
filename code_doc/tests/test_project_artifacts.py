@@ -120,7 +120,7 @@ class ProjectSeriesArtifactTest(TestCase):
                                     follow=False)
 
         self.assertEqual(response.status_code, 200)
-        # self.assertIn('errorlist', response.content)
+        self.assertIn('errorlist', response.content)
 
     def test_send_new_artifact_with_login(self):
         """Testing the upload capabilities. The returned hash should be ok"""
