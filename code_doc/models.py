@@ -1,27 +1,15 @@
 from django.db import models
-import datetime
-import os
 
 # from django.contrib.auth.admin import UserAdmin
-from django.contrib.auth.models import AbstractUser, Group
-
+from django.contrib.auth.models import Group
 from django.core.urlresolvers import reverse
-
 from django.template.defaultfilters import slugify
-from django.db import IntegrityError
-
-from django.dispatch import receiver
-
-
 from django.conf import settings
 
-import markdown
-import tarfile
-import tempfile
+import datetime
+import os
 import logging
 import urllib
-import shutil
-import functools
 
 # logger for this file
 logger = logging.getLogger(__name__)
@@ -355,27 +343,56 @@ def get_deflation_directory(instance, without_media_root=False):
 
 class Artifact(models.Model):
     """An artifact is a downloadable file"""
-    project = models.ForeignKey(Project, related_name='artifacts')
+    project = models.ForeignKey(
+        Project,
+        related_name='artifacts')
 
-    project_series = models.ManyToManyField(ProjectSeries, related_name='artifacts')
-    revision = models.ForeignKey(Revision, related_name='artifacts', null=True, blank=True)
+    project_series = models.ManyToManyField(
+        ProjectSeries,
+        related_name='artifacts')
+
+    revision = models.ForeignKey(
+        Revision,
+        related_name='artifacts',
+        null=True,
+        blank=True)
+
     md5hash = models.CharField(max_length=1024)  # md5 hash
-    description = models.TextField('description of the artifact', max_length=1024)
-    artifactfile = models.FileField(upload_to=get_artifact_location,
-                                    help_text='the artifact file that will be stored on the server')
-    is_documentation = models.BooleanField(default=False,
-                                           help_text="Check if the artifact contains a documentation that should be processed by the server")
-    documentation_entry_file = models.CharField(max_length=255, null=True, blank=True,
-                                                help_text="the documentation entry file if the artifact is documentation type, relative to the root of the deflated package")
-    upload_date = models.DateTimeField('Upload date', null=True, blank=True,
-                                       help_text='Automatic field that indicates the file upload time')
 
-    uploaded_by = models.CharField(max_length=50, help_text='User/agent uploading the file',
-                                   null=True, blank=True)
+    description = models.TextField(
+        'description of the artifact',
+        max_length=1024)
+
+    artifactfile = models.FileField(
+        upload_to=get_artifact_location,
+        help_text='the artifact file that will be stored on the server')
+
+    is_documentation = models.BooleanField(
+        default=False,
+        help_text="Check if the artifact contains a documentation that should be processed by the server")
+
+    documentation_entry_file = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="the documentation entry file if the artifact is documentation type, relative to the root of the deflated package")
+
+    upload_date = models.DateTimeField(
+        'Upload date',
+        null=True,
+        blank=True,
+        help_text='Automatic field that indicates the file upload time')
+
+    uploaded_by = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        help_text='User/agent uploading the file')
 
     def get_absolute_url(self):
-        return reverse('project_series', kwargs={'project_id': self.revision.project.pk,
-                                                 'series_id': self.project_series.all()[0].pk})
+        return reverse('project_series',
+                       kwargs={'project_id': self.revision.project.pk,
+                               'series_id': self.project_series.all()[0].pk})
 
     def __unicode__(self):
         return "%s | %s | %s" % (self.revision, self.artifactfile.name, self.md5hash)

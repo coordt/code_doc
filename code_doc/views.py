@@ -2,13 +2,11 @@
 from django.shortcuts import render, get_object_or_404
 
 from django.http import Http404, HttpResponse
-from django.template import RequestContext, loader
 
 from django.db import transaction, IntegrityError
 
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User, Group
-from django.forms.widgets import MultiWidget, CheckboxSelectMultiple
+from django.contrib.auth.models import User
 from django.utils.decorators import method_decorator
 
 from django.views.generic.base import RedirectView, View
@@ -19,9 +17,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 # for sending files specific to the server
 from django.core.servers.basehttp import FileWrapper
-from django.core.files import File
 from django.core.urlresolvers import reverse, reverse_lazy
-from django.core.exceptions import PermissionDenied
 
 import os
 import logging
@@ -111,9 +107,7 @@ class PermissionOnObjectViewMixin(SingleObjectMixin):
 
     def handle_access_error(self, obj):
         """Default access error handler. This one returns a 401 error instead of the 403 error"""
-
-        logging.warn('** access error for object %s --- blabla **', obj)
-
+        logging.warn('** access error for object %s **', obj)
         return HttpResponse('Unauthorized', status=401)
 
     def dispatch(self, request, *args, **kwargs):
@@ -131,9 +125,12 @@ class PermissionOnObjectViewMixin(SingleObjectMixin):
             object_permissions_getter = getattr(self, object_permissions_getter, None)
 
         # this modifies the dispatch of the parent through the decorator, and calls it with the same parameters
-        return permission_required_on_object(object_permissions, object_permissions_getter, handle_access_error=self.handle_access_error)\
-                   (super(PermissionOnObjectViewMixin, self).dispatch)\
-                       (request, *args, **kwargs)
+        dispatch_to_wrap = super(PermissionOnObjectViewMixin, self).dispatch
+        decorator = permission_required_on_object(object_permissions,
+                                                  object_permissions_getter,
+                                                  handle_access_error=self.handle_access_error)
+
+        return decorator(dispatch_to_wrap)(request, *args, **kwargs)
 
     # we do not need to reimplement this behaviour as it is properly done in the decorator
 
@@ -394,7 +391,7 @@ class ProjectSeriesArtifactEditionFormsView(PermissionOnObjectViewMixin):
         """Method used for populating the template context"""
         context = super(ProjectSeriesArtifactEditionFormsView, self).get_context_data(**kwargs)
 
-        # already conformant by the permission check
+        # already project/series matching by the permission check above
         current_series = ProjectSeries.objects.get(pk=self.kwargs['series_id'])
         current_project = current_series.project
 
@@ -403,7 +400,6 @@ class ProjectSeriesArtifactEditionFormsView(PermissionOnObjectViewMixin):
         context['artifacts'] = current_series.artifacts.all()
         context['uploaded_by'] = self.request.user  # @todo: FIX
 
-        self.series = current_series
         return context
 
     def get_success_url(self):
@@ -559,6 +555,7 @@ class AuthorUpdateView(PermissionOnObjectViewMixin, UpdateView):
     pk_url_kwarg = 'author_id'
 
     def get_author_from_request(self, request, *args, **kwargs):
+        # TODO check if needed
         try:
             return Author.objects.get(pk=kwargs['author_id'])
         except Author.DoesNotExist:
