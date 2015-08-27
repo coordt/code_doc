@@ -2,13 +2,11 @@
 from django.shortcuts import render, get_object_or_404
 
 from django.http import Http404, HttpResponse
-from django.template import RequestContext, loader
 
 from django.db import transaction, IntegrityError
 
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User, Group
-from django.forms.widgets import MultiWidget, CheckboxSelectMultiple
+from django.contrib.auth.models import User
 from django.utils.decorators import method_decorator
 
 from django.views.generic.base import RedirectView, View
@@ -19,17 +17,15 @@ from django.views.decorators.csrf import csrf_exempt
 
 # for sending files specific to the server
 from django.core.servers.basehttp import FileWrapper
-from django.core.files import File
 from django.core.urlresolvers import reverse, reverse_lazy
-from django.core.exceptions import PermissionDenied
 
 import os
 import logging
 import json
 
-from code_doc.models import Project, Author, Topic, Artifact, ProjectSeries, Branch, Revision
-from code_doc.forms import ProjectSeriesForm, AuthorForm
-from code_doc.permissions.decorators import permission_required_on_object
+from .models import Project, Author, Topic, Artifact, ProjectSeries, Branch, Revision
+from .forms import ProjectSeriesForm, AuthorForm
+from .permissions.decorators import permission_required_on_object
 
 # logger for this file
 logger = logging.getLogger(__name__)
@@ -39,11 +35,10 @@ def index(request):
     """Front page"""
     projects_list = Project.objects.order_by('name')
     topics_list = Topic.objects.order_by('name')
-    return render(
-            request,
-            'code_doc/index.html',
-            {'projects_list': projects_list,
-             'topics_list': topics_list})
+    return render(request,
+                  'code_doc/index.html',
+                  {'projects_list': projects_list,
+                   'topics_list': topics_list})
 
 
 def about(request):
@@ -75,11 +70,10 @@ class MaintainerProfileView(View):
             raise Http404
 
         projects = Project.objects.filter(administrators=maintainer)
-        return render(
-                  request,
-                  'code_doc/maintainer_details.html',
-                  {'projects': projects,
-                   'maintainer': maintainer})
+        return render(request,
+                      'code_doc/maintainer_details.html',
+                      {'projects': projects,
+                       'maintainer': maintainer})
 
     @method_decorator(login_required)
     def post(self, request):
@@ -113,9 +107,7 @@ class PermissionOnObjectViewMixin(SingleObjectMixin):
 
     def handle_access_error(self, obj):
         """Default access error handler. This one returns a 401 error instead of the 403 error"""
-
         logging.warn('** access error for object %s **', obj)
-
         return HttpResponse('Unauthorized', status=401)
 
     def dispatch(self, request, *args, **kwargs):
@@ -133,9 +125,12 @@ class PermissionOnObjectViewMixin(SingleObjectMixin):
             object_permissions_getter = getattr(self, object_permissions_getter, None)
 
         # this modifies the dispatch of the parent through the decorator, and calls it with the same parameters
-        return permission_required_on_object(object_permissions, object_permissions_getter, handle_access_error=self.handle_access_error)\
-                  (super(PermissionOnObjectViewMixin, self).dispatch)\
-                      (request, *args, **kwargs)
+        dispatch_to_wrap = super(PermissionOnObjectViewMixin, self).dispatch
+        decorator = permission_required_on_object(object_permissions,
+                                                  object_permissions_getter,
+                                                  handle_access_error=self.handle_access_error)
+
+        return decorator(dispatch_to_wrap)(request, *args, **kwargs)
 
     # we do not need to reimplement this behaviour as it is properly done in the decorator
 
@@ -177,7 +172,7 @@ class ProjectView(DetailView):
 
 class ProjectListView(ListView):
     """List all available projects"""
-    paginate_by = 1
+    paginate_by = 10
     template_name = "code_doc/project/project_list.html"
     context_object_name = "projects"
 
@@ -191,8 +186,62 @@ class ProjectListView(ListView):
 # Series related
 ################################################################################################
 
-# @todo: remove overlap with ProjectSeriesUpdateView
-class ProjectSeriesAddView(PermissionOnObjectViewMixin, CreateView):
+class SerieAccessViewBase(PermissionOnObjectViewMixin):
+    """Manages the access to the object related to the series (project or serie)"""
+
+    model = ProjectSeries
+
+    # the object on which permission applies
+    permissions_object_getter = 'get_permission_object_from_request'
+
+    def get_project_from_request(self, request, *args, **kwargs):
+        # default: returns the project
+        try:
+            return Project.objects.get(pk=kwargs['project_id'])
+        except Project.DoesNotExist:
+            logger.warning('[SeriesAddView] non existent project with id %s',
+                           kwargs['project_id'])
+            return None
+
+    def get_serie_from_request(self, request, *args, **kwargs):
+        project = self.get_project_from_request(request, *args, **kwargs)
+
+        try:
+            serie = project.series.get(pk=kwargs['series_id'])
+        except ProjectSeries.DoesNotExist:
+            logger.warning('[ProjectVersionDetailsView] non existent serie with id %d',
+                           kwargs['series_id'])
+            return None
+
+        return serie
+
+    def get_permission_object_from_request(self, request, *args, **kwargs):
+        # this already checks the coherence of the url:
+        # if the serie does not belong to the project, an PermissionDenied is raised
+
+        return self.get_serie_from_request(request, *args, **kwargs)
+
+
+class SeriesEditViewBase(SerieAccessViewBase):
+    """Manages the edition views of the project series"""
+
+    template_name = "code_doc/project_series/project_series_add_or_edit.html"
+
+    # for the form that is displayed
+    form_class = ProjectSeriesForm
+
+    def get_context_data(self, **kwargs):
+        """Method used for populating the template context"""
+        context = super(SeriesEditViewBase, self).get_context_data(**kwargs)
+        self.form_class.set_context_for_template(context, self.kwargs['project_id'])
+
+        return context
+
+    def get_success_url(self):
+        return self.object.get_absolute_url()
+
+
+class SeriesAddView(SeriesEditViewBase, CreateView):
     """Generic view for adding a series into a specific project.
 
     .. note:: in order to be able to add a series, the user should have the
@@ -200,91 +249,76 @@ class ProjectSeriesAddView(PermissionOnObjectViewMixin, CreateView):
               on the project object.
 
     """
-    form_class = ProjectSeriesForm
-
-    model = ProjectSeries
-    template_name = "code_doc/project_series/project_series_add_or_edit.html"
 
     # user should have the appropriate privileges on the object in order to be able to add anything
     permissions_on_object = ('code_doc.project_series_add',)
-    permissions_object_getter = 'get_project_from_request'
 
-    def get_project_from_request(self, request, *args, **kwargs):
-        try:
-            return Project.objects.get(pk=kwargs['project_id'])
-        except Project.DoesNotExist:
-            logger.warning('[ProjectSeriesAddView] non existent project with id %s',
-                           kwargs['project_id'])
-            return None
-
-    def get_context_data(self, **kwargs):
-            """Method used for populating the template context"""
-            context = super(ProjectSeriesAddView, self).get_context_data(**kwargs)
-            project_id = self.kwargs['project_id']
-            ProjectSeriesForm().set_context_for_template(context, project_id)
-
-            return context
+    def get_permission_object_from_request(self, request, *args, **kwargs):
+        # specific case since we are adding to the project
+        return self.get_project_from_request(request, *args, **kwargs)
 
     def form_valid(self, form):
+        # in this case we need to set the project of the object otherwise the association
+        # of the created object does not work.
         try:
             current_project = Project.objects.get(pk=self.kwargs['project_id'])
         except Project.DoesNotExist:
             raise Http404
 
         form.instance.project = current_project
-        return super(ProjectSeriesAddView, self).form_valid(form)
-
-    def get_success_url(self):
-        return self.object.get_absolute_url()
+        return super(SeriesAddView, self).form_valid(form)
 
 
-class ProjectSeriesDetailsView(PermissionOnObjectViewMixin, DetailView):
-    """Details the content of a specific series. Contains all the artifacts
+class SeriesUpdateView(SeriesEditViewBase, UpdateView):
+    """Update the content of a specific series.
 
-    .. note:: the user should have the 'series_view' and the
-              'series_artifact_view' permissions on the series object
+    .. note:: the user should have the 'series_edit' permission on the series object
 
     """
 
-    # detail view on a series
-    model = ProjectSeries
+    # part of the url giving the proper object
+    pk_url_kwarg = 'series_id'
+
+    # we should have the following priviledges on the serie in order to be able to edit anything
+    permissions_on_object = ('code_doc.series_edit',)
+
+    def get_context_data(self, **kwargs):
+        """Method used for populating the template context"""
+        context = super(SeriesUpdateView, self).get_context_data(**kwargs)
+        series_object = self.object
+
+        assert(Project.objects.get(pk=self.kwargs['project_id']).id == series_object.project.id)
+
+        # We need this to distinguish between Adding and Editing a Series
+        context['series'] = series_object
+
+        return context
+
+
+class SeriesDetailsView(SerieAccessViewBase, DetailView):
+    """Details the content of a specific series. Contains all the artifacts
+
+    .. note:: the user should have the 'series_view' permission on the series object
+
+    """
+
     # part of the url giving the proper object
     pk_url_kwarg = 'series_id'
 
     template_name = 'code_doc/project_series/project_series_details.html'
 
     # we should have admin priviledges on the object in order to be able to add anything
-    permissions_on_object = ('code_doc.series_view', 'code_doc.series_artifact_view')
-    permissions_object_getter = 'get_series_from_request'
-
-    def get_series_from_request(self, request, *args, **kwargs):
-
-        # this already checks the coherence of the url:
-        # if the series does not belong to the project, an PermissionDenied is raised
-        try:
-            project = Project.objects.get(pk=kwargs['project_id'])
-        except Project.DoesNotExist:
-            logger.warning('[ProjectSeriesDetailsView] non existent project with id %d',
-                           kwargs['project_id'])
-            return None
-
-        try:
-            series = project.series.get(pk=kwargs['series_id'])
-        except ProjectSeries.DoesNotExist:
-            logger.warning('[ProjectSeriesDetailsView] non existent series with id %d',
-                           kwargs['series_id'])
-            return None
-        
-        return series
+    permissions_on_object = ('code_doc.series_view',)
 
     def get_context_data(self, **kwargs):
         """Method used for populating the template context"""
-        context = super(ProjectSeriesDetailsView, self).get_context_data(**kwargs)
 
+        context = super(SeriesDetailsView, self).get_context_data(**kwargs)
         series_object = self.object
 
         assert(Project.objects.get(pk=self.kwargs['project_id']).id == series_object.project.id)
 
+        # We need this to distinguish between Adding and Editing a Series
         context['series'] = series_object
         context['project'] = series_object.project
         context['project_id'] = series_object.project.id
@@ -293,65 +327,7 @@ class ProjectSeriesDetailsView(PermissionOnObjectViewMixin, DetailView):
         return context
 
 
-
-
-# @todo: remove overlap with ProjectSeriesAddView
-class ProjectSeriesUpdateView(PermissionOnObjectViewMixin, UpdateView):
-    """Update the content of a specific series.
-
-    .. note:: the user should have the 'series_view' and the 'series_artifact_view'
-              permissions on the series object
-
-    """
-
-    # detail view on a series
-    model = ProjectSeries
-    # part of the url giving the proper object
-    pk_url_kwarg = 'series_id'
-
-    template_name = 'code_doc/project_series/project_series_add_or_edit.html'
-
-    # we should have admin priviledges on the object in order to be able to add anything
-    permissions_on_object = ('code_doc.series_edit',)
-    permissions_object_getter = 'get_series_from_request'
-
-    # for the form that is displayed
-    form_class = ProjectSeriesForm
-
-    def get_series_from_request(self, request, *args, **kwargs):
-        # this already checks the coherence of the url:
-        # if the version does not belong to the project, an PermissionDenied is raised
-        try:
-            project = Project.objects.get(pk=kwargs['project_id'])
-        except Project.DoesNotExist:
-            logger.warning('[ProjectVersionDetailsView] non existent project with id %d',
-                           kwargs['project_id'])
-            return None
-
-        try:
-            version = project.series.get(pk=kwargs['series_id'])
-        except ProjectSeries.DoesNotExist:
-            logger.warning('[ProjectVersionDetailsView] non existent version with id %d',
-                           kwargs['series_id'])
-            return None
-
-        return version
-
-    def get_context_data(self, **kwargs):
-        """Method used for populating the template context"""
-        context = super(ProjectSeriesUpdateView, self).get_context_data(**kwargs)
-        series_object = self.object
-
-        assert(Project.objects.get(pk=self.kwargs['project_id']).id == series_object.project.id)
-
-        # We need this to distinguish between Adding and Editing a Series
-        context['series'] = series_object
-        ProjectSeriesForm().set_context_for_template(context, self.kwargs['project_id'])
-
-        return context
-
-
-class ProjectSeriesDetailsShortcutView(RedirectView):
+class SeriesDetailsViewShortcut(RedirectView):
     """A shortcut for being able to reach a project and a series with only their respective name"""
     permanent = False
     query_string = True
@@ -364,7 +340,7 @@ class ProjectSeriesDetailsShortcutView(RedirectView):
         return reverse('project_series', args=[project.id, series.id])
 
 
-class APIGetArtifacts(ProjectSeriesDetailsView, DetailView):
+class APIGetArtifacts(SeriesDetailsView, DetailView):
     """An API view returning a json dictionary containing all artifacts of a specific revision"""
 
     def render_to_response(self, context, **response_kwargs):
@@ -389,11 +365,12 @@ class ProjectSeriesArtifactEditionFormsView(PermissionOnObjectViewMixin):
 
     model = Artifact
 
-    permissions_on_object = ('code_doc.project_artifact_add',)
-    permissions_object_getter = 'get_project_from_request'
+    permissions_object_getter = 'get_permission_object_from_request'
 
-    def get_project_from_request(self, request, *args, **kwargs):
+    def get_permission_object_from_request(self, request, *args, **kwargs):
+        return self.get_serie_from_url(request)
 
+    def get_serie_from_url(self, request):
         try:
             current_project = Project.objects.get(pk=self.kwargs['project_id'])
         except Project.DoesNotExist:
@@ -404,16 +381,17 @@ class ProjectSeriesArtifactEditionFormsView(PermissionOnObjectViewMixin):
         try:
             current_series = current_project.series.get(pk=self.kwargs['series_id'])
         except ProjectSeries.DoesNotExist:
-            logger.warning('[ProjectSeriesArtifactEditionFormsView] non existent series for project "%s" with series.id "%s"',
-                           current_project, self.kwargs['series_id'])
+            logger.warning('[ProjectSeriesArtifactEditionFormsView] non existent series for project "%s",id=%d with series.id "%s"',
+                           current_project, current_project.id, self.kwargs['series_id'])
             return None
 
-        return current_project
+        return current_series
 
     def get_context_data(self, **kwargs):
         """Method used for populating the template context"""
         context = super(ProjectSeriesArtifactEditionFormsView, self).get_context_data(**kwargs)
 
+        # already project/series matching by the permission check above
         current_series = ProjectSeries.objects.get(pk=self.kwargs['series_id'])
         current_project = current_series.project
 
@@ -421,12 +399,13 @@ class ProjectSeriesArtifactEditionFormsView(PermissionOnObjectViewMixin):
         context['series'] = current_series
         context['artifacts'] = current_series.artifacts.all()
         context['uploaded_by'] = self.request.user  # @todo: FIX
+
         return context
 
     def get_success_url(self):
         return reverse('project_series',
-                       kwargs={'project_id': self.object.revision.project.pk,
-                               'series_id': self.object.project_series.all()[0].pk})
+                       kwargs={'project_id': self.object.project.pk,
+                               'series_id': self.get_serie_from_url(self.request).id})
 
 
 class ProjectSeriesArtifactAddView(ProjectSeriesArtifactEditionFormsView, CreateView):
@@ -436,25 +415,40 @@ class ProjectSeriesArtifactAddView(ProjectSeriesArtifactEditionFormsView, Create
     fields = ['description', 'artifactfile', 'is_documentation', 'documentation_entry_file',
               'upload_date']
 
+    permissions_on_object = ('code_doc.series_artifact_add',)
+
     def form_valid(self, form):
 
         current_series = ProjectSeries.objects.get(pk=self.kwargs['series_id'])
         current_project = current_series.project
         assert(str(current_project.id) == self.kwargs['project_id'])
 
-
         # Get the raw data that was sent as the request
         form_data_query_dict = self.request.POST
-        branch_name = form_data_query_dict['branch']
-        revision_name = form_data_query_dict['revision']
 
-        # Try to get already saved models from the database
-        revision, created = Revision.objects.get_or_create(revision=revision_name,
-                                                           project=current_project)
-        branch, created = Branch.objects.get_or_create(name=branch_name)
-        branch.revisions.add(revision)
+        if 'branch' in form_data_query_dict:
+            branch_name = form_data_query_dict['branch']
+            branch, branch_created = Branch.objects.get_or_create(name=branch_name)
+        else:
+            branch = None
+            branch_created = False
+
+        if 'revision' in form_data_query_dict:
+            revision_name = form_data_query_dict['revision']
+            # Try to get already saved models from the database
+            revision, revision_created = Revision.objects.get_or_create(revision=revision_name,
+                                                                        project=current_project)
+        else:
+            revision = None
+            revision_created = False
+
+        if branch is not None and revision is not None:
+            branch.revisions.add(revision)
+
         form.instance.project = current_project
-        form.instance.revision = revision
+
+        if revision is not None:
+            form.instance.revision = revision
 
         # @todo(Stephan):
         # Put all atomic transactions together
@@ -480,6 +474,7 @@ class ProjectSeriesArtifactAddView(ProjectSeriesArtifactEditionFormsView, Create
 class ProjectSeriesArtifactRemoveView(ProjectSeriesArtifactEditionFormsView, DeleteView):
     """Removes an artifact"""
 
+    permissions_on_object = ('code_doc.series_artifact_remove',)
     template_name = "code_doc/project_artifacts/project_artifact_remove.html"
     pk_url_kwarg = "artifact_id"
 
@@ -496,14 +491,13 @@ class TopicView(View):
         except Project.DoesNotExist:
             raise Http404
 
-        return render(
-                  request,
-                  'code_doc/topics/topics.html',
-                  {'topic': topic})
+        return render(request,
+                      'code_doc/topics/topics.html',
+                      {'topic': topic})
 
 
 class TopicListView(ListView):
-    paginate_by = 2
+    paginate_by = 10
     template_name = "code_doc/topics/topic_list.html"
     context_object_name = "topics"
 
@@ -518,7 +512,7 @@ class TopicListView(ListView):
 
 class AuthorListView(ListView):
     """A generic view of the authors in a list"""
-    paginate_by = 2
+    paginate_by = 10
     template_name = "code_doc/author_list.html"
     context_object_name = "authors"
 
@@ -561,6 +555,7 @@ class AuthorUpdateView(PermissionOnObjectViewMixin, UpdateView):
     pk_url_kwarg = 'author_id'
 
     def get_author_from_request(self, request, *args, **kwargs):
+        # TODO check if needed
         try:
             return Author.objects.get(pk=kwargs['author_id'])
         except Author.DoesNotExist:

@@ -1,7 +1,7 @@
 from django.conf.urls import patterns, url
 from django.contrib.auth.views import login, logout
 
-from code_doc import views
+import views
 
 urlpatterns = patterns(
     '',
@@ -9,7 +9,7 @@ urlpatterns = patterns(
     url(r'^about$', views.about, name='about'),
     url(r'^script$', views.script, name='script'),
 
-    url(r'^accounts/login/$',  login, name='login'),
+    url(r'^accounts/login/$', login, name='login'),
     url(r'^accounts/logout/$', logout, name='logout'),
 
     # projects
@@ -25,15 +25,15 @@ urlpatterns = patterns(
         name='project_series_all'),
     # details about a particular series of a project
     url(r'^series/(?P<project_id>\d+)/(?P<series_id>\d+)/$',
-        views.ProjectSeriesDetailsView.as_view(),
+        views.SeriesDetailsView.as_view(),
         name='project_series'),
     # edition of a particular project series
     url(r'^project/(?P<project_id>\d+)/(?P<series_id>\w+)/edit',
-        views.ProjectSeriesUpdateView.as_view(),
+        views.SeriesUpdateView.as_view(),
         name='project_series_edit'),
     # adding a revision to the project
     url(r'^series/(?P<project_id>\d+)/add/$',
-        views.ProjectSeriesAddView.as_view(),
+        views.SeriesAddView.as_view(),
         name='project_series_add'),
 
     # @todo update and delete of a series
@@ -54,7 +54,7 @@ urlpatterns = patterns(
 
     # shortcuts
     url(r'^s/(?P<project_name>[\d\w\s]+)/(?P<series_number>[\d\w\s]+)/$',
-        views.ProjectSeriesDetailsShortcutView.as_view(),
+        views.SeriesDetailsViewShortcut.as_view(),
         name='project_shortcuts'),
     url(r'^api/(?P<project_name>[\d\w\s-]+)/(?P<series_number>[\d\w\s-]+)/$',
         views.GetProjectRevisionIds.as_view(),
@@ -64,7 +64,7 @@ urlpatterns = patterns(
     url(r'^topics/$', views.TopicListView.as_view(), name='topics_list'),  # lists all topics
     url(r'^topics/(?P<topic_id>\d+)/$',
         views.TopicView.as_view(),
-        name='topic'),        # gives details on a specific topic
+        name='topic'),  # gives details on a specific topic
 
     # maintainers
     url(r'^maintainer/(?P<maintainer_id>\d+)/$',

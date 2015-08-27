@@ -26,30 +26,35 @@ class AuthorForm(ModelForm):
 
 
 class ProjectSeriesForm(ModelForm):
-    """Form definition that is used when adding and editing a ProjectVersion"""
+    """Form definition that is used when adding and editing a project serie"""
     class Meta:
         model = ProjectSeries
         fields = (
-            'series', 'release_date', 'description_mk', 'view_users', 'view_groups', 'is_public',
-            'view_artifacts_users', 'view_artifacts_groups'
+            'series', 'release_date', 'description_mk',
+            'is_public',
+            'view_users', 'view_groups',
+            'perms_users_artifacts_add', 'perms_groups_artifacts_add',
+            'perms_users_artifacts_del', 'perms_groups_artifacts_del'
         )
         labels = {
-            'series': 'Series name',
+            'series': 'Name',
             'description_mk': 'Description'
         }
         help_texts = {
+            'is_public': 'If checked, the serie will be visible from everyone. If not you have to specify the users/groups to which'
+            'you are granting access',
             'description_mk': 'Description/content of the series in MarkDown format'
         }
         widgets = {
             'series': Textarea(attrs={
-                                'cols': 120,
+                                'cols': 60,
                                 'rows': 2,
-                                'style': "resize:none"
+                                'style': "resize:none; width: 100%;"
                                 }),
             'description_mk': Textarea(attrs={
-                                        'cols': 120,
+                                        'cols': 60,
                                         'rows': 10,
-                                        'style': "resize:vertical"
+                                        'style': "resize:vertical; width: 100%; min-height: 50px;"
                                         }),
             'release_date': DateInput(attrs={
                                         'class': 'datepicker',
@@ -59,11 +64,14 @@ class ProjectSeriesForm(ModelForm):
                                       format='%d/%m/%Y'),
             'view_users': CheckboxSelectMultiple,
             'view_groups': CheckboxSelectMultiple,
-            'view_artifacts_users': CheckboxSelectMultiple,
-            'view_artifacts_groups': CheckboxSelectMultiple
+            'perms_users_artifacts_add': CheckboxSelectMultiple,
+            'perms_groups_artifacts_add': CheckboxSelectMultiple,
+            'perms_users_artifacts_del': CheckboxSelectMultiple,
+            'perms_groups_artifacts_del': CheckboxSelectMultiple,
         }
 
-    def set_context_for_template(self, context, project_id):
+    @staticmethod
+    def set_context_for_template(context, project_id):
         """Sets extra data that is used in the template for displaying the form"""
         try:
             current_project = Project.objects.get(pk=project_id)
@@ -78,16 +86,23 @@ class ProjectSeriesForm(ModelForm):
         context['automatic_fields'] = (form[i] for i in ('series', 'release_date',
                                                          'description_mk', 'is_public'))
 
+        context['permission_headers'] = ['View and download', 'Adding artifacts', 'Removing artifacts']
+
+        # filter out users that do not have access to the project?
         context['active_users'] = User.objects.all()
 
-        context['permission_headers'] = ['View', 'Artifact view']
         context['user_permissions'] = zip(xrange(len(context['active_users'])),
                                           context['active_users'],
                                           form['view_users'],
-                                          form['view_artifacts_users'])
+                                          form['perms_users_artifacts_add'],
+                                          form['perms_users_artifacts_del'])
+        # group the permissions in a tuple so that we can parse them easily
+        context['user_permissions'] = [(perms[0], perms[1], tuple(perms[2:])) for perms in context['user_permissions']]
 
         context['active_groups'] = Group.objects.all()
         context['group_permissions'] = zip(xrange(len(context['active_groups'])),
                                            context['active_groups'],
                                            form['view_groups'],
-                                           form['view_artifacts_groups'])
+                                           form['perms_groups_artifacts_add'],
+                                           form['perms_groups_artifacts_del'])
+        context['group_permissions'] = [(perms[0], perms[1], tuple(perms[2:])) for perms in context['group_permissions']]
