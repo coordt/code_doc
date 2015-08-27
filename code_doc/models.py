@@ -183,6 +183,10 @@ class Project(models.Model):
         """Returns true if the user is able to add series to the current project"""
         return self.has_user_project_administrate_permission(user)
 
+    def has_user_project_series_delete_permission(self, user):
+        """Returns true if the user is able to add series to the current project"""
+        return self.has_user_project_administrate_permission(user)
+
     def has_user_project_artifact_add_permission(self, user):
         """Returns true if the user is able to add series to the current project"""
         return self.has_user_project_administrate_permission(user)
@@ -246,11 +250,13 @@ class ProjectSeries(models.Model):
         """Returns true if the user has view permission on this series, False otherwise"""
         return self.is_public or \
             self.project.has_user_project_administrate_permission(userobj) or \
+            self.has_user_series_edit_permission(userobj) or \
             manage_permission_on_object(userobj, self.view_users, self.view_groups, False)
 
     def has_user_series_edit_permission(self, userobj):
         """Returns true if the user has edit permission on this series, False otherwise"""
         return self.is_public or \
+            self.has_user_series_artifact_add_permission(userobj) or \
             self.project.has_user_project_administrate_permission(userobj) or \
             manage_permission_on_object(userobj, self.view_users, self.view_groups, False)
 
@@ -258,19 +264,18 @@ class ProjectSeries(models.Model):
         """Returns True if the user can add an artifact to the serie"""
         return self.is_public or \
             self.project.has_user_project_administrate_permission(userobj) or \
-            (self.has_user_series_view_permission(userobj) and
+            self.has_user_series_artifact_delete_permission(userobj) or \
              manage_permission_on_object(userobj,
                                          self.perms_users_artifacts_add,
-                                         self.perms_groups_artifacts_add, False))
+                                         self.perms_groups_artifacts_add, False)
 
     def has_user_series_artifact_delete_permission(self, userobj):
         """Returns True if the user can remove an artifact from the serie"""
         return self.is_public or \
             self.project.has_user_project_administrate_permission(userobj) or \
-            (self.has_user_series_view_permission(userobj) and
              manage_permission_on_object(userobj,
                                          self.perms_users_artifacts_del,
-                                         self.perms_groups_artifacts_del, False))
+                                         self.perms_groups_artifacts_del, False)
 
     def get_all_revisions(self):
         return list(set(map(Artifact.get_revision, self.artifacts.all())))

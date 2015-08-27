@@ -17,7 +17,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
 STATIC_URL = '/static/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media') + '/'
-MEDIA_URL  = '/media/'
+MEDIA_URL = '/media/'
 
 # path used to upload temporary files
 USER_UPLOAD_TEMPORARY_STORAGE = os.path.join(BASE_DIR, 'temporary', 'django_application_code_doc')
@@ -45,7 +45,7 @@ TEMPLATE_DEBUG = True
 # to be edited when in production mode
 ALLOWED_HOSTS = ['code.is.localnet', '127.0.0.1', 'localhost']
 
-ADMINS = (('Raffi Enficiaud', 'raffi.enficiaud@tuebingen.mpg.de'), )
+ADMINS = (('Raffi Enficiaud', 'raffi.enficiaud@tuebingen.mpg.de'),)
 
 
 LOGIN_URL = "/accounts/login/"
@@ -140,10 +140,10 @@ LOGGING = {
   'disable_existing_loggers': False,
   'formatters': {
       'verbose': {
-          'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
+          'format': '*** [%(levelname)s] %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
       },
       'simple': {
-          'format': '%(levelname)s %(message)s'
+          'format': '[%(levelname)s] %(message)s'
       },
   },
   'handlers': {
@@ -218,7 +218,7 @@ DATABASES = {
     }
 }
 
-#AUTH_USER_MODEL = 'code_doc.Author'
+# AUTH_USER_MODEL = 'code_doc.Author'
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.6/topics/i18n/

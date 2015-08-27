@@ -26,7 +26,7 @@ class AuthorForm(ModelForm):
 
 
 class ProjectSeriesForm(ModelForm):
-    """Form definition that is used when adding and editing a ProjectVersion"""
+    """Form definition that is used when adding and editing a project serie"""
     class Meta:
         model = ProjectSeries
         fields = (
@@ -70,7 +70,8 @@ class ProjectSeriesForm(ModelForm):
             'perms_groups_artifacts_del': CheckboxSelectMultiple,
         }
 
-    def set_context_for_template(self, context, project_id):
+    @staticmethod
+    def set_context_for_template(context, project_id):
         """Sets extra data that is used in the template for displaying the form"""
         try:
             current_project = Project.objects.get(pk=project_id)
@@ -85,7 +86,7 @@ class ProjectSeriesForm(ModelForm):
         context['automatic_fields'] = (form[i] for i in ('series', 'release_date',
                                                          'description_mk', 'is_public'))
 
-        context['permission_headers'] = ['View', 'Adding artifacts', 'Removing artifacts']
+        context['permission_headers'] = ['View and download', 'Adding artifacts', 'Removing artifacts']
 
         # filter out users that do not have access to the project?
         context['active_users'] = User.objects.all()
@@ -95,6 +96,7 @@ class ProjectSeriesForm(ModelForm):
                                           form['view_users'],
                                           form['perms_users_artifacts_add'],
                                           form['perms_users_artifacts_del'])
+        # group the permissions in a tuple so that we can parse them easily
         context['user_permissions'] = [(perms[0], perms[1], tuple(perms[2:])) for perms in context['user_permissions']]
 
         context['active_groups'] = Group.objects.all()
