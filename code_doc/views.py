@@ -408,7 +408,7 @@ class ProjectSeriesArtifactEditionFormsView(PermissionOnObjectViewMixin):
 
     def get_success_url(self):
         return reverse('project_series',
-                       kwargs={'project_id': self.object.revision.project.pk,
+                       kwargs={'project_id': self.object.project.pk,
                                'series_id': self.get_serie_from_url(self.request).id})
 
 

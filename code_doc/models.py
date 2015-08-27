@@ -284,7 +284,7 @@ class ProjectSeries(models.Model):
 class Revision(models.Model):
     """A Revision is a collection of artifacts, that were produced by the same
        state of the Project's code."""
-    revision = models.CharField(max_length=200)  # can be md5 hash
+    revision = models.CharField(max_length=200)  # can be anything
     project = models.ForeignKey(Project, related_name='revisions')
     commit_time = models.DateTimeField('Time of creation',
                                        auto_now_add=True,
@@ -323,21 +323,22 @@ def get_artifact_location(instance, filename):
             return False, 0
 
     media_relative_dir = os.path.join("artifacts",
-                                      instance.revision.project.name,
-                                      instance.revision.revision)
+                                      instance.project.name,
+                                      instance.md5hash)
     root_dir = os.path.join(settings.MEDIA_ROOT, media_relative_dir)
 
-    if os.path.exists(root_dir):
-        dir_content = [v[1] for v in map(is_int, os.listdir(root_dir)) if v[0]]
-        dir_content.sort()
-        last_element = (dir_content[-1] + 1) if len(dir_content) > 0 else 1
-    else:
-        last_element = 1
+    if 0:
+        if os.path.exists(root_dir):
+            dir_content = [v[1] for v in map(is_int, os.listdir(root_dir)) if v[0]]
+            dir_content.sort()
+            last_element = (dir_content[-1] + 1) if len(dir_content) > 0 else 1
+        else:
+            last_element = 1
 
-    if not os.path.exists(os.path.join(settings.MEDIA_ROOT, media_relative_dir, str(last_element))):
-        os.makedirs(os.path.join(settings.MEDIA_ROOT, media_relative_dir, str(last_element)))
+    if not os.path.exists(os.path.join(settings.MEDIA_ROOT, media_relative_dir)):
+        os.makedirs(os.path.join(settings.MEDIA_ROOT, media_relative_dir))
 
-    return os.path.join(media_relative_dir, str(last_element), filename)
+    return os.path.join(media_relative_dir, filename)
 
 
 def get_deflation_directory(instance, without_media_root=False):
