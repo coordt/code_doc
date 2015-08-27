@@ -30,8 +30,11 @@ class ProjectSeriesForm(ModelForm):
     class Meta:
         model = ProjectSeries
         fields = (
-            'series', 'release_date', 'description_mk', 'view_users', 'view_groups', 'is_public',
-            'view_artifacts_users', 'view_artifacts_groups'
+            'series', 'release_date', 'description_mk',
+            'is_public',
+            'view_users', 'view_groups',
+            'perms_users_artifacts_add', 'perms_groups_artifacts_add',
+            'perms_users_artifacts_del', 'perms_groups_artifacts_del'
         )
         labels = {
             'series': 'Name',
@@ -61,8 +64,10 @@ class ProjectSeriesForm(ModelForm):
                                       format='%d/%m/%Y'),
             'view_users': CheckboxSelectMultiple,
             'view_groups': CheckboxSelectMultiple,
-            'view_artifacts_users': CheckboxSelectMultiple,
-            'view_artifacts_groups': CheckboxSelectMultiple
+            'perms_users_artifacts_add': CheckboxSelectMultiple,
+            'perms_groups_artifacts_add': CheckboxSelectMultiple,
+            'perms_users_artifacts_del': CheckboxSelectMultiple,
+            'perms_groups_artifacts_del': CheckboxSelectMultiple,
         }
 
     def set_context_for_template(self, context, project_id):
@@ -80,7 +85,7 @@ class ProjectSeriesForm(ModelForm):
         context['automatic_fields'] = (form[i] for i in ('series', 'release_date',
                                                          'description_mk', 'is_public'))
 
-        context['permission_headers'] = ['View', 'Artifact view']
+        context['permission_headers'] = ['View', 'Adding artifacts', 'Removing artifacts']
 
         # filter out users that do not have access to the project?
         context['active_users'] = User.objects.all()
@@ -88,10 +93,14 @@ class ProjectSeriesForm(ModelForm):
         context['user_permissions'] = zip(xrange(len(context['active_users'])),
                                           context['active_users'],
                                           form['view_users'],
-                                          form['view_artifacts_users'])
+                                          form['perms_users_artifacts_add'],
+                                          form['perms_users_artifacts_del'])
+        context['user_permissions'] = [(perms[0], perms[1], tuple(perms[2:])) for perms in context['user_permissions']]
 
         context['active_groups'] = Group.objects.all()
         context['group_permissions'] = zip(xrange(len(context['active_groups'])),
                                            context['active_groups'],
                                            form['view_groups'],
-                                           form['view_artifacts_groups'])
+                                           form['perms_groups_artifacts_add'],
+                                           form['perms_groups_artifacts_del'])
+        context['group_permissions'] = [(perms[0], perms[1], tuple(perms[2:])) for perms in context['group_permissions']]

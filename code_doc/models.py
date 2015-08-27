@@ -164,10 +164,11 @@ class Project(models.Model):
 
     class Meta:
         permissions = (
-         ("project_view", "Can see the project"),
-         ("project_administrate", "Can administrate the project"),
-         ("project_series_add", "Can add a series to the project"),
-         ("project_artifact_add", "Can add an artifact to the project"),
+         ("project_view", "User/group can see the project"),
+         ("project_administrate", "User/group administrates the project"),
+         ("project_series_add", "User/group can add a series to the project"),
+         ("project_series_delete", "User/group can delete a series from the project"),
+         ("project_artifact_add", "Can add an artifact to the project"),  # to remove
         )
 
     def has_user_project_administrate_permission(self, user):
@@ -219,18 +220,19 @@ class ProjectSeries(models.Model):
                                         related_name='view_users')
     view_groups = models.ManyToManyField(Group, blank=True, related_name='view_groups')
 
-    view_artifacts_users = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True,
-                                                  related_name='view_artifact_users')
-    view_artifacts_groups = models.ManyToManyField(Group, blank=True,
-                                                   related_name='view_artifact_groups')
+    perms_users_artifacts_add = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name='perms_users_artifacts_add')
+    perms_groups_artifacts_add = models.ManyToManyField(Group, blank=True, related_name='perms_groups_artifacts_add')
+
+    perms_users_artifacts_del = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name='perms_users_artifacts_del')
+    perms_groups_artifacts_del = models.ManyToManyField(Group, blank=True, related_name='perms_groups_artifacts_del')
 
     class Meta:
         unique_together = (("project", "series"),)
         permissions = (
-          ("series_view", "User of group has access to this revision"),
-          ("series_edit", "User can edit the content of this series"),
-          # This is a refinement of series_view
-          ("series_artifact_view", "Access to the artifacts of this revision"),
+            ("series_view", "User/group has access to this serie and its content"),
+            ("series_edit", "User/group can edit the definition of this series"),
+            ("series_artifact_add", "User/group is allowed to add an artifact"),
+            ("series_artifact_delete", "User/group is allowed to delete an artifact"),
         )
 
     def __unicode__(self):
@@ -247,19 +249,28 @@ class ProjectSeries(models.Model):
             manage_permission_on_object(userobj, self.view_users, self.view_groups, False)
 
     def has_user_series_edit_permission(self, userobj):
-        """Returns true if the user has view permission on this series, False otherwise"""
+        """Returns true if the user has edit permission on this series, False otherwise"""
         return self.is_public or \
             self.project.has_user_project_administrate_permission(userobj) or \
             manage_permission_on_object(userobj, self.view_users, self.view_groups, False)
 
-    def has_user_series_artifact_view_permission(self, userobj):
-        """Returns True if the user can see the list of artifacts and the artifacts themselves for
-           a specific series, False otherwise"""
+    def has_user_series_artifact_add_permission(self, userobj):
+        """Returns True if the user can add an artifact to the serie"""
         return self.is_public or \
             self.project.has_user_project_administrate_permission(userobj) or \
             (self.has_user_series_view_permission(userobj) and
-             manage_permission_on_object(userobj, self.view_artifacts_users,
-                                         self.view_artifacts_groups, False))
+             manage_permission_on_object(userobj,
+                                         self.perms_users_artifacts_add,
+                                         self.perms_groups_artifacts_add, False))
+
+    def has_user_series_artifact_delete_permission(self, userobj):
+        """Returns True if the user can remove an artifact from the serie"""
+        return self.is_public or \
+            self.project.has_user_project_administrate_permission(userobj) or \
+            (self.has_user_series_view_permission(userobj) and
+             manage_permission_on_object(userobj,
+                                         self.perms_users_artifacts_del,
+                                         self.perms_groups_artifacts_del, False))
 
     def get_all_revisions(self):
         return list(set(map(Artifact.get_revision, self.artifacts.all())))
@@ -273,6 +284,7 @@ class Revision(models.Model):
     commit_time = models.DateTimeField('Time of creation',
                                        auto_now_add=True,
                                        help_text='Automatic field that is set when this revision is created')
+
     def __unicode__(self):
         return "[%s] %s" % (self.project.name, self.revision)
 

@@ -1,7 +1,6 @@
 
 from django import template
-from code_doc.models import Project
-from django.core.urlresolvers import reverse, reverse_lazy
+from django.core.urlresolvers import reverse_lazy
 
 register = template.Library()
 
@@ -44,7 +43,7 @@ def button_edit_series_with_permission(user, revision):
     logger.debug('[templatetag|button series] User %s ', user)
     return {'permission_ok': project.has_user_project_series_add_permission(user),
             'user': user,
-            'next' : reverse_lazy('project_series_edit', args=[project.id, revision.id])}
+            'next': reverse_lazy('project_series_edit', args=[project.id, revision.id])}
 
 
 @register.inclusion_tag('code_doc/tags/button_edit_with_permission_tag.html')

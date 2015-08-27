@@ -39,11 +39,10 @@ def index(request):
     """Front page"""
     projects_list = Project.objects.order_by('name')
     topics_list = Topic.objects.order_by('name')
-    return render(
-            request,
-            'code_doc/index.html',
-            {'projects_list': projects_list,
-             'topics_list': topics_list})
+    return render(request,
+                  'code_doc/index.html',
+                  {'projects_list': projects_list,
+                   'topics_list': topics_list})
 
 
 def about(request):
@@ -75,11 +74,10 @@ class MaintainerProfileView(View):
             raise Http404
 
         projects = Project.objects.filter(administrators=maintainer)
-        return render(
-                  request,
-                  'code_doc/maintainer_details.html',
-                  {'projects': projects,
-                   'maintainer': maintainer})
+        return render(request,
+                      'code_doc/maintainer_details.html',
+                      {'projects': projects,
+                       'maintainer': maintainer})
 
     @method_decorator(login_required)
     def post(self, request):
@@ -134,8 +132,8 @@ class PermissionOnObjectViewMixin(SingleObjectMixin):
 
         # this modifies the dispatch of the parent through the decorator, and calls it with the same parameters
         return permission_required_on_object(object_permissions, object_permissions_getter, handle_access_error=self.handle_access_error)\
-                  (super(PermissionOnObjectViewMixin, self).dispatch)\
-                      (request, *args, **kwargs)
+                   (super(PermissionOnObjectViewMixin, self).dispatch)\
+                       (request, *args, **kwargs)
 
     # we do not need to reimplement this behaviour as it is properly done in the decorator
 
@@ -177,7 +175,7 @@ class ProjectView(DetailView):
 
 class ProjectListView(ListView):
     """List all available projects"""
-    paginate_by = 1
+    paginate_by = 10
     template_name = "code_doc/project/project_list.html"
     context_object_name = "projects"
 
@@ -254,7 +252,7 @@ class ProjectSeriesDetailsView(PermissionOnObjectViewMixin, DetailView):
     template_name = 'code_doc/project_series/project_series_details.html'
 
     # we should have admin priviledges on the object in order to be able to add anything
-    permissions_on_object = ('code_doc.series_view', 'code_doc.series_artifact_view')
+    permissions_on_object = ('code_doc.series_view')  # , 'code_doc.series_artifact_view')
     permissions_object_getter = 'get_series_from_request'
 
     def get_series_from_request(self, request, *args, **kwargs):
@@ -291,8 +289,6 @@ class ProjectSeriesDetailsView(PermissionOnObjectViewMixin, DetailView):
         context['artifacts'] = series_object.artifacts.all()
 
         return context
-
-
 
 
 # @todo: remove overlap with ProjectSeriesAddView
@@ -442,7 +438,6 @@ class ProjectSeriesArtifactAddView(ProjectSeriesArtifactEditionFormsView, Create
         current_project = current_series.project
         assert(str(current_project.id) == self.kwargs['project_id'])
 
-
         # Get the raw data that was sent as the request
         form_data_query_dict = self.request.POST
 
@@ -510,14 +505,13 @@ class TopicView(View):
         except Project.DoesNotExist:
             raise Http404
 
-        return render(
-                  request,
-                  'code_doc/topics/topics.html',
-                  {'topic': topic})
+        return render(request,
+                      'code_doc/topics/topics.html',
+                      {'topic': topic})
 
 
 class TopicListView(ListView):
-    paginate_by = 2
+    paginate_by = 10
     template_name = "code_doc/topics/topic_list.html"
     context_object_name = "topics"
 
@@ -532,7 +526,7 @@ class TopicListView(ListView):
 
 class AuthorListView(ListView):
     """A generic view of the authors in a list"""
-    paginate_by = 2
+    paginate_by = 10
     template_name = "code_doc/author_list.html"
     context_object_name = "authors"
 
