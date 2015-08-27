@@ -3,7 +3,7 @@ from django.db import IntegrityError
 
 # Create your tests here.
 from django.test import Client
-from code_doc.models import Project, Author, ProjectSeries, Artifact, Branch, Revision
+from ..models import Project, Author, ProjectSeries, Artifact, Branch, Revision
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 from django.core.files import File
@@ -107,18 +107,19 @@ class ProjectSeriesArtifactTest(TestCase):
         self.assertEqual(response.status_code, 302)  # redirection status
 
     def test_send_new_artifact_with_login_malformed(self):
-        """Testing the upload capabilities: malformed URL should yield an access error"""
+        """Testing the upload capabilities: malformed form filling should not yield an access error
+        but an error message"""
         response = self.client.login(username='toto', password='titi')
         self.assertTrue(response)
 
         self.assertEqual(self.new_series.artifacts.count(), 0)
 
-        initial_path = reverse(self.path, args=[self.project.id, '12345555'])  # series name is malformed
+        initial_path = reverse(self.path, args=[self.project.id, self.new_series.id])
         response = self.client.post(initial_path,
-                                    {'name': 'fred', 'attachment': self.imgfile},
+                                    {'name': 'fred'},  # , 'attachment': self.imgfile}, # attachement missing while required
                                     follow=False)
 
-        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.status_code, 200)
         # self.assertIn('errorlist', response.content)
 
     def test_send_new_artifact_with_login(self):
