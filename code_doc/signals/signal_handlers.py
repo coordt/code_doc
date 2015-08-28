@@ -49,7 +49,6 @@ def linkToAuthor(sender, **kwargs):
             user_instance.author = linked_author
             user_instance.save()
 
-
 @receiver(m2m_changed, sender=Artifact.project_series.through)
 def callback_check_revision_references(sender, **kwargs):
     """If an artifact is removed from a series, we have to check if the
