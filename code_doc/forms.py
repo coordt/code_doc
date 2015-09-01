@@ -35,16 +35,21 @@ class SeriesEditionForm(ModelForm):
             'is_public',
             'view_users', 'view_groups',
             'perms_users_artifacts_add', 'perms_groups_artifacts_add',
-            'perms_users_artifacts_del', 'perms_groups_artifacts_del'
+            'perms_users_artifacts_del', 'perms_groups_artifacts_del',
+            'nb_revisions_to_keep'
         )
         labels = {
             'series': 'Name',
-            'description_mk': 'Description'
+            'description_mk': 'Description',
+            'nb_revisions_to_keep': 'Revisions limit'
         }
         help_texts = {
             'is_public': 'If checked, the serie will be visible from everyone. If not you have to specify the users/groups to which'
             'you are granting access',
-            'description_mk': 'Description/content of the series in MarkDown format'
+            'description_mk': 'Description/content/scope of the series in MarkDown format',
+            'nb_revisions_to_keep':
+                'Indicates the maximum number of revisions that this serie will keep. An artifact without '
+                'any revision is considered on its own revision. Leave blank to avoid the limit.'
         }
         widgets = {
             'series': Textarea(attrs={'cols': 60,
@@ -79,7 +84,8 @@ class SeriesEditionForm(ModelForm):
         context['project_id'] = current_project.id
 
         context['automatic_fields'] = (form[i] for i in ('series', 'release_date',
-                                                         'description_mk', 'is_public'))
+                                                         'description_mk', 'is_public',
+                                                         'nb_revisions_to_keep'))
 
         context['permission_headers'] = ['View and download', 'Adding artifacts', 'Removing artifacts']
 
