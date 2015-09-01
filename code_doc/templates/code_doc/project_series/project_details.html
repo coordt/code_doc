@@ -24,21 +24,22 @@
 
         <div class="row">
           <div class="col-xs-8 col-sm-4">
-				    {% for author in project.authors.all %}
-		        <a href="{% url 'author' author.id %}" title="{{author.firstname}} {{author.lastname}}" alt="{{author.firstname}} {{author.lastname}}">
-		          {% author_image author.id 50 %}
-            </a>
-            <div class="author-seperator"></div>
-				    {% endfor %}
-				  </div>
-
-				</div>
+			{% for author in project.authors.all %}
+			    <a href="{% url 'author' author.id %}" 
+			       title="{{author.firstname}} {{author.lastname}}" 
+			       alt="{{author.firstname}} {{author.lastname}}">
+			      {% author_image author.id 32 %}
+	            </a>
+            	<div class="author-seperator"></div>
+			{% endfor %}
+		  </div>
+		</div>
       {% else %}
         <p>No author.</p>
       {% endif %}
 
 
-      <h4>Maintained by</h4>
+      <h4>Maintainers</h4>
 		  {% if project.administrators.count > 0 %}
 
 		    <ul>
@@ -58,8 +59,9 @@
   </div>
 
 
-  <h3>Series {% button_add_series_with_permission user project %}
-  </h3>
+  {# ################################ #}
+  {# Series #}
+  <h3>Series {% button_add_series_with_permission user project %}</h3>
 
   {% if last_update %}
 
