@@ -4,7 +4,7 @@ from django.dispatch import receiver
 
 from django.conf import settings
 
-from code_doc.models import Author, Revision, Branch, Artifact, get_deflation_directory, ProjectSeries
+from ..models import Author, Revision, Branch, Artifact, get_deflation_directory, ProjectSeries
 
 import logging
 import tempfile
@@ -42,71 +42,87 @@ def linkToAuthor(sender, **kwargs):
                 linked_author = Author.objects.get(email=user_instance.email)
             else:
                 linked_author = Author.objects.create(
-                                       lastname=user_instance.last_name,
-                                       firstname=user_instance.first_name,
-                                       email=user_instance.email,
-                                       django_user=user_instance)
+                                  lastname=user_instance.last_name,
+                                  firstname=user_instance.first_name,
+                                  email=user_instance.email,
+                                  django_user=user_instance)
             user_instance.author = linked_author
             user_instance.save()
 
+
 @receiver(m2m_changed, sender=Artifact.project_series.through)
-def callback_check_revision_references(sender, **kwargs):
+def callback_check_revision_references(sender,
+                                       action,
+                                       reverse,
+                                       instance, **kwargs):
     """If an artifact is removed from a series, we have to check if the
        revision it belonged to still contains artifacts.
 
        If an artifact is added to a series, a revision is implicitely "added" to
        to this series
     """
-    action = kwargs['action']
 
-    if kwargs['reverse']:
+    if reverse:
+
+        changed_artifacts_pks = kwargs['pk_set']
+        project_series = instance
+
         # We modified the reverse relationship which means we
         # modified series.artifact.
-        #
-        # @todo(Stephan): Unit test!
-        #
         if action == 'pre_add':
-            # We want to add an Artifact to a Series
-            project_series = kwargs['instance']
-            changed_artifacts_pks = kwargs['pk_set']
+            # checking integrity for all added artifacts
+            proj = project_series.project
             for pk in changed_artifacts_pks:
                 artifact = Artifact.objects.get(pk=pk)
-                if artifact.project != project_series.project:
+                if artifact.project != proj:
                     raise IntegrityError
 
         elif action == 'post_remove':
-            # Removing Artifacts from a Series, we have to check if this
-            # Artifact's Revision is referenced anywhere.
-            changed_artifacts = kwargs['pk_set']
-            for pk in changed_artifacts:
+            # Removing artifacts: we have to check if the
+            # revision is still referenced.
+            for pk in changed_artifacts_pks:
                 artifact = Artifact.objects.get(pk=pk)
                 artifact_revision = artifact.revision
 
-                if len(artifact_revision.get_all_referencing_series()) == 0:
+                if artifact_revision and len(artifact_revision.get_all_referencing_series()) == 0:
                     artifact_revision.delete()
+
+                if artifact.project_series.count() == 0:
+                    artifact.delete()
+
+        elif action == 'post_add':
+            for pk in changed_artifacts_pks:
+                artifact = Artifact.objects.get(pk=pk)
+                limits_artifact_numbers(artifact)
+
     else:
         # We modified the forward relationship which means we
         # modified artifact.project_series.
-        #
-        # @todo(Stephan): Unit test!
-        #
+        artifact = instance
+
         if action == 'pre_add':
             # We want to add a Series to an Artifact, we need to check that
             # this Series belongs to the same Project that the Artifact does
-            artifact = kwargs['instance']
-
+            proj = artifact.project
             added_series_pks = kwargs['pk_set']
             for pk in added_series_pks:
                 series = ProjectSeries.objects.get(pk=pk)
-                if series.project != artifact.project:
+                if series.project != proj:
                     raise IntegrityError
 
-        elif action == 'post_remove':
-            artifact = kwargs['instance']
-            revision = artifact.revision
+        elif action == 'post_add':
+            limits_artifact_numbers(artifact)
 
-            if len(revision.get_all_referencing_series()) == 0:
+        elif action == 'post_remove':
+            # clean up revision if it does not contain any artifact
+            # only in case of the deletion of an artifact
+            revision = artifact.revision
+            if revision and len(revision.get_all_referencing_series()) == 0:
                 revision.delete()
+
+            if artifact.project_series.count() == 0:
+                artifact.delete()
+
 
 # Relation between Branches and Revisions
 # @receiver(m2m_changed, sender=Branch.revisions.through)
@@ -168,16 +184,85 @@ def enforce_revision_limit_for_branch(branch):
        we remove the earliest Revisions until the desired max amount
        is reached.
     """
-    while branch.revisions.count() > branch.nr_of_revisions_kept:
+    while branch.revisions.count() > branch.nb_revisions_to_keep:
         revision_to_remove = branch.revisions.earliest()
         branch.revisions.remove(revision_to_remove)
 
 
-# Branches
-@receiver(post_save, sender=Branch)
-def callback_enforce_revision_limit_on_change(sender, **kwargs):
-    branch_instance = kwargs['instance']
-    enforce_revision_limit_for_branch(branch_instance)
+def limits_artifact_numbers(artifact):
+    """Contains the logic for removing the revisions from series or branches
+    when their respective limit is reached"""
+
+    # logger.debug('[signals.limits_artifact_numbers] artifact %s', artifact)
+
+    project = artifact.project
+    proj_nb_revisions_to_keep = project.nb_revisions_to_keep
+
+    if artifact.revision is not None:
+        # we are in the mode where we limit the revisions
+
+        for serie in artifact.project_series.all():
+
+            # these two numbers serve the same purpose
+            if serie.nb_revisions_to_keep is not None or proj_nb_revisions_to_keep is not None:
+
+                nb_revisions_limit = serie.nb_revisions_to_keep \
+                    if serie.nb_revisions_to_keep is not None \
+                    else proj_nb_revisions_to_keep
+
+                if nb_revisions_limit > 0:
+                    # get all revisions of this serie
+                    all_artifacts = Artifact.objects.filter(project_series=serie)
+
+                    # we do not delete our own revision
+                    all_serie_revision = Revision.objects\
+                        .filter(artifacts__in=all_artifacts)\
+                        .distinct()\
+                        .order_by('commit_time')
+
+                    nb_current_revisions = all_serie_revision.count()
+                    if(nb_current_revisions > nb_revisions_limit):
+                        for rev_to_remove in all_serie_revision[:(nb_current_revisions - nb_revisions_limit)]:
+                            artifacts_to_prune = serie.artifacts.filter(revision=rev_to_remove).all()
+                            # logger.debug('[signals.limits_artifact_numbers] artifacts %s removed, all %s',
+                            #             artifacts_to_prune.all(),
+                            #             all_artifacts.all())
+
+                            for art in artifacts_to_prune:
+                                serie.artifacts.remove(art)
+
+                            # serie.artifacts.remove(*artifacts_to_prune)
+
+                    pass
+
+    else:
+        # we filter the number of artifacts without revision instead
+        for serie in artifact.project_series.all():
+
+            # these two numbers serve the same purpose
+            if serie.nb_revisions_to_keep is not None or proj_nb_revisions_to_keep is not None:
+                all_artifacts = Artifact.objects.filter(project_series=serie)\
+                    .order_by('upload_date')
+
+                nb_current_artifacts = all_artifacts.count()
+                nb_artifacts_limit = serie.nb_revisions_to_keep \
+                    if serie.nb_revisions_to_keep is not None \
+                    else proj_nb_revisions_to_keep
+
+                if(nb_current_artifacts > nb_artifacts_limit):
+                    artifacts_to_prune = all_artifacts[:(nb_current_artifacts - nb_artifacts_limit)]
+                    # logger.debug('[signals.limits_artifact_numbers] artifacts %s removed, all %s',
+                    #             artifacts_to_prune.all(),
+                    #             all_artifacts.all())
+
+                    # for art in artifacts_to_prune:
+                    #    art.project_series.remove(serie)
+                    serie.artifacts.remove(*artifacts_to_prune)
+
+            pass  # if
+        pass  # for
+
+    pass  # if artifact.revision
 
 
 # Artifacts
@@ -188,13 +273,17 @@ def is_deflated(instance):
 
 
 @receiver(post_save, sender=Artifact)
-def callback_artifact_deflation_on_save(sender, instance, created, raw, **kwargs):
+def callback_artifact_deflation_on_save(sender,
+                                        instance,
+                                        created,
+                                        raw,
+                                        **kwargs):
     """Callback received after an artifact has been saved in the database. In case of a documentation
     artifact, and in case the artifact is a zip/archive, we deflate it"""
 
-    # logger.debug('[project artifact] post_save artifact %s', instance)
+    logger.debug('[project artifact] post_save artifact %s', instance)
 
-    # we do not perform any deflation in case of database populating action
+    # we do not perform operation in case of database populating action
     if raw:
         return
 
@@ -253,9 +342,9 @@ def callback_artifact_documentation_delete(sender, instance, using, **kwargs):
 
 @receiver(post_delete, sender=Artifact)
 def callback_artifact_delete(sender, instance, using, **kwargs):
+    """Removes the artifact itself"""
     # logger.debug('[project artifact] post_delete artifact %s', instance)
     storage, path = instance.artifactfile.storage, instance.artifactfile.path
-    storage.delete(path)
     try:
         storage.delete(path)
     except WindowsError, e:
