@@ -145,7 +145,7 @@ class ProjectView(DetailView):
 
     model = Project
     pk_url_kwarg = 'project_id'
-    template_name = 'code_doc/project_series/project_details.html'
+    template_name = 'code_doc/project/project_details.html'
 
     def get_context_data(self, **kwargs):
         context = super(ProjectView, self).get_context_data(**kwargs)
@@ -225,7 +225,7 @@ class SerieAccessViewBase(PermissionOnObjectViewMixin):
 class SeriesEditViewBase(SerieAccessViewBase):
     """Manages the edition views of the project series"""
 
-    template_name = "code_doc/project_series/project_series_add_or_edit.html"
+    template_name = "code_doc/series/series_add_or_edit.html"
 
     # for the form that is displayed
     form_class = SeriesEditionForm
@@ -305,7 +305,7 @@ class SeriesDetailsView(SerieAccessViewBase, DetailView):
     # part of the url giving the proper object
     pk_url_kwarg = 'series_id'
 
-    template_name = 'code_doc/project_series/project_series_details.html'
+    template_name = 'code_doc/series/series_details.html'
 
     # we should have admin priviledges on the object in order to be able to add anything
     permissions_on_object = ('code_doc.series_view',)
@@ -517,7 +517,7 @@ class TopicListView(ListView):
 class AuthorListView(ListView):
     """A generic view of the authors in a list"""
     paginate_by = 10
-    template_name = "code_doc/author_list.html"
+    template_name = "code_doc/authors/author_list.html"
     context_object_name = "authors"
 
     def get_queryset(self):
@@ -534,7 +534,7 @@ def detail_author(request, author_id):
     coauthor_list = Author.objects.filter(project__in=project_list).distinct().exclude(pk=author_id)
 
     return render(request,
-                  'code_doc/author_details.html',
+                  'code_doc/authors/author_details.html',
                   {'project_list': project_list,
                    'author': author,
                    'user': request.user,
