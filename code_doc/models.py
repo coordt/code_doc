@@ -391,7 +391,9 @@ class Artifact(models.Model):
 
     description = models.TextField(
         'description of the artifact',
-        max_length=1024)
+        max_length=1024,
+        blank=True,
+        null=True)
 
     artifactfile = models.FileField(
         upload_to=get_artifact_location,
@@ -413,11 +415,10 @@ class Artifact(models.Model):
         blank=True,
         help_text='Automatic field that indicates the file upload time')
 
-    uploaded_by = models.CharField(
-        max_length=50,
-        null=True,
-        blank=True,
-        help_text='User/agent uploading the file')
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL,
+                                    blank=True,
+                                    null=True,
+                                    help_text='User/agent uploading the file')
 
     def get_absolute_url(self):
         return reverse('project_series',

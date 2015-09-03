@@ -2,6 +2,7 @@
 {% load static %}
 {% load button_add_with_permission %}
 {% load markdown_filter %}
+{% load tz %}
 
 {% block title %}{{ project.name }}{% endblock %}
 
@@ -9,34 +10,51 @@
 {% block content %}
   <h1><a href="{% url 'project' project.id %}">{{ project.name }}</a> - {{series.series}} {% button_edit_series_with_permission user series %}</h1>
 
-  <h3>Description</h3>
   {{series.description_mk|markd|safe}}
-
+  
   <h3>Details</h3>
+  This serie
+  <ul>
+    <li>contains {{ artifacts|length }} artifact(s)</li>
+    <li>contains {{ revisions|length }} revision(s)</li>
+    <li>{% if series.nb_revisions_to_keep %}limits the number of artifacts to {{ series.nb_revisions_to_keep }}
+    {% else %}has no limit on the number of artifacts
+    {% endif %}</li>
+  </ul>
 
   <h3>Artifacts</h3>
-
 
   {% if artifacts %}
 
 	  <table class="table table-hover">
-	      <thead>
-	        <tr>
-	          <th>Id</th>
-	          <th>Name</th>
-	          <th>Label</th>
-	          <th>MD5</th>
-	          <th>Description</th>
-	          <th>Upload date</th>
-	          <th>Uploaded by</th>
-	        </tr>
-	      </thead>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Revision</th>
+          <th>Label</th>
+          <th>Description</th>
+          <th>Info</th>
+        </tr>
+      </thead>
 
 	    <tbody>
 	      {% for artifact in artifacts %}
 	        <tr>
-	          <td>{{artifact.pk}}</td>
-	          <td class="text-nowrap"><small><a href="{%get_media_prefix%}{{artifact.artifactfile}}">{{artifact.filename}}</a></small></td>
+            <td class="text-nowrap">
+             <small>
+               <a href="{%get_media_prefix%}{{artifact.artifactfile}}">{{artifact.filename}}</a></br>
+               <small>md5: <span style="font-family:monospace;">{{artifact.md5hash|upper}}</span></small>
+             </small>
+            </td>
+
+	          <td>
+	          {% if artifact.revision %}
+	            {{ artifact.revision.revision }}
+	          {% else %}
+              -	          
+	          {% endif %}
+	          </td>
+	          
 
             <td>
             {% if artifact.is_documentation %}
@@ -46,15 +64,23 @@
                 <a href="{%get_media_prefix%}{{artifact.get_documentation_url}}">read online</a>
               {% endif %}
             </td>
-            <td><small><span style="font-family:monospace;">{{artifact.md5hash|upper}}</span></small></td>
-	          <td><small>{{artifact.description}}</small></td>
-	          <td><small>{{artifact.upload_date|date}}</small></td>
-	          <td>{% if artifact.uploaded_by %}<small>{{artifact.uploaded_by}}</small>{%endif%}</td>
+            
+	          <td>
+	           <small>{{artifact.description}}</small>
+	          </td>
+	          
+	          <td>
+	           <small>
+	             {% if artifact.upload_date and artifact.uploaded_by%}
+	             Uploaded on {{artifact.upload_date|utc}}</br>by {{artifact.uploaded_by}}
+	             {% endif %}
+	           </small>
+	          </td>
 
 	        </tr>
 	      {%endfor%}
 	      <tr>
-	        <th>{% button_add_artifact_with_permission user series %}</th>
+	        <td>{% button_add_artifact_with_permission user series %}</td>
 	      </tr>
 	    </tbody>
 	  </table>
@@ -64,5 +90,45 @@
       <p>{% button_add_artifact_with_permission user series %}</p>
   {% endif %}
 
+
+  <h3>Revisions</h3>
+  
+  {% if revisions %}
+    
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>Revision</th>
+          <th>Artifacts</th>
+          <th>Creation date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for rev in revisions %}
+          <tr>
+            <td class="text-nowrap">
+             <small>{{ rev.revision }}</small>
+            </td>
+            <td class="text-nowrap">
+             <small>{{ rev.artifacts.all|length }}</small>
+            </td>
+            <td class="text-nowrap">
+            <small>
+            {% if rev.commit_time %}
+             {{ rev.commit_time|utc }}
+            {% else %}
+             not provided
+            {% endif %}
+            </small>
+            </td>
+          </tr>        
+        {% endfor %}
+      </tbody>
+    </table>
+          
+    
+  {% else %}
+    This serie contains no revisions.
+  {% endif %}
 
 {% endblock %}

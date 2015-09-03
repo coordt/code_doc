@@ -323,6 +323,7 @@ class SeriesDetailsView(SerieAccessViewBase, DetailView):
         context['project'] = series_object.project
         context['project_id'] = series_object.project.id
         context['artifacts'] = series_object.artifacts.all()
+        context['revisions'] = set([art.revision for art in context['artifacts'] if art.revision is not None])
 
         return context
 
@@ -387,26 +388,6 @@ class ArtifactAccessViewBase(PermissionOnObjectViewMixin):
 
         return current_series
 
-    def get_context_data(self, **kwargs):
-        """Method used for populating the template context"""
-        context = super(ArtifactAccessViewBase, self).get_context_data(**kwargs)
-
-        # already project/series matching by the permission check above
-        current_series = ProjectSeries.objects.get(pk=self.kwargs['series_id'])
-        current_project = current_series.project
-
-        context['project'] = current_project
-        context['series'] = current_series
-        context['artifacts'] = current_series.artifacts.all()
-        context['uploaded_by'] = self.request.user  # @todo: FIX
-
-        return context
-
-    def get_success_url(self):
-        return reverse('project_series',
-                       kwargs={'project_id': self.object.project.pk,
-                               'series_id': self.get_serie_from_url(self.request).id})
-
 
 class ArtifactEditFormView(ArtifactAccessViewBase):
 
@@ -414,6 +395,18 @@ class ArtifactEditFormView(ArtifactAccessViewBase):
 
     # for the form that is displayed
     form_class = ArtifactEditionForm
+
+    def get_success_url(self):
+        return reverse('project_series',
+                       kwargs={'project_id': self.object.project.pk,
+                               'series_id': self.get_serie_from_url(self.request).id})
+
+    def get_context_data(self, **kwargs):
+        """Method used for populating the template context"""
+        context = super(ArtifactAccessViewBase, self).get_context_data(**kwargs)
+        self.form_class.set_context_for_template(context, self.kwargs['series_id'])
+
+        return context
 
 
 class ArtifactAddView(ArtifactEditFormView, CreateView):
@@ -432,22 +425,22 @@ class ArtifactAddView(ArtifactEditFormView, CreateView):
         assert(str(current_project.id) == self.kwargs['project_id'])
 
         # Get the raw data that was sent as the request
-        form_data_query_dict = self.request.POST
-
+        # form_data_query_dict = self.request.POST
         try:
             with transaction.atomic():
 
                 # checking if branches need to be created
                 # if the save fails, the state is restored
-                if 'branch' in form_data_query_dict and form_data_query_dict['branch']:
-                    branch_name = form_data_query_dict['branch']
+                if 'branch' in form.cleaned_data and form.cleaned_data['branch']:
+                    branch_name = form.cleaned_data['branch']
                     branch, branch_created = Branch.objects.get_or_create(name=branch_name)
                 else:
                     branch = None
                     branch_created = False
 
-                if 'revision' in form_data_query_dict and form_data_query_dict['revision']:
-                    revision_name = form_data_query_dict['revision']
+                if 'revision' in form.cleaned_data and form.cleaned_data['revision']:
+                    revision_name = form.cleaned_data['revision']
+
                     # Try to get already saved models from the database
                     revision, revision_created = Revision.objects.get_or_create(revision=revision_name,
                                                                                 project=current_project)
@@ -463,8 +456,18 @@ class ArtifactAddView(ArtifactEditFormView, CreateView):
                 if revision is not None:
                     form.instance.revision = revision
 
+                # automatic filling of the user and date
+                form.instance.uploaded_by = self.request.user
+
+                from django.utils import timezone
+                form.instance.upload_date = timezone.now()
+
+                # otherwise we got the following error:
+                # needs to have a value for field "artifact" before this many-to-many relationship can be used
                 form.instance.save()
-                form.instance.project_series = [current_series]
+
+                form.instance.project_series.add(current_series)
+                # form.instance.save()
 
                 return super(ArtifactAddView, self).form_valid(form)
 

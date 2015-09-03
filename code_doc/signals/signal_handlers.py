@@ -62,6 +62,8 @@ def callback_check_revision_references(sender,
        to this series
     """
 
+    logger.debug('[signal artifact-serie] m2m_changed / artifact %s', instance)
+
     if reverse:
 
         changed_artifacts_pks = kwargs['pk_set']
