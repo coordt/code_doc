@@ -120,6 +120,13 @@ class ArtifactEditionForm(ModelForm):
                                                 'rows': 1,
                                                 'style': "resize:none; width: 100%; min-height: 30px;"}),)
 
+    branch = CharField(label='Branch',
+                       help_text='If the revision of the file is on a specific branch, '
+                                 'you may indicate it here.',
+                       widget=Textarea(attrs={'cols': 60,
+                                              'rows': 1,
+                                              'style': "resize:none; width: 100%; min-height: 30px;"}),)
+
     class Meta:
         model = Artifact
         fields = (
@@ -175,8 +182,13 @@ class ArtifactEditionForm(ModelForm):
         context['automatic_fields'] = (form[i] for i in ('artifactfile', 'description',
                                                          'is_documentation',
                                                          'documentation_entry_file',
-                                                         'revision',))
+                                                         'revision',
+                                                         'branch'))
 
     def clean_revision(self):
         # agnostic to case
         return self.cleaned_data['revision'].strip().lower()
+
+    def clean_branch(self):
+        # agnostic to case
+        return self.cleaned_data['branch'].strip()

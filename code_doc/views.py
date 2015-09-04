@@ -427,6 +427,7 @@ class ArtifactAddView(ArtifactEditFormView, CreateView):
         # Get the raw data that was sent as the request
         # form_data_query_dict = self.request.POST
         try:
+
             with transaction.atomic():
 
                 # checking if branches need to be created
@@ -462,7 +463,7 @@ class ArtifactAddView(ArtifactEditFormView, CreateView):
                 from django.utils import timezone
                 form.instance.upload_date = timezone.now()
 
-                # otherwise we got the following error:
+                # we save, otherwise we got the following error:
                 # needs to have a value for field "artifact" before this many-to-many relationship can be used
                 form.instance.save()
 
