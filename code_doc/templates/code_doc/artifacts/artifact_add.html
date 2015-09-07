@@ -1,0 +1,92 @@
+{% extends "code_doc/base_template.html" %}
+{% load gravatar %}
+{% load static %}
+{% load author_image %}
+{% load button_add_with_permission %}
+
+{% block title %}{{ project.name }}{% endblock %}
+
+
+{% block content %}
+
+  {% if form.errors %}
+    <div class="alert alert-danger" role="alert">The following error occurred with your submission {{form.errors}}</div>
+  {% endif %}
+
+
+  <h1><a href={% url 'project' project.id %}>{{ project.name }}</a> - <a href={% url 'project_series' project.id series.id %}>{{series.series}}</a></h1>
+
+
+  <div class="alert alert-info" role="alert">
+    You are uploading a file for the series "{{series.series|title}}".
+  </div>
+
+      <div class="alert alert-tip" role="alert">
+          An artifact is any file that you would like to share. An artifact may contain some relevant metadata such as
+          a description, an associated revision and branch, etc.</br>
+          You may indicate that the artifact is an archive containing a documentation, in which case the archive will
+          be deflated and the documentation will be accessible directly from the serie.</br>
+          An artifact may be associated to several series. 
+	  </div>	
+
+
+  <form class="form-horizontal" enctype="multipart/form-data" action="" method="post" role="form">
+    {% csrf_token %}
+
+    {% for field in automatic_fields %}
+        <div class="form-group">
+            {{ field.errors }}
+
+            <label for="{{ field.id_for_label }}" class="col-sm-2 control-label">{{ field.label }}</label>
+    
+            <div class="col-sm-7">
+              {{ field }}
+            </div>
+
+            <div class="col-sm-3">
+              <p class="help-block">{{ field.help_text }}</p>
+            </div>
+
+        </div>
+    {% endfor %}
+    
+    <button type="submit" class="btn btn-default" value="Create">Submit</button>
+
+  </form>
+
+
+  <h3>Details on this series</h3>
+  {% if artifacts %}
+    <p>This series contains already the following artifacts:</p>
+    <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Visibility</th>
+            <th>Uploaded</th>
+          </tr>
+        </thead>
+
+      {% for artifact in artifacts %}
+
+        <tbody>
+          <tr>
+            <th class="text-nowrap"><a href="{%get_media_prefix%}{{artifact.artifactfile}}">{{artifact.filename}}</a></th>
+            <td>
+            {% if series.is_public %}
+              <span class="label label-success">Public</span>
+            {% else %}
+              <span class="label label-warning">Restricted</span>
+            {% endif %}</td>
+            <td>{{artifact.upload_date|date}}</td>
+          </tr>
+      {%endfor%}
+    </table>
+
+
+
+  {% else %}
+      <p>This series contains no artifacts.</p>
+  {% endif %}
+
+{% endblock %}

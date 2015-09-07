@@ -130,7 +130,9 @@ class Project(models.Model):
     """A project, may contain several authors"""
     name = models.CharField(max_length=50, unique=True)
     short_description = models.TextField('short description of the project (200 chars)',
-                                         max_length=200, blank=True, null=True)
+                                         max_length=200,
+                                         blank=True,
+                                         null=True)
     description_mk = models.TextField('text in Markdown', max_length=2500, blank=True, null=True)
     icon = models.ImageField(blank=True, null=True, upload_to='project_icons/')
     slug = models.SlugField()
@@ -147,16 +149,21 @@ class Project(models.Model):
 
     topics = models.ManyToManyField(Topic, blank=True)
 
+    nb_revisions_to_keep = models.IntegerField("default number of revisions to keep",
+                                               default=None,
+                                               blank=True,
+                                               null=True)
+
     def __unicode__(self):
         return "%s" % (self.name)
 
     class Meta:
         permissions = (
-         ("project_view", "User/group can see the project"),
-         ("project_administrate", "User/group administrates the project"),
-         ("project_series_add", "User/group can add a series to the project"),
-         ("project_series_delete", "User/group can delete a series from the project"),
-         ("project_artifact_add", "Can add an artifact to the project"),  # to remove
+            ("project_view", "User/group can see the project"),
+            ("project_administrate", "User/group administrates the project"),
+            ("project_series_add", "User/group can add a series to the project"),
+            ("project_series_delete", "User/group can delete a series from the project"),
+            ("project_artifact_add", "Can add an artifact to the project"),  # to remove
         )
 
     def has_user_project_administrate_permission(self, user):
@@ -204,19 +211,38 @@ class ProjectSeries(models.Model):
     release_date = models.DateField('Release date')
     is_public = models.BooleanField(default=False)
     description_mk = models.TextField('Description in Markdown format',
-                                      max_length=2500, blank=True, null=True)
+                                      max_length=2500,
+                                      blank=True,
+                                      null=True)
+
+    nb_revisions_to_keep = models.IntegerField("default number of revisions to keep. Overrides the "
+                                               "projects default",
+                                               default=None,
+                                               blank=True,
+                                               null=True)
 
     # the users and groups allowed to view the artifacts of the revision
     # and also this project series
-    view_users = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True,
+    view_users = models.ManyToManyField(settings.AUTH_USER_MODEL,
+                                        blank=True,
                                         related_name='view_users')
-    view_groups = models.ManyToManyField(Group, blank=True, related_name='view_groups')
+    view_groups = models.ManyToManyField(Group,
+                                         blank=True,
+                                         related_name='view_groups')
 
-    perms_users_artifacts_add = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name='perms_users_artifacts_add')
-    perms_groups_artifacts_add = models.ManyToManyField(Group, blank=True, related_name='perms_groups_artifacts_add')
+    perms_users_artifacts_add = models.ManyToManyField(settings.AUTH_USER_MODEL,
+                                                       blank=True,
+                                                       related_name='perms_users_artifacts_add')
+    perms_groups_artifacts_add = models.ManyToManyField(Group,
+                                                        blank=True,
+                                                        related_name='perms_groups_artifacts_add')
 
-    perms_users_artifacts_del = models.ManyToManyField(settings.AUTH_USER_MODEL, blank=True, related_name='perms_users_artifacts_del')
-    perms_groups_artifacts_del = models.ManyToManyField(Group, blank=True, related_name='perms_groups_artifacts_del')
+    perms_users_artifacts_del = models.ManyToManyField(settings.AUTH_USER_MODEL,
+                                                       blank=True,
+                                                       related_name='perms_users_artifacts_del')
+    perms_groups_artifacts_del = models.ManyToManyField(Group,
+                                                        blank=True,
+                                                        related_name='perms_groups_artifacts_del')
 
     class Meta:
         unique_together = (("project", "series"),)
@@ -253,17 +279,17 @@ class ProjectSeries(models.Model):
         return self.is_public or \
             self.project.has_user_project_administrate_permission(userobj) or \
             self.has_user_series_artifact_delete_permission(userobj) or \
-             manage_permission_on_object(userobj,
-                                         self.perms_users_artifacts_add,
-                                         self.perms_groups_artifacts_add, False)
+            manage_permission_on_object(userobj,
+                                        self.perms_users_artifacts_add,
+                                        self.perms_groups_artifacts_add, False)
 
     def has_user_series_artifact_delete_permission(self, userobj):
         """Returns True if the user can remove an artifact from the serie"""
         return self.is_public or \
             self.project.has_user_project_administrate_permission(userobj) or \
-             manage_permission_on_object(userobj,
-                                         self.perms_users_artifacts_del,
-                                         self.perms_groups_artifacts_del, False)
+            manage_permission_on_object(userobj,
+                                        self.perms_users_artifacts_del,
+                                        self.perms_groups_artifacts_del, False)
 
     def get_all_revisions(self):
         return list(set(map(Artifact.get_revision, self.artifacts.all())))
@@ -298,7 +324,11 @@ class Branch(models.Model):
 
        It stores how many Revisions we allow this Branch to have."""
     name = models.CharField(max_length=100)
-    nr_of_revisions_kept = models.IntegerField(default=15)
+    nb_revisions_to_keep = models.IntegerField("default number of revisions to keep. Overrides the "
+                                               "projects and series default",
+                                               default=None,
+                                               blank=True,
+                                               null=True)
     revisions = models.ManyToManyField(Revision, related_name='branches')
 
 
@@ -307,7 +337,7 @@ def get_artifact_location(instance, filename):
     def is_int(elem):
         try:
             return True, int(elem)
-        except ValueError, e:
+        except ValueError:
             return False, 0
 
     media_relative_dir = os.path.join("artifacts",
@@ -361,7 +391,9 @@ class Artifact(models.Model):
 
     description = models.TextField(
         'description of the artifact',
-        max_length=1024)
+        max_length=1024,
+        blank=True,
+        null=True)
 
     artifactfile = models.FileField(
         upload_to=get_artifact_location,
@@ -383,11 +415,10 @@ class Artifact(models.Model):
         blank=True,
         help_text='Automatic field that indicates the file upload time')
 
-    uploaded_by = models.CharField(
-        max_length=50,
-        null=True,
-        blank=True,
-        help_text='User/agent uploading the file')
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL,
+                                    blank=True,
+                                    null=True,
+                                    help_text='User/agent uploading the file')
 
     def get_absolute_url(self):
         return reverse('project_series',

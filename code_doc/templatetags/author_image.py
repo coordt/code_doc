@@ -12,7 +12,7 @@ def author_image(author_id, size=None):
     author = Author.objects.get(pk=author_id)
     return {'uploaded_image': author.image if author.image is not None else None,
             'gravatar_email': author.gravatar_email if author.gravatar_email != "" else None,
-            'author_initial': author.firstname[0] if author.firstname != "" else author.email[0],
+            'author_initial': (author.firstname[0] if author.firstname != "" else author.email[0]).upper(),
             'background_color': _hash_string_to_color_hex(author.firstname + author.lastname, 200),
             'size': size}
 

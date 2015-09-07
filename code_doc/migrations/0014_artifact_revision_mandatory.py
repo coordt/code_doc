@@ -28,7 +28,7 @@ def set_project_for_artifact(apps, schema_editor):
         art.project = art.project_series_backup.project
         if art.project_series_backup.project is None:
             logger.debug('Failed to link artifact %s to any project', art)
-            
+
         art.project_series.add(art.project_series_backup)
         logger.debug('Artifact %s linked to series %s', art.artifactfile, art.project_series_backup.series)
         art.save()

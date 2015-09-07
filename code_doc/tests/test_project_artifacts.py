@@ -222,6 +222,7 @@ class ProjectSeriesArtifactTest(TestCase):
     def test_revision_and_branch_creation_on_artifact_upload(self):
         """Test if the on-the-fly Revision and Branch generation works, when we upload an Artifact
         """
+
         response = self.client.login(username='toto', password='titi')
 
         initial_path = reverse(self.path, args=[self.project.id, self.new_series.id])

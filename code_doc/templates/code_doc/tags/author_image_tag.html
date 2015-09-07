@@ -18,18 +18,11 @@
   class="img-rounded" >
 
 {% else %}
-<!-- Generate svg image -->
-<div class="svg-div-container"
-    {% if size %}
-      style="width:{{ size }}px; height:{{ size }}px;"
-    {% else %}
-      style="width:40px;height:40px;"
-    {% endif %}
-    >
-  <svg class="svg-container media-object img-rounded">
-    <rect x="0" y="0" width="100%" height="100%" fill="{{background_color}}" />
-    <text class="svg-text" x="50%" y="50%" dy=".4em">{{author_initial}}</text>
+  <svg width="{{ size }}px" height="{{ size }}px">
+    <rect x="0" y="0" width="100%" height="100%" rx="15%" ry="15%" fill="{{background_color}}" />
+    <text class="svg-text" x="50%" y="50%" 
+    	  text-anchor="middle" dominant-baseline="central"
+    	  font-size-adjust="1.1"
+    	  font-family="Tahoma, Geneva, sans-serif">{{author_initial}}</text>
   </svg>
-</div>
-
 {% endif %}

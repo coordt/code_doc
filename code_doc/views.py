@@ -24,7 +24,7 @@ import logging
 import json
 
 from .models import Project, Author, Topic, Artifact, ProjectSeries, Branch, Revision
-from .forms import ProjectSeriesForm, AuthorForm
+from .forms import SeriesEditionForm, AuthorForm, ArtifactEditionForm
 from .permissions.decorators import permission_required_on_object
 
 # logger for this file
@@ -145,7 +145,7 @@ class ProjectView(DetailView):
 
     model = Project
     pk_url_kwarg = 'project_id'
-    template_name = 'code_doc/project_series/project_details.html'
+    template_name = 'code_doc/project/project_details.html'
 
     def get_context_data(self, **kwargs):
         context = super(ProjectView, self).get_context_data(**kwargs)
@@ -225,10 +225,10 @@ class SerieAccessViewBase(PermissionOnObjectViewMixin):
 class SeriesEditViewBase(SerieAccessViewBase):
     """Manages the edition views of the project series"""
 
-    template_name = "code_doc/project_series/project_series_add_or_edit.html"
+    template_name = "code_doc/series/series_add_or_edit.html"
 
     # for the form that is displayed
-    form_class = ProjectSeriesForm
+    form_class = SeriesEditionForm
 
     def get_context_data(self, **kwargs):
         """Method used for populating the template context"""
@@ -305,7 +305,7 @@ class SeriesDetailsView(SerieAccessViewBase, DetailView):
     # part of the url giving the proper object
     pk_url_kwarg = 'series_id'
 
-    template_name = 'code_doc/project_series/project_series_details.html'
+    template_name = 'code_doc/series/series_details.html'
 
     # we should have admin priviledges on the object in order to be able to add anything
     permissions_on_object = ('code_doc.series_view',)
@@ -323,6 +323,7 @@ class SeriesDetailsView(SerieAccessViewBase, DetailView):
         context['project'] = series_object.project
         context['project_id'] = series_object.project.id
         context['artifacts'] = series_object.artifacts.all()
+        context['revisions'] = set([art.revision for art in context['artifacts'] if art.revision is not None])
 
         return context
 
@@ -360,7 +361,7 @@ class APIGetArtifacts(SeriesDetailsView, DetailView):
 ################################################################################################
 
 
-class ProjectSeriesArtifactEditionFormsView(PermissionOnObjectViewMixin):
+class ArtifactAccessViewBase(PermissionOnObjectViewMixin):
     """A generic class for grouping the several views for the artifacts"""
 
     model = Artifact
@@ -374,108 +375,115 @@ class ProjectSeriesArtifactEditionFormsView(PermissionOnObjectViewMixin):
         try:
             current_project = Project.objects.get(pk=self.kwargs['project_id'])
         except Project.DoesNotExist:
-            logger.warning('[ProjectSeriesArtifactEditionFormsView] non existent project with id %d',
+            logger.warning('[ArtifactAccessViewBase] non existent project with id %d',
                            self.kwargs['project_id'])
             return None
 
         try:
             current_series = current_project.series.get(pk=self.kwargs['series_id'])
         except ProjectSeries.DoesNotExist:
-            logger.warning('[ProjectSeriesArtifactEditionFormsView] non existent series for project "%s",id=%d with series.id "%s"',
+            logger.warning('[ArtifactAccessViewBase] non existent series for project "%s",id=%d with series.id "%s"',
                            current_project, current_project.id, self.kwargs['series_id'])
             return None
 
         return current_series
 
-    def get_context_data(self, **kwargs):
-        """Method used for populating the template context"""
-        context = super(ProjectSeriesArtifactEditionFormsView, self).get_context_data(**kwargs)
 
-        # already project/series matching by the permission check above
-        current_series = ProjectSeries.objects.get(pk=self.kwargs['series_id'])
-        current_project = current_series.project
+class ArtifactEditFormView(ArtifactAccessViewBase):
 
-        context['project'] = current_project
-        context['series'] = current_series
-        context['artifacts'] = current_series.artifacts.all()
-        context['uploaded_by'] = self.request.user  # @todo: FIX
+    template_name = "code_doc/project_artifacts/project_artifact_add.html"
 
-        return context
+    # for the form that is displayed
+    form_class = ArtifactEditionForm
 
     def get_success_url(self):
         return reverse('project_series',
                        kwargs={'project_id': self.object.project.pk,
                                'series_id': self.get_serie_from_url(self.request).id})
 
+    def get_context_data(self, **kwargs):
+        """Method used for populating the template context"""
+        context = super(ArtifactAccessViewBase, self).get_context_data(**kwargs)
+        self.form_class.set_context_for_template(context, self.kwargs['series_id'])
 
-class ProjectSeriesArtifactAddView(ProjectSeriesArtifactEditionFormsView, CreateView):
+        return context
+
+
+class ArtifactAddView(ArtifactEditFormView, CreateView):
     """Generic view for adding a series into a specific project"""
 
-    template_name = "code_doc/project_artifacts/project_artifact_add.html"
-    fields = ['description', 'artifactfile', 'is_documentation', 'documentation_entry_file',
-              'upload_date']
+    template_name = "code_doc/artifacts/artifact_add.html"
 
     permissions_on_object = ('code_doc.series_artifact_add',)
 
     def form_valid(self, form):
 
-        current_series = ProjectSeries.objects.get(pk=self.kwargs['series_id'])
+        # after the form validation occured
+
+        current_series = self.get_serie_from_url(self.request)
         current_project = current_series.project
         assert(str(current_project.id) == self.kwargs['project_id'])
 
         # Get the raw data that was sent as the request
-        form_data_query_dict = self.request.POST
-
-        if 'branch' in form_data_query_dict:
-            branch_name = form_data_query_dict['branch']
-            branch, branch_created = Branch.objects.get_or_create(name=branch_name)
-        else:
-            branch = None
-            branch_created = False
-
-        if 'revision' in form_data_query_dict:
-            revision_name = form_data_query_dict['revision']
-            # Try to get already saved models from the database
-            revision, revision_created = Revision.objects.get_or_create(revision=revision_name,
-                                                                        project=current_project)
-        else:
-            revision = None
-            revision_created = False
-
-        if branch is not None and revision is not None:
-            branch.revisions.add(revision)
-
-        form.instance.project = current_project
-
-        if revision is not None:
-            form.instance.revision = revision
-
-        # @todo(Stephan):
-        # Put all atomic transactions together
-        # Refactoring!
+        # form_data_query_dict = self.request.POST
         try:
+
             with transaction.atomic():
+
+                # checking if branches need to be created
+                # if the save fails, the state is restored
+                if 'branch' in form.cleaned_data and form.cleaned_data['branch']:
+                    branch_name = form.cleaned_data['branch']
+                    branch, branch_created = Branch.objects.get_or_create(name=branch_name)
+                else:
+                    branch = None
+                    branch_created = False
+
+                if 'revision' in form.cleaned_data and form.cleaned_data['revision']:
+                    revision_name = form.cleaned_data['revision']
+
+                    # Try to get already saved models from the database
+                    revision, revision_created = Revision.objects.get_or_create(revision=revision_name,
+                                                                                project=current_project)
+                else:
+                    revision = None
+                    revision_created = False
+
+                if branch is not None and revision is not None:
+                    branch.revisions.add(revision)
+
+                form.instance.project = current_project
+
+                if revision is not None:
+                    form.instance.revision = revision
+
+                # automatic filling of the user and date
+                form.instance.uploaded_by = self.request.user
+
+                from django.utils import timezone
+                form.instance.upload_date = timezone.now()
+
+                # we save, otherwise we got the following error:
+                # needs to have a value for field "artifact" before this many-to-many relationship can be used
                 form.instance.save()
+
+                form.instance.project_series.add(current_series)
+                # form.instance.save()
+
+                return super(ArtifactAddView, self).form_valid(form)
+
         except IntegrityError, e:
             logging.error("[fileupload] error during the save %s", e)
             return HttpResponse('Conflict %s' % form.instance.md5hash.upper(), status=409)
 
-        form.instance.project_series = [current_series]
-
-        try:
-            with transaction.atomic():
-                return super(ProjectSeriesArtifactAddView, self).form_valid(form)
-        except IntegrityError, e:
-            logging.error("[fileupload] error during the save %s", e)
-
-        return HttpResponse('Conflict %s' % form.instance.md5hash.upper(), status=409)
+        return HttpResponse('Error saving the artifact' % form.instance.md5hash.upper(), status=404)
 
 
-class ProjectSeriesArtifactRemoveView(ProjectSeriesArtifactEditionFormsView, DeleteView):
+class ArtifactRemoveView(ArtifactAccessViewBase, DeleteView):
     """Removes an artifact"""
 
     permissions_on_object = ('code_doc.series_artifact_remove',)
-    template_name = "code_doc/project_artifacts/project_artifact_remove.html"
+    template_name = "code_doc/artifacts/artifact_remove.html"
     pk_url_kwarg = "artifact_id"
 
 
@@ -513,7 +521,7 @@ class TopicListView(ListView):
 class AuthorListView(ListView):
     """A generic view of the authors in a list"""
     paginate_by = 10
-    template_name = "code_doc/author_list.html"
+    template_name = "code_doc/authors/author_list.html"
     context_object_name = "authors"
 
     def get_queryset(self):
@@ -530,7 +538,7 @@ def detail_author(request, author_id):
     coauthor_list = Author.objects.filter(project__in=project_list).distinct().exclude(pk=author_id)
 
     return render(request,
-                  'code_doc/author_details.html',
+                  'code_doc/authors/author_details.html',
                   {'project_list': project_list,
                    'author': author,
                    'user': request.user,

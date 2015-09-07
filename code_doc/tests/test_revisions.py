@@ -10,12 +10,13 @@
 from django.test import TestCase
 
 from django.test import Client
+# from django.utils.unittest.case import skip
 
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.conf import settings
 
-from code_doc.models import Project, ProjectSeries, Revision, Author, Artifact, get_deflation_directory, Branch
+from ..models import Project, ProjectSeries, Revision, Author, Artifact, get_deflation_directory, Branch
 
 import datetime
 import tempfile
@@ -30,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 class RevisionTest(TestCase):
-    """ Revision Test Case that tests the behavior of the Revision System"""
+    """Tests for revisions, their association with artifacts, branches, projects and their proper cleanup"""
     def setUp(self):
         self.client = Client()
 
@@ -52,15 +53,20 @@ class RevisionTest(TestCase):
                                                  project=self.project)
 
         self.branch_master = Branch.objects.create(name='master',
-                                                   nr_of_revisions_kept=4)
+                                                   nb_revisions_to_keep=4)
         self.branch_develop = Branch.objects.create(name='develop',
-                                                    nr_of_revisions_kept=8)
+                                                    nb_revisions_to_keep=8)
 
         self.revision1.branches.add(self.branch_develop)
         self.revision2.branches.add(self.branch_develop, self.branch_master)
         self.revision3.branches.add(self.branch_develop, self.branch_master)
 
         self.test_file = RevisionTest.get_test_file()
+
+    def tearDown(self):
+        # removing the test file
+        # in memory
+        pass
 
     @staticmethod
     def get_test_file():
@@ -88,6 +94,35 @@ class RevisionTest(TestCase):
         # Test the number of revisions for each branch
         self.assertEqual(self.branch_master.revisions.count(), 2)
         self.assertEqual(self.branch_develop.revisions.count(), 3)
+
+    def test_cannot_add_artifact_to_serie_from_another_project(self):
+        """Tests that artifacts can be promoted to series belonging to the same project"""
+
+        from django.db import IntegrityError
+        from django.db import transaction
+
+        art1 = Artifact.objects.create(project=self.project,
+                                       revision=self.revision1,
+                                       md5hash='1',
+                                       artifactfile=self.test_file)
+
+        project2 = Project.objects.create(name='project2')
+
+        series_p2 = ProjectSeries.objects.create(series="12345",
+                                                 project=project2,
+                                                 release_date=datetime.datetime.now())
+
+        with transaction.atomic():
+            with self.assertRaises(IntegrityError):
+                art1.promote_to_series(series_p2)
+
+        with transaction.atomic():
+            with self.assertRaises(IntegrityError):
+                art1.project_series.add(series_p2)
+
+        with transaction.atomic():
+            with self.assertRaises(IntegrityError):
+                series_p2.artifacts.add(art1)
 
     def test_artifact_revision_correspondence(self):
         """Tests that Artifacts are correctly associated to Revisions"""
@@ -122,23 +157,32 @@ class RevisionTest(TestCase):
 
            This case should cause no revision deletions
         """
-        rev3_artifact = Artifact.objects.create(project=self.project,
-                                                revision=self.revision3,
-                                                md5hash='4',
-                                                artifactfile=self.test_file)
-        rev3_artifact.project_series = [self.new_series]
+        rev3_artifact1 = Artifact.objects.create(project=self.project,
+                                                 revision=self.revision3,
+                                                 md5hash='4',
+                                                 artifactfile=self.test_file)
+        rev3_artifact2 = Artifact.objects.create(project=self.project,
+                                                 revision=self.revision3,
+                                                 md5hash='5',
+                                                 artifactfile=self.test_file)
+        rev3_artifact1.project_series = [self.new_series]
+        rev3_artifact2.project_series = [self.new_series]
         stable_series = ProjectSeries.objects.create(series="stable",
                                                      project=self.project,
                                                      release_date=datetime.datetime.now())
         # Revision 3 now contains one Artifact
-        self.assertEqual(self.revision3.artifacts.count(), 1)
+        self.assertEqual(self.revision3.artifacts.count(), 2)
 
         # Promote the artifact to a different series
-        rev3_artifact.promote_to_series(stable_series)
+        rev3_artifact1.promote_to_series(stable_series)
 
-        # Both Series should now contain the Artifact.
-        self.assertIn(rev3_artifact, self.new_series.artifacts.all())
-        self.assertIn(rev3_artifact, stable_series.artifacts.all())
+        # Both Series should now contain the promoted artifact.
+        self.assertIn(rev3_artifact1, self.new_series.artifacts.all())
+        self.assertIn(rev3_artifact1, stable_series.artifacts.all())
+
+        # only one of the serie should contain the non promoted artifact
+        self.assertIn(rev3_artifact2, self.new_series.artifacts.all())
+        self.assertNotIn(rev3_artifact2, stable_series.artifacts.all())
 
         # Both Series should contain the Revision.
         self.assertIn(self.revision3, self.new_series.get_all_revisions())
@@ -207,11 +251,13 @@ class RevisionTest(TestCase):
                                                 revision=self.revision3,
                                                 md5hash='4',
                                                 artifactfile=self.test_file)
-        rev3_artifact.project_series = [self.new_series.pk]
         # Revision 3 now contains one Artifact
         self.assertEqual(self.revision3.artifacts.count(), 1)
 
-        # Remove the Series from the Artifact
+        # adding artifact to serie
+        rev3_artifact.project_series = [self.new_series]
+
+        # remove artifact from series
         rev3_artifact.project_series.remove(self.new_series)
 
         # Revision 3 should be deleted, because it is not referenced by any Series
@@ -239,7 +285,7 @@ class RevisionTest(TestCase):
                                                 revision=self.revision3,
                                                 md5hash='4',
                                                 artifactfile=self.test_file)
-        rev3_artifact.project_series = [self.new_series.pk]
+        rev3_artifact.project_series = [self.new_series]
         # Revision 3 now contains one Artifact
         self.assertEqual(self.revision3.artifacts.count(), 1)
 
@@ -304,9 +350,7 @@ class RevisionTest(TestCase):
                                            revision=self.revision1,
                                            md5hash='7',
                                            artifactfile=self.test_file)
-        artifact.project_series = [self.new_series.pk]
-
-
+        artifact.project_series = [self.new_series]
 
         # We should be able to get the Artifact from the database
         try:
@@ -396,38 +440,361 @@ class RevisionTest(TestCase):
     #     self.assertEqual(self.branch_master.revisions.count(),
     #                      self.branch_master.nr_of_revisions_kept)
 
-    # def test_remove_earliest_revision(self):
-    #     """Tests that the earliest revision added for a branch is deleted if
-    #        there are too many of them.
-    #     """
-    #     branch = Branch.objects.create(name='branch', nr_of_revisions_kept=3)
+    def test_no_remove_earliest_revision_if_no_limit(self):
+        """Tests that the earliest revision added for a branch is deleted if
+           there are too many of them.
 
-    #     revision1 = Revision.objects.create(revision='9991', project=self.project)
-    #     revision2 = Revision.objects.create(revision='9992', project=self.project)
-    #     revision3 = Revision.objects.create(revision='9993', project=self.project)
-    #     revision4 = Revision.objects.create(revision='9994', project=self.project)
+           In this case the revisions do not belong to any branch
+        """
 
-    #     branch.revisions.add(revision1, revision2, revision3)
+        now = datetime.datetime.now()
+        nb_revs = 4
+        revisions = []
+        artifacts = []
+        for i in range(nb_revs):
+            rev = Revision.objects.create(revision="%s" % (i + 9000),
+                                          project=self.project,
+                                          commit_time=now + datetime.timedelta(seconds=-i))
 
-    #     branch.revisions.add(revision4)
+            art = Artifact.objects.create(project=self.project,
+                                          revision=rev,
+                                          md5hash='%s' % i,
+                                          artifactfile=self.test_file)
 
-    #     self.assertEqual(branch.revisions.count(), 3)
+            artifacts.append(art)
+            revisions.append(rev)
 
-    #     try:
-    #         Revision.objects.get(revision='9992')
-    #         Revision.objects.get(revision='9993')
-    #         Revision.objects.get(revision='9994')
-    #     except Revision.DoesNotExist:
-    #         self.fail("[Revision.DoesNotExist] One of the Revisions returned no object from the get query")
-    #     except Revision.MultipleObjectsReturned:
-    #         self.fail("[Revision.MultipleObjectsReturned] One of the Revisions returned more than one object from the get query")
-    #     except:
-    #         self.fail("Unexpected Exception in get query")
-    #         raise
+            self.new_series.artifacts.add(art)
 
-    #     # Revision 9991 was the earliest Revision we created, so it should be removed.
-    #     with self.assertRaises(Revision.DoesNotExist):
-    #         Revision.objects.get(revision='9991')
+        try:
+            for i in range(nb_revs):
+                self.assertIsNotNone(Revision.objects.get(revision='%s' % (i + 9000)))
+        except Revision.DoesNotExist:
+            self.fail("[Revision.DoesNotExist] One of the Revisions returned no object from the get query")
+        except Revision.MultipleObjectsReturned:
+            self.fail("[Revision.MultipleObjectsReturned] One of the Revisions returned more than one object from the get query")
+        except:
+            self.fail("Unexpected Exception in get query")
+            raise
+
+    def test_remove_earliest_revision_no_branch(self):
+        """Tests that the earliest revision added for a branch is deleted if
+           there are too many of them.
+
+           In this case the revisions do not belong to any branch
+        """
+
+        now = datetime.datetime.now()
+        nb_revs = 4
+        revisions = []
+        artifacts = []
+
+        # setting up the limit
+        self.new_series.nb_revisions_to_keep = 2
+        self.new_series.save()  # save is needed
+
+        for i in range(nb_revs):
+            rev = Revision.objects.create(revision="%s" % (i + 9000),
+                                          project=self.project,
+                                          commit_time=now + datetime.timedelta(seconds=i))
+
+            art = Artifact.objects.create(project=self.project,
+                                          revision=rev,
+                                          md5hash='%s' % i,
+                                          artifactfile=self.test_file)
+
+            artifacts.append(art)
+            revisions.append(rev)
+
+            self.new_series.artifacts.add(art)
+
+        # print self.new_series.artifacts.all()
+        # self.assertEqual(Revision.objects.prefetch_related('artifacts__serie').count(), 2)
+
+        self.assertEqual(self.new_series.artifacts.count(), 2)
+
+        # there should be a better way to manipulate this expression
+        # self.assertEqual(Revision.objects.filter(artifacts__serie=self.new_series).all().distinct().count(), 2)
+        self.assertSetEqual(set([art.revision for art in self.new_series.artifacts.all()]),
+                            set([Revision.objects.get(revision='9002'),
+                                 Revision.objects.get(revision='9003')]))
+
+        try:
+            for i in range(nb_revs)[2:]:
+                self.assertIsNotNone(Revision.objects.get(revision='%s' % (i + 9000)))
+        except Revision.DoesNotExist:
+            self.fail("[Revision.DoesNotExist] One of the Revisions returned no object from the get query")
+        except Revision.MultipleObjectsReturned:
+            self.fail("[Revision.MultipleObjectsReturned] One of the Revisions returned more than one object from the get query")
+        except Exception, e:
+            self.fail("Unexpected Exception in get query %s" % e)
+            raise
+
+        # those revisions are the oldest, and should have been removed
+        with self.assertRaises(Revision.DoesNotExist):
+            Revision.objects.get(revision='9000')
+        with self.assertRaises(Revision.DoesNotExist):
+            Revision.objects.get(revision='9001')
+
+    def test_remove_earliest_revision_no_branch_several_artifacts(self):
+        """Tests that the earliest revision added for a branch is deleted if
+           there are too many of them.
+
+           Some revisions may contain several artifacts.
+        """
+
+        now = datetime.datetime.now()
+        nb_revs = 4
+        revisions = []
+        artifacts = []
+
+        # setting up the limit
+        self.new_series.nb_revisions_to_keep = 2
+        self.new_series.save()  # save is needed
+
+        for i in range(nb_revs):
+            rev = Revision.objects.create(revision="%s" % (i + 9000),
+                                          project=self.project,
+                                          commit_time=now + datetime.timedelta(seconds=i))
+
+            art = Artifact.objects.create(project=self.project,
+                                          revision=rev,
+                                          md5hash='%s' % i,
+                                          artifactfile=self.test_file)
+
+            artifacts.append(art)
+
+            if (i % 2) == 0:
+                art = Artifact.objects.create(project=self.project,
+                                              revision=rev,
+                                              md5hash='x%s' % i,
+                                              artifactfile=self.test_file)
+
+                artifacts.append(art)
+
+            revisions.append(rev)
+
+        for art in artifacts:
+            self.new_series.artifacts.add(art)
+
+        # print self.new_series.artifacts.all()
+        # self.assertEqual(Revision.objects.prefetch_related('artifacts__serie').count(), 2)
+
+        self.assertEqual(self.new_series.artifacts.count(), 3)
+
+        try:
+            for i in range(nb_revs)[2:]:
+                self.assertIsNotNone(Revision.objects.get(revision='%s' % (i + 9000)))
+        except Revision.DoesNotExist:
+            self.fail("[Revision.DoesNotExist] One of the Revisions returned no object from the get query")
+        except Revision.MultipleObjectsReturned:
+            self.fail("[Revision.MultipleObjectsReturned] One of the Revisions returned more than one object from the get query")
+        except Exception, e:
+            self.fail("Unexpected Exception in get query %s" % e)
+            raise
+
+        # those revisions are the oldest, and should have been removed
+        with self.assertRaises(Revision.DoesNotExist):
+            Revision.objects.get(revision='9000')
+        with self.assertRaises(Revision.DoesNotExist):
+            Revision.objects.get(revision='9001')
+
+        # there should be a better way to manipulate this expression
+        # self.assertEqual(Revision.objects.filter(artifacts__serie=self.new_series).all().distinct().count(), 2)
+        self.assertSetEqual(set([art.revision for art in self.new_series.artifacts.all()]),
+                            set([Revision.objects.get(revision='9002'),
+                                 Revision.objects.get(revision='9003')]))
+
+    def test_remove_earliest_revision_no_branch_several_artifacts_several_series(self):
+        """Tests that the earliest revision added for a branch is deleted if
+           there are too many of them.
+
+           Some all_revisions may contain several all_artifacts, some all_artifacts may be part
+           of several series.
+        """
+
+        s2 = ProjectSeries.objects.create(series="123456",
+                                          project=self.project,
+                                          release_date=datetime.datetime.now())
+
+        now = datetime.datetime.now()
+        nb_revs = 4
+        all_revisions = []
+        all_artifacts = []
+
+        # setting up the limit
+        self.new_series.nb_revisions_to_keep = 2
+        self.new_series.save()  # save is needed
+
+        for i in range(nb_revs):
+            rev = Revision.objects.create(revision="%s" % (i + 9000),
+                                          project=self.project,
+                                          commit_time=now + datetime.timedelta(seconds=i))
+
+            art = Artifact.objects.create(project=self.project,
+                                          revision=rev,
+                                          md5hash='%s' % i,
+                                          artifactfile=self.test_file)
+
+            all_artifacts.append(art)
+
+            if (i % 2) == 0:
+                art = Artifact.objects.create(project=self.project,
+                                              revision=rev,
+                                              md5hash='x%s' % i,
+                                              artifactfile=self.test_file)
+
+                all_artifacts.append(art)
+
+            all_revisions.append(rev)
+
+        # no limit on s2
+        for art in all_artifacts:
+            s2.artifacts.add(art)
+
+        # limit on self.new_series
+        for art in all_artifacts:
+            self.new_series.artifacts.add(art)
+
+        # print self.new_series.all_artifacts.all()
+        # self.assertEqual(Revision.objects.prefetch_related('artifacts__serie').count(), 2)
+
+        self.assertEqual(s2.artifacts.count(), 6)
+        self.assertEqual(self.new_series.artifacts.count(), 3)
+
+        # in this test, no revision has been removed
+
+        # those revisions are the oldest, and should have been removed
+        self.assertIsNotNone(Revision.objects.get(revision='9000'))
+        self.assertIsNotNone(Revision.objects.get(revision='9001'))
+
+        # there should be a better way to manipulate this expression
+        # self.assertEqual(Revision.objects.filter(artifacts__serie=self.new_series).all().distinct().count(), 2)
+        self.assertSetEqual(set([art.revision for art in self.new_series.artifacts.all()]),
+                            set([Revision.objects.get(revision='9002'),
+                                 Revision.objects.get(revision='9003')]))
+        self.assertSetEqual(set([art.revision for art in s2.artifacts.all()]),
+                            set(all_revisions))
+
+    def create_several_artifacts(self):
+        from django.utils.timezone import now as now_
+        now = now_()
+
+        if not hasattr(self, 'nb_revs'):
+            self.nb_revs = 4
+
+        all_artifacts = []
+        for i in range(self.nb_revs):
+            art = Artifact.objects.create(project=self.project,
+                                          md5hash='%s' % i,
+                                          artifactfile=self.test_file,
+                                          upload_date=now + datetime.timedelta(seconds=i))
+
+            all_artifacts.append((art, art.md5hash))
+
+            if (i % 2) == 0:
+                art = Artifact.objects.create(project=self.project,
+                                              md5hash='x%s' % i,
+                                              artifactfile=self.test_file,
+                                              upload_date=now + datetime.timedelta(seconds=i + 100))
+
+                all_artifacts.append((art, art.md5hash))
+
+        return all_artifacts
+
+    def create_several_revisions(self):
+        from django.utils.timezone import now as now_
+        now = now_()
+        all_revisions = []
+
+        if not hasattr(self, 'nb_revs'):
+            self.nb_revs = 4
+
+        for i in range(self.nb_revs):
+            rev = Revision.objects.create(revision="%s" % (i + 9000),
+                                          project=self.project,
+                                          commit_time=now + datetime.timedelta(seconds=i))
+
+            all_revisions.append(rev)
+
+        return all_revisions
+
+    def test_remove_oldest_artifacts_without_revision(self):
+        """Tests that the earliest artifacts added for a serie are removed if
+           there are too many of them.
+
+           The artifacts do not have any revision, they are a revision on their own.
+           Since the pruning is based on the date of the artifact, a grouping by
+           time is performed: if two artifacts have the same creation date, they are
+           considered as one unique artifact as well.
+        """
+
+        self.nb_revs = 6
+        all_artifacts = self.create_several_artifacts()
+
+        # setting up the limit
+        self.new_series.nb_revisions_to_keep = 3
+        self.new_series.save()  # save is needed
+
+        for art in all_artifacts:
+            self.new_series.artifacts.add(art[0])
+
+        self.assertEqual(self.new_series.artifacts.count(), 3)
+
+        # all the ones with an x are the newests
+        kept_artifacts_index = [1, 4, 7]
+        try:
+            for k in kept_artifacts_index:
+                self.assertIsNotNone(Artifact.objects.get(md5hash=all_artifacts[k][1]))
+        except Artifact.DoesNotExist, e:
+            self.fail("[Artifact.DoesNotExist] One of the Artifacts returned no object from the get query %s" % e)
+        except Artifact.MultipleObjectsReturned:
+            self.fail("[Revision.MultipleObjectsReturned] One of the Revisions returned more than one object from the get query")
+        except Exception, e:
+            self.fail("Unexpected Exception in get query %s" % e)
+            raise
+
+        for k, art in enumerate(all_artifacts):
+            if k in kept_artifacts_index:
+                continue
+            with self.assertRaises(Artifact.DoesNotExist):
+                Artifact.objects.get(md5hash=art[1])
+
+#     @skip('to fix')
+#     def test_remove_earliest_revision_with_branch(self):
+#         """Tests that the earliest revision added for a branch is deleted if
+#            there are too many of them.
+#
+#            In this case the all_revisions do not belong to any branch
+#         """
+#         branch = Branch.objects.create(name='branch', nb_revisions_to_keep=3)
+#
+#         revision1 = Revision.objects.create(revision='9991', project=self.project)
+#         revision2 = Revision.objects.create(revision='9992', project=self.project)
+#         revision3 = Revision.objects.create(revision='9993', project=self.project)
+#         revision4 = Revision.objects.create(revision='9994', project=self.project)
+#
+#         branch.all_revisions.add(revision1, revision2, revision3)
+#
+#         branch.all_revisions.add(revision4)
+#
+#         self.assertEqual(branch.all_revisions.count(), 3)
+#
+#         try:
+#             Revision.objects.get(revision='9992')
+#             Revision.objects.get(revision='9993')
+#             Revision.objects.get(revision='9994')
+#         except Revision.DoesNotExist:
+#             self.fail("[Revision.DoesNotExist] One of the Revisions returned no object from the get query")
+#         except Revision.MultipleObjectsReturned:
+#             self.fail("[Revision.MultipleObjectsReturned] One of the Revisions returned more than one object from the get query")
+#         except:
+#             self.fail("Unexpected Exception in get query")
+#             raise
+#
+#         # Revision 9991 was the earliest Revision we created, so it should be removed.
+#         with self.assertRaises(Revision.DoesNotExist):
+#             Revision.objects.get(revision='9991')
 
     def test_revision_persistance_if_artifact_is_referenced_by_different_series(self):
         """Tests that the revision persists if an Artifact is removed from a Series, but still
@@ -451,7 +818,7 @@ class RevisionTest(TestCase):
         art1.promote_to_series(other_series)
         # Artifact 1 is now referenced in both series, but we remove it from the second
         # series now. This should cause no deletions of revisions
-        other_series.artifacts.remove(art1)
+        self.new_series.artifacts.remove(art1)
 
         try:
             Revision.objects.get(revision='1')
@@ -463,5 +830,5 @@ class RevisionTest(TestCase):
             self.fail("Unexpected Exception in get query")
             raise
 
-        self.assertEqual(other_series.artifacts.count(), 0)
-        self.assertEqual(self.new_series.artifacts.count(), 2)
+        self.assertEqual(other_series.artifacts.count(), 1)
+        self.assertEqual(self.new_series.artifacts.count(), 1)
