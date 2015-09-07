@@ -21,9 +21,16 @@
 
       <h1> <a href={% url 'project' project.id %}>{{ project.name }}</a> </h1>
       <div class="alert alert-info" role="alert">
-          You are adding a new series to {{ project.name }}.
+          You are adding a new series to the project {{ project.name }}.</br> 
       </div>
-
+      
+      <div class="alert alert-tip" role="alert">
+          A serie is a line of development, and contains the artefacts of those developments. For instance "night-builds", "stable", "experimental", etc.</br>
+          Once created, a serie can receive files, documentations, revision and branches.</br> 
+          A serie can also have restricted accesses, which allows a subset of
+          users sharing common interests on this line of development to access those artifacts.    
+          
+	  </div>	
     {% endif %}
 
 
@@ -39,23 +46,33 @@
 
         {% for field in automatic_fields %}
             <div class="form-group">
+            
+                {% if field.error %}
+                <div class="alert alert-danger" role="alert">
                 {{ field.errors }}
-
-                <label for="{{ field.id_for_label }}"  class="col-sm-2 control-label">{{ field.label }}</label>
-
-                <div class="col-sm-10">
-                  {{ field }}
-                  <p class="help-block">{{ field.help_text }}</p>
                 </div>
+                {% endif %}
+
+                <label for="{{ field.id_for_label }}" class="col-sm-1 control-label">{{ field.label }}</label>
+				
+                <div class="col-sm-8">
+                  {{ field }}
+                </div>
+
+                <div class="col-sm-3">
+                	<p class="help-block">{{ field.help_text }}</p>
+                </div>
+
             </div>
         {% endfor %}
-
-        <h3>Users</h3>
-        <p class="help-block">Indicate in the table below the permissions on this series granted to each user.</p>
+        
+        
+        <h3>Permissions</h3>
+        <p class="help-block">Indicate in the table below the permissions on this series granted to each user or group.</p>
         <table class="table table-hover table-condensed">
         <thead>
             <tr>
-              <th width="30%">Permissions</th>
+              <th width="30%">Users</th>
               {% for header in permission_headers %}
                 <th>{{header}}</th>
               {% endfor %}
@@ -63,11 +80,12 @@
         </thead>
 
         <tbody>
-            {% for index, user, check1, check2 in user_permissions %}
+            {% for index, user, checks in user_permissions %}
             <tr>
               <td width="30%">
-                {{user|title}}
+                {{user}}
               </td>
+              {% for check1 in checks %}
               <td>
                 <label for="{{check1.id_for_label}}">
                 <input
@@ -77,29 +95,16 @@
                 id="{{check1.id_for_label}}" type="{{check1.input_type}}" value="{{check1.choice_value}}" name="{{check1.name}}"/>
                 </label>
               </td>
-              <td>
-                <label for="{{check2.id_for_label}}">
-                <input
-                {% if check2.is_checked %}
-                checked="checked"
-                {% endif %}
-                id="{{check2.id_for_label}}" type="{{check2.input_type}}" value="{{check2.choice_value}}" name="{{check2.name}}"/>
-                </label>
-              </td>
+              {% endfor %}
             </tr>
             {% endfor %}
         </tbody>
         </table>
-    <!-- <a type="button" class="btn btn-default btn-sm"><span class="glyphicon glyphicon-plus"></span></a>  -->
 
-
-
-        <h3>Groups</h3>
-        <p class="help-block">Indicate in the table below the permissions on this series granted to each group of users.</p>
         <table class="table table-hover table-condensed">
          <thead>
            <tr>
-             <th width="30%">Permissions</th>
+             <th width="30%">Groups</th>
              {% for header in permission_headers %}
                <th>{{header}}</th>
              {% endfor %}
@@ -107,11 +112,12 @@
           </thead>
 
           <tbody>
-            {% for index, group, check1, check2 in group_permissions %}
+            {% for index, group, checks in group_permissions %}
             <tr>
               <td width="30%">
-                {{group|title}}
+                {{group}}
               </td>
+              {% for check1 in checks %}
               <td>
                 <label for="{{check1.id_for_label}}">
                 <input
@@ -121,24 +127,16 @@
                 id="{{check1.id_for_label}}" type="{{check1.input_type}}" value="{{check1.choice_value}}" name="{{check1.name}}"/>
                 </label>
               </td>
-              <td>
-                <label for="{{check2.id_for_label}}">
-                <input
-                {% if check2.is_checked %}
-                checked="checked"
-                {% endif %}
-                id="{{check2.id_for_label}}" type="{{check2.input_type}}" value="{{check2.choice_value}}" name="{{check2.name}}"/>
-                </label>
-              </td>
+              {% endfor %}             
             </tr>
             {% endfor %}
           </tbody>
         </table>
 
         {% if series.series %}
-          <input type="submit" value="Save" />
+          <button type="submit" class="btn btn-info" />Save</button>
         {% else %}
-          <input type="submit" value="Create" />
+          <button type="submit" class="btn btn-info" />Create</button>
         {% endif %}
 
     </form>

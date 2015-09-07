@@ -307,12 +307,14 @@ def main():
     group.add_argument('--artifact_branch',
                        dest='branch',
                        required=True,
-                       help="""The name of the branch concerned by this upload""")
+                       help="""The name of the branch concerned by this upload. If the branch is specified,
+                       the artifact_revision should also be specified""")
 
     group.add_argument('--artifact_revision',
                        dest='revision',
                        required=True,
-                       help="""The name or hash of the revision concerned by this upload""")
+                       help="""The name or hash of the revision concerned by this upload. This value
+                       will be transformed to lower case.""")
 
     group.add_argument('--is_doc',
                        dest='is_doc',
@@ -398,9 +400,18 @@ def main():
     fields['description'] = args.description if args.description is not None else 'uploaded by a robot'
     fields['is_documentation'] = "True" if args.is_doc else "False"
     fields['documentation_entry_file'] = args.doc_entry if args.doc_entry is not None else ''
-    fields['upload_date'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    # fields['upload_date'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     fields['branch'] = args.branch
+    if fields['branch']:
+        fields['branch'] = fields['branch'].strip()
+
     fields['revision'] = args.revision
+    if fields['revision']:
+        fields['revision'] = fields['revision'].strip().lower()
+
+    if fields['branch'] and not fields['revision']:
+        logger.error("[configuration] branch is specified while revision is not")
+        raise Exception("[configuration] branch is specified while revision is not")
 
     files = []
     files.append(('artifactfile', args.inputfile))

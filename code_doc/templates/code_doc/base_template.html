@@ -31,8 +31,10 @@
   
   <body>
     
-  <nav class="navbar navbar-default" role="navigation">
+  <nav class="navbar navbar-default navbar-inverse" role="navigation">
 
+	<div class="container-fluid">
+	
     <div class="navbar-header">
       <ul class="nav navbar-nav">
         <li><a class="navbar-brand" href="{% url 'index' %}">Home</a></li>
@@ -41,26 +43,32 @@
         <li><a class="navbar-brand" href="{% url 'authors_list' %}">Authors</a></li>
       </ul>
     </div>
-    <div class="collapse navbar-collapse navbar-right" id="bs-example-navbar-collapse-1">
-      {% if user.is_authenticated %}
-      <ul class="nav navbar-nav">
-        <li class="dropdown">
-          <a class="dropdown-toggle" data-toggle="dropdown" href="#">{{ user.username | title }} <span class="caret"></span></a>
+    
+    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+      <ul class="nav navbar-nav navbar-right">
+      
+      	{% if user.is_authenticated %}
+        <div class="dropdown">
+          <button class="btn btn-primary  navbar-btn dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+            {{ user.username }}
+        	<span class="caret"></span>
+  		  </button>
+          
           <ul class="dropdown-menu" role="menu">
             <li><a href="{% url 'maintainer' user.id %}">Profile</a></li>
             <li class="divider"></li>
             <li><a href="{% url 'logout' %}?next={% url 'index' %}">Log out</a></li>
           </ul>
-        </li>        
-      </ul>
-       
-      {% else %}
-        <a type="button" class="btn btn-warning navbar-btn" href="{% url 'login' %}?next={{request.path}}">Log in</a>
-      {% endif %}
-    </div>
-
+        </div>
+        {% else %}        
+         <a type="button" class="btn btn-warning navbar-btn" href="{% url 'login' %}?next={{request.path}}">Log in</a>
+        {% endif %}
+      </ul> <!-- /.navbar-right -->
+      
+    
+    </div> <!-- /.navbar-collapse -->
+	</div> <!-- /.container-fluid -->
   </nav>
-  
   
   
   <div class="container">
