@@ -1,6 +1,6 @@
 
 from django import template
-from code_doc.models import Author
+from ..models import Author
 
 import hashlib
 
@@ -14,7 +14,7 @@ def author_image(author_id, size=None):
             'gravatar_email': author.gravatar_email if author.gravatar_email != "" else None,
             'author_initial': (author.firstname[0] if author.firstname != "" else author.email[0]).upper(),
             'background_color': _hash_string_to_color_hex(author.firstname + author.lastname, 200),
-            'size': size}
+            'size': size if size is not None else 64}
 
 
 def _hash_string_to_color_hex(str_author, brightness_limit):
