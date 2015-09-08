@@ -9,23 +9,20 @@
 {% block content %}
   <h1>Authors</h1>
 
- {% if authors %}
-  
-    
+{% if authors %}
+ 
+  {% for author in authors %}
     <div class="media">
-      {% for author in authors %}
-        <a class="pull-left" href="{% url 'author' author.id %}">
-          {% author_image author.id %}
-        </a>
-    
-        <div class="media-body">
-          <h4 class="media-heading"><a href="{% url 'author' author.id %}" >{{ author.firstname }} {{ author.lastname }}</a> <span class="badge">{{author.project_set.count}}</span> </h4>
-          <p>{{author.email}}</p>
-        </div>
-      {% endfor %}
-      
-
+	    <a class="pull-left" href="{% url 'author' author.id %}">
+	      {% author_image author.id %}
+	    </a>
+	
+	    <div class="media-body">
+	      <h4 class="media-heading"><a href="{% url 'author' author.id %}" >{{ author.firstname }} {{ author.lastname }}</a> <span class="badge">{{author.project_set.count}}</span> </h4>
+	      <p>{{author.email}}</p>
+	    </div>
     </div>
+  {% endfor %}
   
     <ul class="pagination">
 
