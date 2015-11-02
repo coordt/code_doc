@@ -344,12 +344,18 @@ def callback_artifact_documentation_delete(sender, instance, using, **kwargs):
 
 @receiver(post_delete, sender=Artifact)
 def callback_artifact_delete(sender, instance, using, **kwargs):
-    """Removes the artifact itself"""
+    """Removes the artifact itself and the containing directory (if empty)"""
     # logger.debug('[project artifact] post_delete artifact %s', instance)
     storage, path = instance.artifactfile.storage, instance.artifactfile.path
     try:
         storage.delete(path)
     except WindowsError, e:
         logger.warning('[project artifact] error removing %s for instance %s', path, instance)
-    # if(os.path.exists(instance.full_path_name())):
-    #    os.remove(instance.full_path_name())
+
+    parent_directory = os.path.dirname(path)
+    if os.path.exists(parent_directory) and not os.listdir(parent_directory):
+        logger.debug('[signal][artifact][post_delete] removing empty directory %s', parent_directory)
+        try:
+            os.rmdir(parent_directory)
+        except Exception, e:
+            logger.debug('[signal][artifact][post_delete] failed to remote %s: %s', parent_directory, e)

@@ -49,7 +49,7 @@
 
 	          <td>
 	          {% if artifact.revision %}
-	            {{ artifact.revision.revision }}
+	            <small><span style="font-family:monospace;">{{ artifact.revision.revision }}</span></small>
 	          {% else %}
               -	          
 	          {% endif %}
@@ -107,7 +107,7 @@
         {% for rev in revisions %}
           <tr>
             <td class="text-nowrap">
-             <small>{{ rev.revision }}</small>
+             <small><span style="font-family:monospace;">{{ rev.revision }}</span></small>
             </td>
             <td class="text-nowrap">
              <small>{{ rev.artifacts.all|length }}</small>
