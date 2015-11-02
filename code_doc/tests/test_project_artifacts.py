@@ -540,3 +540,87 @@ class ProjectSeriesArtifactTest(TestCase):
             new_artifact.delete()
 
             self.assertFalse(os.path.exists(get_deflation_directory(new_artifact)))
+
+    def test_prune_directories_on_remove(self):
+        """Tests that the directory containing the artifact is properly pruned, only
+        when there is no other files/directories in it"""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from code_doc.models import get_deflation_directory
+
+        with tempfile.NamedTemporaryFile(dir=settings.USER_UPLOAD_TEMPORARY_STORAGE,
+                                         suffix='.tar.bz2') as f, \
+             tempfile.NamedTemporaryFile(dir=settings.USER_UPLOAD_TEMPORARY_STORAGE,
+                                         suffix='.tar.bz2') as f2:
+
+            from inspect import getsourcefile
+
+            # create a temporary tar object
+            tar = tarfile.open(fileobj=f, mode='w:bz2')
+            source_file = getsourcefile(lambda _: None)
+
+            tar.add(os.path.abspath(source_file), arcname=os.path.basename(source_file))
+            tar.close()
+            f.seek(0)
+
+            tar = tarfile.open(fileobj=f2, mode='w:gz')
+            source_file = getsourcefile(lambda _: None)
+            tar.add(os.path.abspath(source_file), arcname=os.path.basename(source_file))
+            tar.close()
+            f2.seek(0)
+
+            test_file = SimpleUploadedFile('filename.tar.bz2', f.read())
+            test_file2 = SimpleUploadedFile('filename.tar.gz', f2.read())
+
+            new_artifact = Artifact.objects.create(
+                              project=self.project,
+                              revision=self.revision,
+                              #md5hash='1',
+                              description='test artifact',
+                              is_documentation=True,
+                              documentation_entry_file=os.path.basename(__file__),
+                              artifactfile=test_file)
+            new_artifact.project_series.add(self.new_series)
+            test_file.close()
+
+            new_artifact2 = Artifact.objects.create(
+                              project=self.project,
+                              revision=self.revision,
+                              #md5hash='2',
+                              description='test artifact',
+                              is_documentation=True,
+                              documentation_entry_file=os.path.basename(__file__),
+                              artifactfile=test_file2)
+            new_artifact2.project_series.add(self.new_series)
+            test_file2.close()
+
+            # adding new artifact 1 and 2
+            self.assertTrue(os.path.exists(get_deflation_directory(new_artifact)))
+            self.assertTrue(os.path.exists(get_deflation_directory(new_artifact2)))
+
+            new_artifact.save()
+
+            self.assertTrue(os.path.exists(get_deflation_directory(new_artifact)))
+            self.assertTrue(os.path.exists(get_deflation_directory(new_artifact2)))
+
+            new_artifact.delete()
+            self.assertFalse(os.path.exists(os.path.abspath(get_deflation_directory(new_artifact))))
+            self.assertFalse(os.path.exists(os.path.abspath(os.path.dirname(new_artifact.full_path_name()))))
+            self.assertTrue(os.path.exists(get_deflation_directory(new_artifact2)))
+            self.assertTrue(os.path.exists(new_artifact2.full_path_name()))
+
+            directory = os.path.abspath(os.path.dirname(new_artifact2.full_path_name()))
+            with tempfile.NamedTemporaryFile(dir=os.path.dirname(new_artifact2.full_path_name())) as ftemp:
+
+                self.assertTrue(os.path.exists(ftemp.name))  # file is accessible
+                new_artifact2.delete()
+
+                self.assertFalse(os.path.exists(os.path.abspath(get_deflation_directory(new_artifact))))
+                self.assertFalse(os.path.exists(os.path.abspath(get_deflation_directory(new_artifact2))))
+                self.assertFalse(os.path.exists(os.path.abspath(new_artifact2.full_path_name())))
+                # not deleted because there is another file
+                self.assertTrue(os.path.exists(os.path.abspath(os.path.join(get_deflation_directory(new_artifact2), os.pardir))))
+                self.assertTrue(os.path.exists(directory))
+
+            # removing the remaining directory
+            import shutil
+            shutil.rmtree(directory)

@@ -345,16 +345,8 @@ def get_artifact_location(instance, filename):
                                       instance.md5hash)
     root_dir = os.path.join(settings.MEDIA_ROOT, media_relative_dir)
 
-    if 0:
-        if os.path.exists(root_dir):
-            dir_content = [v[1] for v in map(is_int, os.listdir(root_dir)) if v[0]]
-            dir_content.sort()
-            last_element = (dir_content[-1] + 1) if len(dir_content) > 0 else 1
-        else:
-            last_element = 1
-
-    if not os.path.exists(os.path.join(settings.MEDIA_ROOT, media_relative_dir)):
-        os.makedirs(os.path.join(settings.MEDIA_ROOT, media_relative_dir))
+    if not os.path.exists(root_dir):
+        os.makedirs(root_dir)
 
     return os.path.join(media_relative_dir, filename)
 
