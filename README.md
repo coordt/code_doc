@@ -2,6 +2,10 @@
 
 This project provides a simple web application to store documentation and artefacts. It manages permissions on each of the resources served. 
 
+## License and Copyright #
+The project is developed at the Max Planck Institute for Intelligent Systems, Tübingen, Germany. It is released under the BSD-3 clauses license. 
+
+
 ## Installation #
 In the sequel, everything will be installed and ran in a virtual environment. 
 
