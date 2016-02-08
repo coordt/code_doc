@@ -16,7 +16,6 @@ from django.views.generic import ListView
 from django.views.decorators.csrf import csrf_exempt
 
 # for sending files specific to the server
-from django.core.servers.basehttp import FileWrapper
 from django.core.urlresolvers import reverse, reverse_lazy
 
 import os
@@ -53,7 +52,7 @@ def script(request):
                                      'utils',
                                      'send_new_artifact.py'),
                         'rb')  # binary is important here
-    response = HttpResponse(FileWrapper(file_content), content_type='application/text')
+    response = HttpResponse(file_content, content_type='application/text')
     response['Content-Disposition'] = 'attachment; filename=%s' % filename
     response['Content-Length'] = file_content.tell()
     return response
