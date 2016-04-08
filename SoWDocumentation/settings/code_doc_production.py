@@ -46,34 +46,31 @@ MANAGERS = (('Raffi Enficiaud', 'raffi.enficiaud@tuebingen.mpg.de'),)
 #
 #
 
-# production backend
+# change to a valid email backend
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
-if 0:
-    # no email support
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# The email address that error messages come from, such as those sent to ADMINS and MANAGERS.
+SERVER_EMAIL = 'raffi.enficiaud@tuebingen.mpg.de'
 
-    # The email address that error messages come from, such as those sent to ADMINS and MANAGERS.
-    SERVER_EMAIL = 'is-noreply@tuebingen.mpg.de'
+# Default email address to use for various automated correspondence from
+# the site managers.
+DEFAULT_FROM_EMAIL = 'raffi.enficiaud@tuebingen.mpg.de'
 
-    # Default email address to use for various automated correspondence from
-    # the site managers.
-    DEFAULT_FROM_EMAIL = 'is-noreply@tuebingen.mpg.de'
+# Subject-line prefix for email messages send with django.core.mail.mail_admins
+# or ...mail_managers.  Make sure to include the trailing space.
+# NB.: not for end users
+EMAIL_SUBJECT_PREFIX = '[code.is.localnet] '
 
-    # Subject-line prefix for email messages send with django.core.mail.mail_admins
-    # or ...mail_managers.  Make sure to include the trailing space.
-    # NB.: not for end users
-    EMAIL_SUBJECT_PREFIX = '[CodeDoc] '
+# Host for sending email.
+EMAIL_HOST = 'mailhost.tuebingen.mpg.de'
 
-    # Host for sending email.
-    EMAIL_HOST = 'mailhost.tuebingen.mpg.de'
+# Port for sending email.
+EMAIL_PORT = 25
 
-    # Port for sending email.
-    EMAIL_PORT = 25
-
-    # Optional SMTP authentication information for EMAIL_HOST.
-    EMAIL_HOST_USER = ''
-    EMAIL_HOST_PASSWORD = ''
-    EMAIL_USE_TLS = True
+# Optional SMTP authentication information for EMAIL_HOST.
+EMAIL_HOST_USER = ''
+EMAIL_HOST_PASSWORD = ''
+EMAIL_USE_TLS = True
 
 
 # fix logging thinggy (need to rewrite)
