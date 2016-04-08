@@ -389,7 +389,9 @@ class Artifact(models.Model):
 
     artifactfile = models.FileField(
         upload_to=get_artifact_location,
-        help_text='the artifact file that will be stored on the server')
+        help_text='the artifact file that will be stored on the server',
+        max_length=1024)
+    # the 1024 is important in production, otherwise the filenames get scrubbed
 
     is_documentation = models.BooleanField(
         default=False,
