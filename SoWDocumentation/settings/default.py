@@ -10,26 +10,18 @@ https://docs.djangoproject.com/en/1.6/ref/settings/
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/1.6/howto/static-files/
+SITE_NAME = 'CODEDOC'
+
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, os.pardir))
 
 STATIC_URL = '/static/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media') + '/'
 MEDIA_URL = '/media/'
 
 # path used to upload temporary files
-USER_UPLOAD_TEMPORARY_STORAGE = os.path.join(BASE_DIR, 'temporary', 'django_application_code_doc')
-
-if(not os.path.exists(USER_UPLOAD_TEMPORARY_STORAGE)):
-  os.makedirs(USER_UPLOAD_TEMPORARY_STORAGE)
-
-
-# location where the file logger logs
-FILE_LOGGING_LOCATION = os.path.join(USER_UPLOAD_TEMPORARY_STORAGE, "code_doc.log")
-
-
+USER_UPLOAD_TEMPORARY_STORAGE = os.path.join(BASE_DIR, 'temporary')
+FILE_LOGGING_LOCATION = os.path.join(USER_UPLOAD_TEMPORARY_STORAGE, "%s.log" % SITE_NAME)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.6/howto/deployment/checklist/
@@ -46,6 +38,9 @@ TEMPLATE_DEBUG = True
 ALLOWED_HOSTS = ['code.is.localnet', '127.0.0.1', 'localhost']
 
 ADMINS = (('Raffi Enficiaud', 'raffi.enficiaud@tuebingen.mpg.de'),)
+
+# the ppl receiving notifications for broken links if BrokenLinkEmailsMiddleware is active
+MANAGERS = (('Raffi Enficiaud', 'raffi.enficiaud@tuebingen.mpg.de'),)
 
 
 LOGIN_URL = "/accounts/login/"
@@ -84,8 +79,6 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'code_doc',
-
-    'crowdrest',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -111,102 +104,80 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
     'code_doc.permissions.backend.CodedocPermissionBackend',
+)
 
-    # 'crowdrest.backend.CrowdRestBackend',
-    )
-
-
-# Crowdrest Settings
-
-# Uncomment for setting up the Crowd - authentification application
-
-AUTH_CROWD_ALWAYS_UPDATE_USER = True
-AUTH_CROWD_ALWAYS_UPDATE_GROUPS = True
-AUTH_CROWD_CREATE_GROUPS = True
-
-AUTH_CROWD_STAFF_GROUP = 'jira-developers'
-AUTH_CROWD_SUPERUSER_GROUP = 'jira-administrators'
-
-# @todo: Configure the password for accessing CROWD
-AUTH_CROWD_APPLICATION_USER = 'django-code-doc-test'
-AUTH_CROWD_APPLICATION_PASSWORD = 'testcodedoc'
-
-AUTH_CROWD_SERVER_REST_URI = 'http://seine.is.localnet:8095/crowd/rest/usermanagement/latest'
-AUTH_CROWD_SERVER_TRUSTED_ROOT_CERTS_FILE = None
-
+ROOT_URLCONF = 'SoWDocumentation.urls'
+WSGI_APPLICATION = 'SoWDocumentation.wsgi.application'
 
 LOGGING = {
-  'version': 1,
-  'disable_existing_loggers': False,
-  'formatters': {
-      'verbose': {
-          'format': '*** [%(levelname)s] %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
-      },
-      'simple': {
-          'format': '[%(levelname)s] %(message)s'
-      },
-  },
-  'handlers': {
-      'file': {
-          'level': 'DEBUG',
-          'class': 'logging.FileHandler',
-          'filename': FILE_LOGGING_LOCATION,
-      },
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '*** [%(levelname)s] %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
+        },
+        'simple': {
+            'format': '[%(levelname)s] %(message)s'
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': FILE_LOGGING_LOCATION,
+        },
 
-      'console': {
-         'level': 'INFO',
-         'class': 'logging.StreamHandler',
-         'formatter': 'verbose'
-      },
-  },
-  'loggers': {
-      'code_doc.views': {
-          'handlers': ['console'],
-          'level': 'DEBUG',
-          'propagate': True,
-      },
-      'code_doc.admin': {
-          'handlers': ['console'],
-          'level': 'DEBUG',
-          'propagate': True,
-      },
-      'code_doc.templatetags.button_add_with_permission': {
-          'handlers': ['console'],
-          'level': 'DEBUG',
-          'propagate': True,
-      },
-      'code_doc.templatetags.markdown_filter': {
-          'handlers': ['console'],
-          'level': 'DEBUG',
-          'propagate': True,
-      },
-      'code_doc.models': {
-          'handlers': ['console'],
-          'level': 'DEBUG',
-          'propagate': True,
-      },
-      'code_doc.permissions': {
-          'handlers': ['console'],
-          'level': 'WARNING',
-          'propagate': True,
-      },
-      'code_doc.signals': {
-          'handlers': ['console'],
-          'level': 'DEBUG',
-          'propagate': True,
-      },
-      'code_doc.migrations': {
-          'handlers': ['console'],
-          'level': 'DEBUG',
-          'propagate': True,
-      },
-  },
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose'
+        },
+    },
+    'loggers': {
+        'code_doc.views': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'code_doc.admin': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'code_doc.templatetags.button_add_with_permission': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'code_doc.templatetags.markdown_filter': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'code_doc.models': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'code_doc.permissions': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': True,
+        },
+        'code_doc.signals': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'code_doc.migrations': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
 }
 
 ROOT_URLCONF = 'SoWDocumentation.urls'
-
-WSGI_APPLICATION = 'SoWDocumentation.wsgi.application'
-
 
 # Database
 # https://docs.djangoproject.com/en/1.6/ref/settings/#databases
@@ -232,7 +203,3 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = True
-
-
-
-
