@@ -3,14 +3,13 @@ from django.db import IntegrityError
 
 # Create your tests here.
 from django.test import Client
-from ..models import Project, Author, ProjectSeries, Artifact, Branch, Revision
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 from django.core.files import File
-
 from django.core.urlresolvers import reverse
-
 from django.conf import settings
+
+from ..models import Project, Author, ProjectSeries, Artifact, Branch, Revision
 
 import tempfile
 import tarfile
