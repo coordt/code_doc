@@ -28,7 +28,7 @@ if(not os.path.exists(os.path.dirname(FILE_LOGGING_LOCATION))):
 # See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '_nx*8lt4e9rkkqkbc+@l+w3k1rpe@)mpidyy%=8nyo%w259l-_'
+SECRET_KEY = "%s" % os.environ['DJANGO_ENV_SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
@@ -93,9 +93,8 @@ AUTH_CROWD_CREATE_GROUPS = True
 AUTH_CROWD_STAFF_GROUP = 'jira-developers'
 AUTH_CROWD_SUPERUSER_GROUP = 'jira-administrators'
 
-# @todo: Configure the password for accessing CROWD
-AUTH_CROWD_APPLICATION_USER = 'code-doc-crowd.mpi.is'
-AUTH_CROWD_APPLICATION_PASSWORD = 'code-doc.deployed'
+AUTH_CROWD_APPLICATION_USER = "%s" % os.environ['DJANGO_CROWD_USER']
+AUTH_CROWD_APPLICATION_PASSWORD = "%s" % os.environ['DJANGO_CROWD_PASS']
 
-AUTH_CROWD_SERVER_REST_URI = 'http://localhost:8095/crowd/rest/usermanagement/latest'
+AUTH_CROWD_SERVER_REST_URI = 'https://atlas.is.localnet/crowd/rest/usermanagement/latest'
 AUTH_CROWD_SERVER_TRUSTED_ROOT_CERTS_FILE = None

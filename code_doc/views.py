@@ -198,7 +198,7 @@ class SerieAccessViewBase(PermissionOnObjectViewMixin):
         try:
             return Project.objects.get(pk=kwargs['project_id'])
         except Project.DoesNotExist:
-            logger.warning('[SeriesAddView] non existent project with id %s',
+            logger.warning('[SerieAccessViewBase] non existent project with id %s',
                            kwargs['project_id'])
             return None
 
@@ -208,7 +208,7 @@ class SerieAccessViewBase(PermissionOnObjectViewMixin):
         try:
             serie = project.series.get(pk=kwargs['series_id'])
         except ProjectSeries.DoesNotExist:
-            logger.warning('[ProjectVersionDetailsView] non existent serie with id %d',
+            logger.warning('[SerieAccessViewBase] non existent serie with id %d',
                            kwargs['series_id'])
             return None
 
