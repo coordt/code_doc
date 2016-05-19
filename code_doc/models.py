@@ -93,6 +93,9 @@ class Topic(models.Model):
     description_mk = models.TextField('Description in Markdown format',
                                       max_length=200, blank=True, null=True)
 
+    def get_absolute_url(self):
+        return reverse('topic', kwargs={'topic_id': self.pk})
+
     def __unicode__(self):
         return "%s" % (self.name)
 
@@ -156,6 +159,9 @@ class Project(models.Model):
 
     def __unicode__(self):
         return "%s" % (self.name)
+
+    def get_absolute_url(self):
+        return reverse('project', kwargs={'project_id': self.pk})
 
     class Meta:
         permissions = (
