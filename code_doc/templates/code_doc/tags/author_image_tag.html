@@ -2,7 +2,7 @@
 {% load static %}
 
 {% if uploaded_image or gravatar_email %}
-<!-- Display or load img -->
+  {# Display or load img #}
   <img src=
   {% if uploaded_image %}
     "{% get_media_prefix %}{{uploaded_image}}"

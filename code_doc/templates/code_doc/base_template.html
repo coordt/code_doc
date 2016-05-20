@@ -63,11 +63,11 @@
         {% else %}        
          <a type="button" class="btn btn-warning navbar-btn" href="{% url 'login' %}?next={{request.path}}">Log in</a>
         {% endif %}
-      </ul> <!-- /.navbar-right -->
+      </ul> {# /.navbar-right #}
       
     
-    </div> <!-- /.navbar-collapse -->
-	</div> <!-- /.container-fluid -->
+    </div> {# /.navbar-collapse #}
+	</div> {# /.container-fluid #}
   </nav>
   
   
@@ -75,6 +75,15 @@
     {% block content %}
     {% endblock %}
   </div>
+  
+  <footer>
+    {% block footer %}
+        <div class="container">
+          <hr><p>&copy; Max Planck Society 2014-2016</p>
+        </div>
+    {% endblock footer %}
+  </footer>
+  
 
   </body>
 </html>
