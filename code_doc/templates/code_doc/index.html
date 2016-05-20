@@ -30,59 +30,69 @@
 
 
   <h2>Projects</h2>
-  <p>You will find below the list of Softwares and libraries maintained by the Max Planck Institute for Intelligent Systems at Tübingen. Click on the project 
-     for more details.
+  <p>You will find below a shorted list of Softwares and libraries maintained by the Max Planck Institute for Intelligent Systems at Tübingen. 
+     Click on a project for more details, or visit <a href="{% url 'project_list' %}">this page</a> for the complete list.
   </p>
-  {% if projects_list %}
+
+
+{% if list_project_per_line %}
     
-    <ul class="media-list">
-      {% for project in projects_list %}
-        <li class="media">
-        <a class="pull-left" href="{% url 'project' project.id %}">
-          {% project_image project.id 64 %}
-        </a>
-
-        <div class="media-body">
-          <h4 class="media-heading">
-            <a href="{% url 'project' project.id %}" >{{ project.name }}</a>
-          </h4>
-          <p>
-            {{ project.short_description }}
-          </p>
-        </div>
-        </li>
-      {% endfor %}
-    </ul>
-
-  {% else %}
-    <p>No registered project.</p>
-  {% endif %}
-
-
-  <h2>Topics</h2>
-  {% if topics_list %}
+  {% for current_project_line in list_project_per_line %}
   
-  <ul class="nav nav-pills nav-stacked">
-  {% for topic in topics_list %}
-  <li class="active">
-    <a href="{% url 'topic' topic.id %}" >
-      <span class="badge pull-right color-red"> {{topic.project_set.count}} </span>
-      {{ topic.name }}
-    </a>
-  </li>
+  <div class="row">
+  {% for current_project in current_project_line %}
+  <div class="col-md-{{ size_row }}">
+    {% if current_project %}
+    <div class="panel panel-default">
+      <div class="panel-body" style="max-height: 50;">
+         <p class="lead"><a href="{{ current_project.get_absolute_url }}">
+         {% project_image current_project.id 32 '' %}{{ current_project.name }}
+        </a>
+        </p>
+        <p>{{ current_project.short_description }}</p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+  </div>
+  
   {% endfor %}
 
-  </ul>
-  
-    <ul>
-    {% for topic in topics_list %}
-        <li><a href="{% url 'topic' topic.id %}" >{{ topic.name }}</a></li>
-    {% endfor %}
-    </ul>
-  {% else %}
-    <p>No registered topic.</p>
-  {% endif %}
-  
+{% else %}
+  <p>No registered project.</p>
+{% endif %}
 
+
+<h2>Topics</h2>
+{% if list_topic_per_line %}
+  
+  
+  {% for current_topic_line in list_topic_per_line %}
+      <div class="row">
+      {% for topic in current_topic_line %}
+      <div class="col-md-{{ size_row }}">
+      <ul class="nav nav-pills nav-stacked">
+      
+      <li class="active">
+        {% if topic %}
+        <a href="{{ topic.get_absolute_url }}" >
+          <span class="badge pull-right color-red"> {{topic.project_set.count}} </span>
+          {{ topic.name }}
+        </a>
+        {% endif %}
+      </li>
+      
+      </ul>
+      </div>
+      {% endfor %}
+    
+      </div>  
+  {% endfor %}
+  
+  
+{% else %}
+  <p>No registered topic.</p>
+{% endif %}
 
 {% endblock %}

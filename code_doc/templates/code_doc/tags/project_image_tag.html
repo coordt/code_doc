@@ -1,6 +1,6 @@
 {% load static %}
 
-<img class="media-object" src="
+<img class="{{additional_class}} img-rounded" src="
  {% if image %}
     {% get_media_prefix %}{{image}}
  {% else %}
@@ -10,4 +10,4 @@
  {% if size_x and size_y %}
 width="{{ size_x }}" height="{{ size_y }}"
  {% endif %}
-class="img-rounded" >
+>

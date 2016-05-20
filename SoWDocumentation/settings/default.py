@@ -32,8 +32,6 @@ SECRET_KEY = '_nx*8lt4e9rkkqkbc+@l+w3k1rpe@)mpidyy%=8nyo%w259l-_'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-TEMPLATE_DEBUG = True
-
 # to be edited when in production mode
 ALLOWED_HOSTS = ['code.is.localnet', '127.0.0.1', 'localhost']
 
@@ -90,20 +88,10 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
 
-if 0:
-    TEMPLATE_CONTEXT_PROCESSORS = (
-        'django.contrib.auth.context_processors.auth',
-        'django.core.context_processors.debug',
-        'django.core.context_processors.i18n',
-        'django.core.context_processors.media',
-        'django.core.context_processors.static',
-        'django.core.context_processors.tz',
-        'django.core.context_processors.request',  # this one is missing by default
-        'django.contrib.messages.context_processors.messages',
-    )
 
 TEMPLATES = [
     {
+
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [],
         # - if False, needs an absolute location for the template folder and does not look
@@ -112,6 +100,7 @@ TEMPLATES = [
         # see https://docs.djangoproject.com/es/1.9/ref/templates/api/#template-loaders
         'APP_DIRS': True,
         'OPTIONS': {
+            # 'debug': True, # should be the same value as DEBUG
             'context_processors': [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',

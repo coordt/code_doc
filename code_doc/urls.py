@@ -1,10 +1,9 @@
-from django.conf.urls import patterns, url
+from django.conf.urls import url
 from django.contrib.auth.views import login, logout
 
 import views
 
-urlpatterns = patterns(
-    '',
+urlpatterns = [
     url(r'^$', views.index, name='index'),
     url(r'^about$', views.about, name='about'),
     url(r'^script$', views.script, name='script'),
@@ -82,5 +81,4 @@ urlpatterns = patterns(
   # url(r'^api/artifact/(?P<project_id>\d+)/(?P<project_revision_id>\d+)/(?P<filename>.+)$', views.FileUploadView.as_view(), name='fileupload'),
   # url(r'^api/artifact/(?P<project_revision_id>\d+)/$', views.FileUploadView.as_view(), name='fileupload_post'),
   # url(r'^details/(?P<project_id>\d+)/$', views.detail_project, name='detail_project'),
-
-)
+]

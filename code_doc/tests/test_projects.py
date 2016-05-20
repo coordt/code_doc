@@ -61,7 +61,6 @@ class ProjectTest(TestCase):
 
         self.assertEqual(self.project.get_number_of_revisions(), 1)
 
-
     def test_project_get_number_of_files(self):
         """Number of files tests"""
 

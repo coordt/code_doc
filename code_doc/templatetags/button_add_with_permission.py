@@ -1,11 +1,9 @@
-
 from django import template
 from django.core.urlresolvers import reverse_lazy
+import logging
+
 
 register = template.Library()
-
-import logging
-# logger for this file
 logger = logging.getLogger(__name__)
 
 
