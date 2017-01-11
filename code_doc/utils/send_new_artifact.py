@@ -393,6 +393,7 @@ def main():
                           \tError details %s""",
                      args.url + post_url,
                      e)
+        raise
 
     # sending the artifact
     # preparing the form
