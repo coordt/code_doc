@@ -7,10 +7,14 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def _current_year():
+    return datetime.datetime.now().year
+
+
 class CopyrightHolder(models.Model):
     """The entity that holds the copyright over a product"""
     name = models.CharField(max_length=50)
-    year = models.IntegerField(default=datetime.datetime.now().year)
+    year = models.IntegerField(default=_current_year)
 
     def __unicode__(self):
         return "%s (%d)" % (self.name, self.year)

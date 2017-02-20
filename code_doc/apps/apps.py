@@ -8,3 +8,5 @@ class CodeDocAppConfig(AppConfig):
 
     def ready(self):
         import code_doc.signals.signal_handlers
+        import code_doc.signals.project_handlers
+

@@ -33,9 +33,6 @@ class Project(models.Model):
     #: Home page of the project
     home_page_url = models.CharField(max_length=250, null=True, blank=True)
 
-    #: Code source URL
-    code_source_url = models.CharField(max_length=250, null=True, blank=True)
-
     #: Copyright/license of the project
     copyright = models.ForeignKey(Copyright,
                                   null=True,
@@ -105,6 +102,29 @@ class Project(models.Model):
         super(Project, self).save(*args, **kwargs)  # Call the "real" save() method.
 
 
+class ProjectRepository(models.Model):
+    """Represents a project repository"""
+
+    #: The project
+    project = models.ForeignKey(Project,
+                                related_name='repositories')
+
+    #: The related repository
+    code_source_url = models.CharField(max_length=500,
+                                       null=False,
+                                       blank=False)
+
+    class Meta:
+        unique_together = (("project", "code_source_url"),)
+        verbose_name_plural = "Project repositories"
+
+    def get_absolute_url(self):
+        return reverse('project', kwargs={'project_id': self.project.id})
+
+    def __unicode__(self):
+        return "[%s] %s" % (self.project.name, self.code_source_url)
+
+
 class ProjectSeries(models.Model):
     """A series of a project comes with several artifacts"""
     project = models.ForeignKey(Project, related_name="series")
@@ -146,6 +166,7 @@ class ProjectSeries(models.Model):
                                                         related_name='perms_groups_artifacts_del')
 
     class Meta:
+        verbose_name_plural = "Project series"
         unique_together = (("project", "series"),)
         permissions = (
             ("series_view", "User/group has access to this serie and its content"),

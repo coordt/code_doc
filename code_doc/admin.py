@@ -3,7 +3,7 @@ from django.contrib import admin
 from .models.models import Copyright, CopyrightHolder, Topic
 from .models.artifacts import Artifact
 from .models.authors import Author
-from .models.projects import Project, ProjectSeries
+from .models.projects import Project, ProjectSeries, ProjectRepository
 
 import logging
 logger = logging.getLogger(__name__)
@@ -39,6 +39,7 @@ class ProjectSeriesAdmin(admin.ModelAdmin):
     list_filter = ['series', 'release_date']
 
 admin.site.register(ProjectSeries, ProjectSeriesAdmin)
+admin.site.register(ProjectRepository)
 
 
 class TopicAdmin(admin.ModelAdmin):

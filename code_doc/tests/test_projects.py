@@ -3,8 +3,9 @@ from django.test import Client
 from django.contrib.auth.models import User
 
 from django.core.urlresolvers import reverse
+from django.db.utils import IntegrityError
 
-from ..models.projects import Project, ProjectSeries
+from ..models.projects import Project, ProjectSeries, ProjectRepository
 from ..models.authors import Author
 from ..models.artifacts import Artifact
 from ..models.revisions import Revision
@@ -80,3 +81,45 @@ class ProjectTest(TestCase):
         new_artifact2.project_series.add(new_series)
 
         self.assertEqual(self.project.get_number_of_files(), 2)
+
+    def test_project_get_repositories(self):
+        """Checks that the details of the repositories appear on the project detail page"""
+        project2 = Project.objects.create(name='test_project2')
+        project2.authors = [self.author1]
+        project2.administrators = [self.first_user]
+
+        repository = "https://somewhere.gitlab"
+        ProjectRepository.objects.create(project=project2,
+                                         code_source_url=repository)
+        ProjectRepository.objects.create(project=project2,
+                                         code_source_url=repository + "2")
+
+        response = self.client.get(reverse(self.path, args=[self.project.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, repository)
+
+        response = self.client.get(reverse(self.path, args=[project2.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, repository, 2)
+
+
+class ProjectRepositoryTest(TestCase):
+
+    def test_repository_unique_constraint(self):
+        """Checks the uniqueness constraints on the repository URLs"""
+        project = Project.objects.create(name='test_project')
+        repository = "https://somewhere.gitlab"
+        ProjectRepository.objects.create(project=project,
+                                         code_source_url=repository)
+
+        from django.db import transaction
+
+        with transaction.atomic():
+            with self.assertRaises(IntegrityError):
+                ProjectRepository.objects.create(project=project,
+                                                 code_source_url=repository)
+
+        with transaction.atomic():
+            with self.assertRaises(IntegrityError):
+                ProjectRepository.objects.create(project=project,
+                                                 code_source_url="    " + repository)
