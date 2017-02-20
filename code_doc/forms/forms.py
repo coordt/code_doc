@@ -1,15 +1,7 @@
 # -*- coding: utf-8 -*-
 from django.forms import Form, ModelForm, FileField, CharField, Textarea, DateInput, CheckboxSelectMultiple, TextInput, EmailInput, Select
 from django.contrib.auth.models import User, Group
-
 from ..models import ProjectSeries, Project, Author, Artifact
-
-
-class ArtifactForm(Form):
-    artifactfile = FileField(
-        label='Select a file',
-        help_text='max. 42 megabytes'
-    )
 
 
 class AuthorForm(ModelForm):
