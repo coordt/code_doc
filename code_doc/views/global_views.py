@@ -93,7 +93,8 @@ def about(request):
 def script(request):
     """Returns the script used for uploading stuff"""
     filename = 'code_doc_upload.py'
-    file_content = open(os.path.join(os.path.dirname(__file__),
+    file_content = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                     os.pardir,
                                      'utils',
                                      'send_new_artifact.py'),
                         'rb').read()  # binary is important here

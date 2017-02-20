@@ -3,9 +3,7 @@ from django.db import IntegrityError
 
 # Create your tests here.
 from django.test import Client
-from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
-from django.core.files import File
 from django.core.urlresolvers import reverse
 from django.conf import settings
 
@@ -47,8 +45,8 @@ class ProjectSeriesArtifactTest(TestCase):
 
     def test_series_uniqueness(self):
         with self.assertRaises(IntegrityError):
-            new_series = ProjectSeries.objects.create(series="12345", project=self.project,
-                                                      release_date=datetime.datetime.now())
+            ProjectSeries.objects.create(series="12345", project=self.project,
+                                         release_date=datetime.datetime.now())
 
     def test_project_series_artifact_wrong_id(self):
         """Test if giving the wrong series yields the proper error"""
@@ -75,8 +73,9 @@ class ProjectSeriesArtifactTest(TestCase):
 
     def test_project_series_artifact_possible_for_admins(self):
         """Creation of a new project series and its artifacts always possible for admins"""
-        admin_user = User.objects.create_superuser(username='admin', email='bla@bla.com',
-                                                   password='admin')
+        _ = User.objects.create_superuser(username='admin',
+                                          email='bla@bla.com',
+                                          password='admin')
         response = self.client.login(username='admin', password='admin')
         self.assertTrue(response)
 
@@ -570,25 +569,21 @@ class ProjectSeriesArtifactTest(TestCase):
             test_file = SimpleUploadedFile('filename.tar.bz2', f.read())
             test_file2 = SimpleUploadedFile('filename.tar.gz', f2.read())
 
-            new_artifact = Artifact.objects.create(
-                              project=self.project,
-                              revision=self.revision,
-                              #md5hash='1',
-                              description='test artifact',
-                              is_documentation=True,
-                              documentation_entry_file=os.path.basename(__file__),
-                              artifactfile=test_file)
+            new_artifact = Artifact.objects.create(project=self.project,
+                                                   revision=self.revision,
+                                                   description='test artifact',
+                                                   is_documentation=True,
+                                                   documentation_entry_file=os.path.basename(__file__),
+                                                   artifactfile=test_file)
             new_artifact.project_series.add(self.new_series)
             test_file.close()
 
-            new_artifact2 = Artifact.objects.create(
-                              project=self.project,
-                              revision=self.revision,
-                              #md5hash='2',
-                              description='test artifact',
-                              is_documentation=True,
-                              documentation_entry_file=os.path.basename(__file__),
-                              artifactfile=test_file2)
+            new_artifact2 = Artifact.objects.create(project=self.project,
+                                                    revision=self.revision,
+                                                    description='test artifact',
+                                                    is_documentation=True,
+                                                    documentation_entry_file=os.path.basename(__file__),
+                                                    artifactfile=test_file2)
             new_artifact2.project_series.add(self.new_series)
             test_file2.close()
 

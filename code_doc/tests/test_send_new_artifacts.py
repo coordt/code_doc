@@ -1,3 +1,4 @@
+from django.test import TestCase
 from django.test import LiveServerTestCase
 from django.test import Client
 from django.contrib.auth.models import User
@@ -64,11 +65,10 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
                            password='test_series_user')
 
             f.seek(0)
-            ret = instance.post_multipart(
-                    post_url,
-                    fields,
-                    files,
-                    avoid_redirections=False)
+            ret = instance.post_multipart(post_url,
+                                          fields,
+                                          files,
+                                          avoid_redirections=False)
 
             self.assertEqual(len(self.series.artifacts.all()), 1)
             artifact = self.series.artifacts.all()[0]
@@ -85,7 +85,7 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
         instance = PostMultipartWithSession(host=self.live_server_url)
 
         post_url = '/s/%s/%s/' % (self.project.name, self.series.series)
-        response = instance.get(post_url)
+        _ = instance.get(post_url)
         redir = instance.get_redirection(post_url)
         self.assertEqual(redir, reverse('project_series', args=[self.project.id, self.series.id]))
 
@@ -103,3 +103,20 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
         dic_ids = json.loads(response.read())
         self.assertEquals(dic_ids['project_id'], self.project.id)
         self.assertEquals(dic_ids['series_id'], self.series.id)
+
+
+class TestSendArtifactCompanion(TestCase):
+    def test_get_script_file(self):
+        """Checks that the script file can be downloaded"""
+
+        path = 'script'
+        self.client = Client()
+
+        print os.path.abspath(__file__)
+        response = self.client.get(reverse(path))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content,
+                         open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                           os.pardir,
+                                           'utils',
+                                           'send_new_artifact.py'), 'rb').read())
