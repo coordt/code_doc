@@ -112,10 +112,11 @@ def script(request):
     file_content = open(os.path.join(os.path.dirname(__file__),
                                      'utils',
                                      'send_new_artifact.py'),
-                        'rb')  # binary is important here
+                        'rb').read()  # binary is important here
+    # TODO add a test on this len(file_content)
     response = HttpResponse(file_content, content_type='application/text')
     response['Content-Disposition'] = 'attachment; filename=%s' % filename
-    response['Content-Length'] = file_content.tell()
+    response['Content-Length'] = len(file_content)
     return response
 
 
