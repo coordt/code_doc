@@ -1,6 +1,6 @@
 
 from django import template
-from code_doc.models import Project
+from ..models.projects import Project
 register = template.Library()
 
 

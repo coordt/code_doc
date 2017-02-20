@@ -6,9 +6,11 @@ from django.core.urlresolvers import reverse
 
 import logging
 
-from .permission_helpers import PermissionOnObjectViewMixin
-from ..models import Project, Artifact, ProjectSeries, Branch, Revision
+from ..models.projects import Project, ProjectSeries
+from ..models.revisions import Branch, Revision
+from ..models.artifacts import Artifact
 from ..forms.forms import ArtifactEditionForm
+from .permission_helpers import PermissionOnObjectViewMixin
 
 # logger for this file
 logger = logging.getLogger(__name__)

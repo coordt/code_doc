@@ -1,15 +1,12 @@
 from django.test import TestCase
-from django.db import IntegrityError
+from django.test import Client
+from django.contrib.auth.models import User, Group
+from django.core.urlresolvers import reverse
 
 import datetime
 
-# Create your tests here.
-from django.test import Client
-from code_doc.models import Project, Author, ProjectSeries
-from django.contrib.auth.admin import UserAdmin
-from django.contrib.auth.models import User, Group
-
-from django.core.urlresolvers import reverse
+from ..models.projects import Project, ProjectSeries
+from ..models.authors import Author
 
 
 class ProjectSeriesTest(TestCase):
@@ -77,7 +74,7 @@ class ProjectSeriesTest(TestCase):
 
         response = self.client.login(username='test_series_user', password='test_series_user')
         self.assertTrue(response)
-        response = self.client.get(reverse("project_series_add", args=[self.project.id+1]))
+        response = self.client.get(reverse("project_series_add", args=[self.project.id + 1]))
 
         # returns unauthorized to avoid the distinction between non existing project
         # spoofing and the authorization.

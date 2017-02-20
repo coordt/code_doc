@@ -1,12 +1,13 @@
 from django.test import TestCase
-from django.db import IntegrityError
-
 from django.test import Client
-from code_doc.models import Project, Author, ProjectSeries, Artifact, Revision
-from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 
 from django.core.urlresolvers import reverse
+
+from ..models.projects import Project, ProjectSeries
+from ..models.authors import Author
+from ..models.artifacts import Artifact
+from ..models.revisions import Revision
 
 import datetime
 

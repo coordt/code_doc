@@ -11,7 +11,8 @@ from django.utils.decorators import method_decorator
 
 import logging
 
-from ..models import Project, Author
+from ..models.projects import Project
+from ..models.authors import Author
 from ..forms.forms import AuthorForm
 from .permission_helpers import PermissionOnObjectViewMixin
 

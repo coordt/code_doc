@@ -11,11 +11,10 @@ from django.core.urlresolvers import reverse
 import logging
 import json
 
-from ..models import Project, ProjectSeries
+from ..models.projects import Project, ProjectSeries
 from ..forms.forms import SeriesEditionForm
 from .permission_helpers import PermissionOnObjectViewMixin
 
-# logger for this file
 logger = logging.getLogger(__name__)
 
 

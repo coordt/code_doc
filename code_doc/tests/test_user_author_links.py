@@ -1,15 +1,10 @@
 # this file tests the correct behaviour of the Users and Authors
 
 from django.test import TestCase
-
 from django.test import Client
 from django.contrib.auth.models import User
 
-from code_doc.models import Author
-
-import logging
-# logger for this file
-logger = logging.getLogger(__name__)
+from ..models.authors import Author
 
 
 class UserAuthorLinkTest(TestCase):

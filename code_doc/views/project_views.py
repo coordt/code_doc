@@ -11,7 +11,7 @@ from django.views.generic import ListView, View
 import logging
 import json
 
-from ..models import Project, ProjectSeries
+from ..models.projects import Project, ProjectSeries
 
 logger = logging.getLogger(__name__)
 

@@ -1,9 +1,11 @@
-import logging
 from django.contrib import admin
-from code_doc.models import Author, Project, ProjectSeries, Artifact, Copyright, CopyrightHolder, \
- Topic
 
-# logger for this file
+from .models.models import Copyright, CopyrightHolder, Topic
+from .models.artifacts import Artifact
+from .models.authors import Author
+from .models.projects import Project, ProjectSeries
+
+import logging
 logger = logging.getLogger(__name__)
 
 

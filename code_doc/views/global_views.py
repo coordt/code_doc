@@ -8,7 +8,8 @@ from django.views.generic import ListView
 import os
 import logging
 
-from ..models import Project, Topic
+from ..models.projects import Project
+from ..models.models import Topic
 
 logger = logging.getLogger(__name__)
 

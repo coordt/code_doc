@@ -4,8 +4,9 @@ from django.test import Client
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 
-from code_doc.models import Project, Author, ProjectSeries
-from code_doc.utils.send_new_artifact import PostMultipartWithSession
+from ..models.projects import Project, ProjectSeries
+from ..models.authors import Author
+from ..utils.send_new_artifact import PostMultipartWithSession
 
 import tempfile
 import datetime
