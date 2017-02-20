@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from django.forms import Form, ModelForm, FileField, CharField, Textarea, DateInput, CheckboxSelectMultiple, TextInput, EmailInput, Select
-
-from .models import ProjectSeries, Project, Author, Artifact
 from django.contrib.auth.models import User, Group
+
+from ..models import ProjectSeries, Project, Author, Artifact
 
 
 class ArtifactForm(Form):
