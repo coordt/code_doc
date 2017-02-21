@@ -1,6 +1,7 @@
 {% extends "code_doc/base_template.html" %}
 {% load gravatar %}
 {% load staticfiles %}
+{% load static %}
 {% load author_image %}
 {% load button_add_with_permission %}
 {% load markdown_filter %}
@@ -98,27 +99,30 @@
       <thead>
         <tr>
           <th>Series</th>
-          <th>Visibility</th>
-          <th>Release date</th>
           <th># files</th>
-          <th>Last updated</th>
+          <th>Tags</th>
           <th>Description</th>
         </tr>
       </thead>
       <tbody>
-      {% for series, current_last_update in last_update.items %}
+      {% for series, current_last_updates in last_update.items %}
           <tr>
-            <th class="text-nowrap"><a href="{% url 'project_series' project.id series.id %}" >{{ series.series }}</a></th>
-            <td>
-            {% if series.is_public %}
-              <span class="label label-success">Public</span>
-            {% else %}
-              <span class="label label-warning">Restricted</span>
-            {% endif %}</td>
-            <td>{{ series.release_date }}</td>
+            <td class="text-nowrap">
+              {% if series.is_public %}
+                <span class="label label-success">public</span>
+              {% else %}
+                <span class="label label-warning">restricted</span>
+              {% endif %}           
+              <a href="{% url 'project_series' project.id series.id %}" >{{ series.series }}</a>
+              <p><small>last updated {{ current_last_updates.last_update|date }}</small></p>
+            </td>
             <td>{{ series.artifacts.count }}</td>
-            <td>{{ current_last_update|date }}</td>
-            <td>{{ series.description_mk|markd|safe }}</td>
+            <td>{% if current_last_updates.last_doc %}
+              <a href="{% get_media_prefix %}{{current_last_updates.last_doc.get_documentation_url}}"><span class="label label-info">read doc online</span></a>
+              {% endif %}
+            </td>
+            
+            <td><small>{{ series.description_mk|markd|safe }}</small></td>
           </tr>
       {%endfor%}
       <tbody>

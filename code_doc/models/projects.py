@@ -127,10 +127,19 @@ class ProjectRepository(models.Model):
 
 class ProjectSeries(models.Model):
     """A series of a project comes with several artifacts"""
+    #: The project reference
     project = models.ForeignKey(Project, related_name="series")
+
+    #: The series name
     series = models.CharField(max_length=500)  # can be a hash
+
+    #: Release date
     release_date = models.DateField('Release date')
+
+    #: Indicates if a series is publicly accessible
     is_public = models.BooleanField(default=False)
+
+    #: Description of this series
     description_mk = models.TextField('Description in Markdown format',
                                       max_length=2500,
                                       blank=True,

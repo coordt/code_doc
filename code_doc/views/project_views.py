@@ -12,6 +12,7 @@ import logging
 import json
 
 from ..models.projects import Project, ProjectSeries
+from ..models.artifacts import Artifact
 
 logger = logging.getLogger(__name__)
 
@@ -41,11 +42,14 @@ class ProjectView(DetailView):
             assert(self.request.user.has_perm('code_doc.series_view', v))
             # if not self.request.user.has_perm('code_doc.series_view', v):
             #  continue
+            last_update[v] = {}
             current_update = v.artifacts.order_by('upload_date').last()
             if(current_update is not None):
-                last_update[v] = current_update.upload_date
-            else:
-                last_update[v] = None
+                last_update[v]['last_update'] = current_update.upload_date
+
+            last_doc = Artifact.objects.filter(project_series=v, is_documentation=True).order_by('upload_date')
+            if last_doc.exists():
+                last_update[v]['last_doc'] = last_doc.last()
 
         context['last_update'] = last_update
         return context
