@@ -15,8 +15,25 @@
 
   <div class="row">
     <div class="col-md-8">
-      <h3>Description</h3>
-      {{ project.description_mk|markd|safe }}
+   
+    <hr>
+    {% if project.description_mk %}
+    {{ project.description_mk|markd|safe }}
+    {% else %}
+    No additional description
+    {% endif %}
+    <hr>
+    
+    <h4>Copyright</h4>
+    {% if project.copyright_holder.count %}
+    <p>{% for copyholder in project.copyright_holder.all %}
+    &copy; {{ copyholder.year }} {{ copyholder.name }}</br>
+    {% endfor %}</p>
+    <p>{{ project.copyright.name }}</p>
+    {% else %}
+    <p>No license / closed source</p>
+    {% endif %}
+             
     </div>
 
     <div class="col-sm-4">
@@ -50,6 +67,13 @@
 		      <p>No registered maintainer</p>
 		  {% endif %}
 		  
+		  <h4>Home page</h4>
+		  {% if project.home_page_url %}
+		  <p><kbd>{{ project.home_page_url }}</kbd></p>
+		  {% else %}
+		  <p>No home page provided</p>
+		  {% endif %}
+		  
 		  <h4>Repositories</h4>
       {% if project.repositories.count > 0 %}
       {% for repo in project.repositories.all %}
@@ -70,22 +94,19 @@
 
   {% if last_update %}
 
-    <table class="table table-hover">
-        <thead>
-          <tr>
-            <th>Series</th>
-            <th>Visibility</th>
-            <th>Release date</th>
-            <th># files</th>
-            <th>Last updated</th>
-            <th>Description</th>
-
-          </tr>
-        </thead>
-
+    <table class="table table-hover table-condensed">
+      <thead>
+        <tr>
+          <th>Series</th>
+          <th>Visibility</th>
+          <th>Release date</th>
+          <th># files</th>
+          <th>Last updated</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
       {% for series, current_last_update in last_update.items %}
-
-        <tbody>
           <tr>
             <th class="text-nowrap"><a href="{% url 'project_series' project.id series.id %}" >{{ series.series }}</a></th>
             <td>
@@ -99,14 +120,13 @@
             <td>{{ current_last_update|date }}</td>
             <td>{{ series.description_mk|markd|safe }}</td>
           </tr>
-         <tbody>
-
       {%endfor%}
+      <tbody>
 
     </table>
 
   {% else %}
-      <p>No known released series.</p>
+      <p>No released series.</p>
   {% endif %}
 
 {% endblock %}
