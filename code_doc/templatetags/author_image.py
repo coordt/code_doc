@@ -1,6 +1,6 @@
 
 from django import template
-from ..models import Author
+from ..models.authors import Author
 
 import hashlib
 

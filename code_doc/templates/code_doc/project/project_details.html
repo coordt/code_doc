@@ -1,6 +1,7 @@
 {% extends "code_doc/base_template.html" %}
 {% load gravatar %}
 {% load staticfiles %}
+{% load static %}
 {% load author_image %}
 {% load button_add_with_permission %}
 {% load markdown_filter %}
@@ -15,33 +16,47 @@
 
   <div class="row">
     <div class="col-md-8">
-      <h3>Description</h3>
-      {{ project.description_mk|markd|safe }}
+   
+    <hr>
+    {% if project.description_mk %}
+    {{ project.description_mk|markd|safe }}
+    {% else %}
+    No additional description
+    {% endif %}
+    <hr>
+    
+    <h4>Copyright</h4>
+    {% if project.copyright_holder.count %}
+    <p>{% for copyholder in project.copyright_holder.all %}
+    &copy; {{ copyholder.year }} {{ copyholder.name }}</br>
+    {% endfor %}</p>
+    <p>{{ project.copyright.name }}</p>
+    {% else %}
+    <p>No license / closed source</p>
+    {% endif %}
+             
     </div>
+
     <div class="col-sm-4">
       <h4>Authors</h4>
       {% if project.authors %}
-
-        <div class="row">
-          <div class="col-xs-8 col-sm-4">
-			{% for author in project.authors.all %}
-			    <a href="{% url 'author' author.id %}" 
-			       title="{{author.firstname}} {{author.lastname}}" 
-			       alt="{{author.firstname}} {{author.lastname}}">
-			      {% author_image author.id 32 %}
-	            </a>
-            	<!--<div class="author-seperator"></div>-->
-			{% endfor %}
+      <div class="row">
+        <div class="col-xs-8 col-sm-4">
+		    {% for author in project.authors.all %}
+		    <a href="{% url 'author' author.id %}" 
+		       title="{{author.firstname}} {{author.lastname}}" 
+		       alt="{{author.firstname}} {{author.lastname}}">
+		      {% author_image author.id 32 %}
+        </a>
+		    {% endfor %}
+		    </div>
 		  </div>
-		</div>
       {% else %}
-        <p>No author.</p>
+        <p>No author</p>
       {% endif %}
-
 
       <h4>Maintainers</h4>
 		  {% if project.administrators.count > 0 %}
-
 		    <ul>
 		    {% for maintainer in project.administrators.all %}
 		      <li>
@@ -49,10 +64,25 @@
 		      </li>
 		    {% endfor %}
 		    </ul>
-
 		  {% else %}
-		      <p>No registered maintainer.</p>
+		      <p>No registered maintainer</p>
 		  {% endif %}
+		  
+		  <h4>Home page</h4>
+		  {% if project.home_page_url %}
+		  <p><kbd>{{ project.home_page_url }}</kbd></p>
+		  {% else %}
+		  <p>No home page provided</p>
+		  {% endif %}
+		  
+		  <h4>Repositories</h4>
+      {% if project.repositories.count > 0 %}
+      {% for repo in project.repositories.all %}
+      <p><kbd>{{ repo.code_source_url }}</kbd></p>
+      {% endfor %}
+      {% else %}
+      <p>No registered repository</p> 
+      {% endif %}
 
     </div>
 
@@ -65,43 +95,42 @@
 
   {% if last_update %}
 
-    <table class="table table-hover">
-        <thead>
+    <table class="table table-hover table-condensed">
+      <thead>
+        <tr>
+          <th>Series</th>
+          <th># files</th>
+          <th>Tags</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for series, current_last_updates in last_update.items %}
           <tr>
-            <th>Series</th>
-            <th>Visibility</th>
-            <th>Release date</th>
-            <th># files</th>
-            <th>Last updated</th>
-            <th>Description</th>
-
-          </tr>
-        </thead>
-
-      {% for series, current_last_update in last_update.items %}
-
-        <tbody>
-          <tr>
-            <th class="text-nowrap"><a href="{% url 'project_series' project.id series.id %}" >{{ series.series }}</a></th>
-            <td>
-            {% if series.is_public %}
-              <span class="label label-success">Public</span>
-            {% else %}
-              <span class="label label-warning">Restricted</span>
-            {% endif %}</td>
-            <td>{{ series.release_date }}</td>
+            <td class="text-nowrap">
+              {% if series.is_public %}
+                <span class="label label-success">public</span>
+              {% else %}
+                <span class="label label-warning">restricted</span>
+              {% endif %}           
+              <a href="{% url 'project_series' project.id series.id %}" >{{ series.series }}</a>
+              <p><small>last updated {{ current_last_updates.last_update|date }}</small></p>
+            </td>
             <td>{{ series.artifacts.count }}</td>
-            <td>{{ current_last_update|date }}</td>
-            <td>{{ series.description_mk|markd|safe }}</td>
+            <td>{% if current_last_updates.last_doc %}
+              <a href="{% get_media_prefix %}{{current_last_updates.last_doc.get_documentation_url}}"><span class="label label-info">read doc online</span></a>
+              {% endif %}
+            </td>
+            
+            <td><small>{{ series.description_mk|markd|safe }}</small></td>
           </tr>
-         <tbody>
-
       {%endfor%}
+      <tbody>
 
     </table>
 
   {% else %}
-      <p>No known released series.</p>
+      <p>No released series.</p>
   {% endif %}
 
 {% endblock %}

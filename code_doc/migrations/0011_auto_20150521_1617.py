@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 
 from django.db import models, migrations
 from django.conf import settings
-import code_doc.models
+import code_doc.models.authors
 
 
 class Migration(migrations.Migration):
@@ -20,7 +20,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='author',
             name='image',
-            field=models.ImageField(null=True, upload_to=code_doc.models.get_author_image_location, blank=True),
+            field=models.ImageField(null=True, upload_to=code_doc.models.authors.get_author_image_location, blank=True),
         ),
         migrations.AlterField(
             model_name='author',

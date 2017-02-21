@@ -8,20 +8,16 @@
 """
 
 from django.test import TestCase
-
 from django.test import Client
-# from django.utils.unittest.case import skip
-
-from django.contrib.auth.models import User
-from django.core.urlresolvers import reverse
 from django.conf import settings
 
-from ..models import Project, ProjectSeries, Revision, Author, Artifact, get_deflation_directory, Branch
+from ..models.projects import Project, ProjectSeries
+from ..models.artifacts import Artifact
+from ..models.revisions import Revision, Branch
 
 import datetime
 import tempfile
 import tarfile
-import pdb
 import os
 
 

@@ -7,25 +7,18 @@
 
   <head>
     <link rel="stylesheet" href="{% static "bootstrap-3.2.0-dist/css/bootstrap.css"  %}">
-    <link rel="stylesheet" href="{% static "bootstrap-3.2.0-dist/css/bootstrap-theme.min.css" %}">
     <link rel="stylesheet" href="{% static "svg.css" %}">
     <link rel="stylesheet" href="{% static "pygment.css" %}">
-
+	  <link rel="shortcut icon" href="{% static "glyphicons-428-git-pull-request.png" %}">
 
     <script language="javascript" type="text/javascript" src="{% static "jquery-1.11.1.min.js" %}"></script>
-    <!-- <script language="javascript" type="text/javascript" src="{% static "jquery-ui-1.11.2/jquery-ui.min.js" %}"></script> -->
     <script language="javascript" type="text/javascript" src="{% static "bootstrap-3.2.0-dist/js/bootstrap.js" %}"></script>
-
-	<link rel="shortcut icon" href="{% static "glyphicons-428-git-pull-request.png" %}">
-	
 
     {% block additionalhead %}
     {% endblock %}
 
     <title>
-      {% block title %}
-        Template title
-      {% endblock %}
+      {% block title %}Template title{% endblock %}
     </title>
   </head>
   
@@ -79,11 +72,9 @@
   <footer>
     {% block footer %}
         <div class="container">
-          <hr><p>&copy; Max Planck Society 2014-2016</p>
+          <hr><p>&copy; Max Planck Society 2014-2017</p>
         </div>
     {% endblock footer %}
   </footer>
-  
-
   </body>
 </html>

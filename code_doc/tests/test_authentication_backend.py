@@ -1,21 +1,16 @@
 # this file tests the correct behaviour of the authentication backend
 # this one is used for permissions management
 
-
 from django.test import TestCase
-from django.db import IntegrityError
-
-import datetime
-
-# Create your tests here.
 from django.test import Client
-from code_doc.models import Project, Author, ProjectSeries
-from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 from django.contrib.auth.models import Group
 from django.contrib.auth.models import AnonymousUser
 
-from django.core.urlresolvers import reverse
+import datetime
+
+from ..models.projects import Project, ProjectSeries
+from ..models.authors import Author
 
 
 class AuthenticationBackendTest(TestCase):

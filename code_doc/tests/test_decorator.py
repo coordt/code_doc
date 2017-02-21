@@ -4,18 +4,12 @@
 from django.test import TestCase
 from django.test import RequestFactory
 from django.core.exceptions import PermissionDenied
-
-import datetime
-
-# Create your tests here.
 from django.test import Client
-from code_doc.models import Project, Author, ProjectSeries
-from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 
-from django.core.urlresolvers import reverse
-
-from code_doc.permissions.decorators import permission_required_on_object
+from ..permissions.decorators import permission_required_on_object
+from ..models.projects import Project
+from ..models.authors import Author
 
 
 class DecoratorSimpleTest(TestCase):

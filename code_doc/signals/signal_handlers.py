@@ -4,7 +4,10 @@ from django.dispatch import receiver
 
 from django.conf import settings
 
-from ..models import Author, Revision, Branch, Artifact, get_deflation_directory, ProjectSeries
+from ..models.authors import Author
+from ..models.projects import Project, ProjectSeries
+from ..models.revisions import Branch, Revision
+from ..models.artifacts import Artifact, get_deflation_directory
 
 import logging
 import tempfile
