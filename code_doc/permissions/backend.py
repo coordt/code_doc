@@ -3,7 +3,9 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.core.exceptions import PermissionDenied
 
-from code_doc.models import Project, ProjectSeries
+
+from ..models.projects import Project, ProjectSeries
+
 
 import logging
 
@@ -30,7 +32,7 @@ class CodedocPermissionBackend(object):
         """Manages the permissions for a specific type of object"""
 
         # the backend does not manage these permissions on this kind of object
-        if(not self.objects_permission_handlers.has_key(type(obj))):
+        if(type(obj) not in self.objects_permission_handlers):
             return False
         if(perm not in self.objects_permission_handlers[type(obj)]):
             return False
@@ -47,7 +49,7 @@ class CodedocPermissionBackend(object):
 
     def _populate_permissions(self, user, obj):
 
-        if(not self.objects_permission_handlers.has_key(type(obj))):
+        if(type(obj) not in self.objects_permission_handlers):
             return set()
 
         return set(codename for codename
@@ -91,7 +93,7 @@ def create_tables():
             for permission_name, _ in cls._meta.permissions:
                 handler_function = get_permission_handler_name(permission_name)
                 if(hasattr(cls, handler_function)):
-                    if(not handler_dict.has_key(cls)):
+                    if(cls not in handler_dict):
                         handler_dict[cls] = []
                     handler_dict[cls].append(_project_permission_prefix + '.' + permission_name)
 

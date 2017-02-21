@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 
 from django.db import models, migrations
 from django.conf import settings
-import code_doc.models
+import code_doc.models.artifacts
 
 
 class Migration(migrations.Migration):
@@ -20,7 +20,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('md5hash', models.CharField(max_length=1024)),
                 ('description', models.TextField(max_length=1024, verbose_name=b'description of the artifact')),
-                ('artifactfile', models.FileField(help_text=b'the artifact file that will be stored on the server', upload_to=code_doc.models.get_artifact_location)),
+                ('artifactfile', models.FileField(help_text=b'the artifact file that will be stored on the server', upload_to=code_doc.models.artifacts.get_artifact_location)),
                 ('is_documentation', models.BooleanField(default=False, help_text=b'Check if the artifact contains a documentation that should be processed by the server')),
                 ('documentation_entry_file', models.CharField(help_text=b'the documentation entry file if the artifact is documentation type, relative to the root of the deflated package', max_length=255, null=True, blank=True)),
                 ('upload_date', models.DateTimeField(help_text=b'Automatic field that indicates the file upload time', null=True, verbose_name=b'Upload date', blank=True)),
