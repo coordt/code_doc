@@ -72,10 +72,9 @@ This can be currently done only from the admin interface of Django:
 
 * open a browser and visit http://localhost:8000/admin
 * then add a project there
-
-  * specify a copyright holder
-  * specify a license
-  * describe the project
-  * indicate a maintainer
+    * specify a copyright holder
+    * specify a license
+    * describe the project
+    * indicate a maintainer
   
 And that is it.
