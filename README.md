@@ -1,111 +1,81 @@
-# Code documentation server #
+# Documentation and artifacts store django application #
 
-This project provides a simple web application to store documentation and artefacts. It manages permissions on each of the resources served. 
+This project provides a simple web application written in Django/python that aims at sharing artifacts and documentation in a public or private way. 
+It is especially suited to be the companion of a build server that generates the documentation and eg. installers, and needs to make those visible 
+to a group of developers. 
+
+The main features are:
+
+* handling projects and associated metadata, such as descriptions, authors, maintainers, repositories, copyright holders, license,
+  home page, etc
+* organization of projects by series, the meaning of the series is up to the project. It can be a specific release channel (release, beta or even 
+  continuous build), a set of packages, etc
+* serving HTML documentation: documentation files (zip, tar...) are deflated on the server side and served directly from the web application. Each
+  revision is kept (if not explictely removed) and you can track the evolution of the documentation, have consistent release together with documentation, etc
+* a small scripting API that let update/push artifacts from remote, which is especially convenient for Continuous Integration servers such as Atlassian Bamboo or Jenkins
+* handling a limit on the number of revisions per series, which works well for continuous builds
+* permission managment: each of the ressources that are served can have a set of permissions applied to it, which
+  can be used to restrict the visibility of internal or intermediate work/project
+* not so ugly interface using Bootstrap
 
 ## License and Copyright #
 The project is developed at the Max Planck Institute for Intelligent Systems, Tübingen, Germany. It is released under the BSD-3 clauses license. 
 
+## Contribution #
+This project is still active and any contribution or feature request is welcome.
 
-## Installation #
-In the sequel, everything will be installed and ran in a virtual environment. 
+## Running the application #
+This project is based on the Django framework and has very few dependencies, which makes it easy to run:
 
 ```
 #!bash
+
+# create a dedicated virtual environment
 > virtualenv my_env
 > . my_env/bin/activate
 
+# install the dependencies
 > pip install django
 > pip install Pillow
 > pip install markdown
 > pip install pygments
 ```
 
-and now you can just test the application as follow
+and now you can just test the application as follow (we deflate Bootstrap which is part of the source code):
+
 ```
 #!bash
-> git clone "this_repository" code_doc
 > cd code_doc
-> python manage.py syncdb
-> python manage.py runserver
-```
-and then open a browser at http://localhost:8000 .
-
-## Deploying the application into production #
-
-The tested configuration is NGinx + uWSGI under Ubuntu 14.04. We need to install 
-
-* the webserver, 
-* the necessary tools for python in order to manage virtual environments
-* the uWSGI binding and its python extension
-* the image I/O libraries needed by Pillow for Django
-
-```
-#!bash
-> sudo apt-get install nginx 
-> sudo apt-get install python-pip python-virtualenv
-> sudo apt-get install uwsgi uwsgi-plugin-python
-> sudo apt-get install libtiff5-dev libjpeg-dev libpng-dev unzip
-> sudo mkdir -p /www/webapp/my_application_name
-> cd /www/webapp/my_application_name
-> git clone "this_repository" src
 > cd src/code_doc/static
 > unzip bootstrap-3.2.0-dist.zip
+> cd -
+> python manage.py migrate
+> python manage.py runserver
 ```
 
+If there is no error message, you can then open a browser and visit http://localhost:8000 .
 
-Let's call ``$my_application_folder`` the root location where the sources were cloned (here we would have ``$my_application_folder=/www/webapp/my_application_name``).
+We do not explain how to deploy this application in production environment.
 
-### Preparation of the virtual environment ###
-
-We want everything running in a virtual environment. This way there is no troubleshooting among several instances of web application hosted by the same server. 
-```
-#!bash
-> cd $my_application_folder
-> virtualenv venv
-> . venv/bin/activate
-> pip install django>=1.7
-> pip install Pillow
-> pip install markdown
-> pip install pygments
-```
-
-
-### Preparation of the static and media folders ###
-
-In production, the static and media files are served by NGinx and not by Django
+### Adding a superuser
+In order to perform some operations such as adding a project, you need to create a *super user* first.
 
 ```
 #!bash
-> cd $my_application_folder
-> mkdir static
-> mkdir media
-> sudo chown me:www-data static
-> sudo chown me:www-data media
+> cd code_doc
+> python manage.py createsuperuser
 ```
 
-### Fixing some permissions ###
+### Adding a project
 
-The user that will be running django is likely to be ``www-data`` which also has its own group. The database should be writable for this user. This is usually not a problem if you run Django with a real database backend, but if (eg. for small applications) you decide to stay with sqlite, the the db that is stored into a file should have the proper permissions. 
+This can be currently done only from the admin interface of Django:
 
-```
-#!bash
-> cd $my_application_folder/src
-> .. venv/bin/activate
-> python manage.py syncdb
-> sudo chown me:www-data db.sqlite
-> sudo chown me:www-data media
-```
+* open a browser and visit http://localhost:8000/admin
+* then add a project there
 
-Beside that, the process running django should be able to read and write from the static and media folders:
-
-```
-#!bash
-> cd $my_application_folder
-> sudo chown me:www-data static
-> sudo chown me:www-data media
-```
-
-## NGinx configuration ##
-
-## uWSGI configuration ##
-
+  * specify a copyright holder
+  * specify a license
+  * describe the project
+  * indicate a maintainer
+  
+And that is it.
