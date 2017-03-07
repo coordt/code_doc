@@ -22,7 +22,10 @@ The main features are:
 The project is developed at the Max Planck Institute for Intelligent Systems, Tübingen, Germany. It is released under the BSD-3 clauses license. 
 
 ## Contribution #
-This project is still active and any contribution or feature request is welcome.
+This project is still active and any contribution or feature request is welcome. Please use the Bitbucket issue tracker for that.
+
+The main developer/maintainer is me (Raffi Enficiaud), 
+and a big contributor has been Stephan Wenninger.
 
 ## Running the application #
 This project is based on the Django framework and has very few dependencies, which makes it easy to run:
@@ -78,3 +81,9 @@ This can be currently done only from the admin interface of Django:
     * indicate a maintainer
   
 And that is it.
+
+## Additional stuff
+
+We use a crowd authentification backend from: https://github.com/pfalcon/django-crowd-rest-backend
+that we modified a bit (removed the "models.py" file and all references to it).
+The crowd-rest-backend application has a dependency on "urllib2", but it is part of python2.7, so it should not be a problem.
