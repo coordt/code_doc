@@ -104,3 +104,6 @@ AUTH_CROWD_APPLICATION_PASSWORD = secret_dict['DJANGO_CROWD_PASS']
 
 AUTH_CROWD_SERVER_REST_URI = 'https://atlas.is.localnet/crowd/rest/usermanagement/latest'
 AUTH_CROWD_SERVER_TRUSTED_ROOT_CERTS_FILE = None
+
+# We do not want the superuser/staff status to be overridden
+AUTH_CROWD_ALWAYS_UPDATE_SUPERUSER_STAFF_STATUS = False
