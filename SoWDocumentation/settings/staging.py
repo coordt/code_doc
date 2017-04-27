@@ -37,11 +37,11 @@ if(not os.path.exists(os.path.dirname(FILE_LOGGING_LOCATION))):
 SECRET_KEY = secret_dict['DJANGO_ENV_SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-TEMPLATE_DEBUG = False
+TEMPLATE_DEBUG = True
 
-ALLOWED_HOSTS = ['code.is.localnet', '127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ['staging.code.is.localnet', '127.0.0.1', 'localhost']
 ADMINS = (('Raffi Enficiaud', 'raffi.enficiaud@tuebingen.mpg.de'),)
 
 # the ppl receiving notifications for broken links if BrokenLinkEmailsMiddleware is active
@@ -65,7 +65,7 @@ DEFAULT_FROM_EMAIL = 'raffi.enficiaud@tuebingen.mpg.de'
 # Subject-line prefix for email messages send with django.core.mail.mail_admins
 # or ...mail_managers.  Make sure to include the trailing space.
 # NB.: not for end users
-EMAIL_SUBJECT_PREFIX = '[code.is.localnet] '
+EMAIL_SUBJECT_PREFIX = '[staging.code.is.localnet] '
 
 # Host for sending email.
 EMAIL_HOST = 'mailhost.tuebingen.mpg.de'
