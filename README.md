@@ -111,6 +111,7 @@ And that is it.
 
 ## Additional stuff
 We use:
+
 * a fork of the crowd authentication back-end (available here: https://github.com/MPI-IS/django-atlassian-crowd-auth), this is included in the
   repository (folder `crowdrest`) but can safely be removed if you use authentication other than Atlassian Crowd
 * Bootstrap 3.2
