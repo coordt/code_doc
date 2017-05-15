@@ -85,7 +85,7 @@ and now you can just test the application as follow (we deflate Bootstrap which 
 If there is no error message, you can then open a browser and visit http://localhost:8000 .
 
 We do not explain how to deploy this application in production environment, there are several examples of settings that we use in production
-and that can be found under the ``SoWDocumentation`` folder.
+and that can be found under the ``www`` folder.
 
 ### Adding a superuser
 In order to perform some operations such as adding a project, you need to create a *super user* first.

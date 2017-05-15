@@ -1,5 +1,5 @@
 """
-Django settings for SoWDocumentation project.
+Django settings for www project.
 
 For more information on this file, see
 https://docs.djangoproject.com/en/1.6/topics/settings/
@@ -116,9 +116,6 @@ AUTHENTICATION_BACKENDS = (
     'code_doc.permissions.backend.CodedocPermissionBackend',
 )
 
-ROOT_URLCONF = 'SoWDocumentation.urls'
-WSGI_APPLICATION = 'SoWDocumentation.wsgi.application'
-
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -187,7 +184,9 @@ LOGGING = {
     },
 }
 
-ROOT_URLCONF = 'SoWDocumentation.urls'
+ROOT_URLCONF = 'www.urls'
+WSGI_APPLICATION = 'www.wsgi.application'
+
 
 # Database
 # https://docs.djangoproject.com/en/1.6/ref/settings/#databases
