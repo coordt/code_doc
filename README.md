@@ -6,8 +6,12 @@ to a group of developers.
 
 [TOC]
 
-An example of workflow that we actually use would be:
+## Workflow of use
+
+An example of workflow that we actually use is:
 ![workflow][workflow]
+
+## Features
 
 The main features are:
 
@@ -27,7 +31,24 @@ The main features are:
 
 ## Screenshots
 
-![main page](./doc/images/main_window.jpg =300x)
+
+### Main page
+The main page shows the projects, a short description for each of them, and the "topics".
+
+![main page](./doc/images/main_window.jpg "Main page")
+
+### Project page
+A project consists of information that describe the project (repositories, authors, license, description, logo, etc) and a set of series.
+For each series, it is possible to jump directly to the last documentation (by date).
+
+![project page](./doc/images/project_window.jpg "Project page")
+
+### Series page
+A series consists of a description, a date, revisions, each of which is associated with zero or more artifacts and branches. Each artifact
+can be a *normal* one, or a documentation one. Documentation artifacts are deflated on server side and served as files.
+Each series can have a different set of access permissions.
+
+![series page](./doc/images/series-window.jpg "Series page")
 
 ## License and Copyright #
 The project is developed at the [Max Planck Institute for Intelligent Systems](https://is.tuebingen.mpg.de/), Tübingen, Germany, within the [Software Workshop](https://is.tuebingen.mpg.de/en/software-workshop).
@@ -36,40 +57,35 @@ It is released under the BSD-3 clauses license.
 ## Contribution #
 This project is still active and any contribution or feature request is welcome. Please use the Bitbucket issue tracker for that.
 
-The main developer/maintainer is me (Raffi Enficiaud), and a big contributor has been Stephan Wenninger.
+The main developer/maintainer is Raffi Enficiaud ([here](https://bitbucket.org/renficiaud/) and [here](https://github.com/raffienficiaud)), and a big contributor has been Stephan Wenninger.
 
 ## Running the application #
 This project is based on the Django framework and has very few dependencies, which makes it easy to run:
 
 ```
-#!bash
-
 # create a dedicated virtual environment
 > virtualenv my_env
 > . my_env/bin/activate
 
 # install the dependencies
-> pip install django
-> pip install Pillow
-> pip install markdown
-> pip install pygments
+> pip install django, pillow, django-markdown, pygments, pytz
 ```
 
 and now you can just test the application as follow (we deflate Bootstrap which is part of the source code):
 
 ```
 #!bash
-> cd code_doc
-> cd src/code_doc/static
+> cd <code_doc-respository>/code_doc/static
 > unzip bootstrap-3.2.0-dist.zip
-> cd -
+> cd <code_doc-respository>/
 > python manage.py migrate
 > python manage.py runserver
 ```
 
 If there is no error message, you can then open a browser and visit http://localhost:8000 .
 
-We do not explain how to deploy this application in production environment.
+We do not explain how to deploy this application in production environment, there are several examples of settings that we use in production
+and that can be found under the ``SoWDocumentation`` folder.
 
 ### Adding a superuser
 In order to perform some operations such as adding a project, you need to create a *super user* first.
@@ -94,7 +110,7 @@ This can be currently done only from the admin interface of Django:
 And that is it.
 
 ## Additional stuff
-
-We use a crowd authentication back-end from: https://github.com/pfalcon/django-crowd-rest-backend
-that we modified a bit (removed the "models.py" file and all references to it).
-The crowd-rest-back-end application has a dependency on "urllib2", but it is part of python2.7, so it should not be a problem.
+We use:
+* a fork of the crowd authentication back-end (available here: https://github.com/MPI-IS/django-atlassian-crowd-auth), this is included in the
+  repository (folder `crowdrest`) but can safely be removed if you use authentication other than Atlassian Crowd
+* Bootstrap 3.2
