@@ -1,25 +1,19 @@
 {% extends "code_doc/base_template.html" %}
 {% load static %}
-{% load button_add_with_permission %}
 {% load markdown_filter %}
 {% load tz %}
 
-{% block title %}{{ project.name }}{% endblock %}
+{% block title %}{{ revision.revision }}{% endblock %}
 
 
 {% block content %}
-  <h1><a href="{% url 'project' project.id %}">{{ project.name }}</a> - {{series.series}} {% button_edit_series_with_permission user series %}</h1>
+  <h1><a href="{% url 'project' project.id %}">{{ project.name }}</a> - Revision {{revision.revision}} </h1>
 
-  {{series.description_mk|markd|safe}}
-  
   <h3>Details</h3>
-  This serie
+  This revision
   <ul>
     <li>contains {{ artifacts|length }} artifact(s)</li>
-    <li>contains {{ revisions|length }} revision(s)</li>
-    <li>{% if series.nb_revisions_to_keep %}limits the number of artifacts to {{ series.nb_revisions_to_keep }}
-    {% else %}has no limit on the number of artifacts
-    {% endif %}</li>
+    <li>is part of {{ series|length }} series</li>
   </ul>
 
   <h3>Artifacts</h3>
@@ -30,7 +24,7 @@
       <thead>
         <tr>
           <th>Name</th>
-          <th>Revision</th>
+          <th>Series</th>
           <th>Label</th>
           <th>Description</th>
           <th>Info</th>
@@ -48,13 +42,12 @@
             </td>
 
 	          <td>
-	          {% if artifact.revision %}
-	            <small><span style="font-family:monospace;">{{ artifact.revision.revision }}</span></small>
+	          {% if artifact.project_series %}
+	            <small><span style="font-family:monospace;">{{ artifact.project_series }}</span></small>
 	          {% else %}
-              -	          
+	          	No related series.
 	          {% endif %}
 	          </td>
-	          
 
             <td>
             {% if artifact.is_documentation %}
@@ -64,11 +57,11 @@
                 <a href="{%get_media_prefix%}{{artifact.get_documentation_url}}">read online</a>
               {% endif %}
             </td>
-            
+
 	          <td>
 	           <small>{{artifact.description}}</small>
 	          </td>
-	          
+
 	          <td>
 	           <small>
 	             {% if artifact.upload_date and artifact.uploaded_by%}
@@ -79,54 +72,44 @@
 
 	        </tr>
 	      {%endfor%}
-	      <tr>
-	        <td>{% button_add_artifact_with_permission user series %}</td>
-	      </tr>
 	    </tbody>
 	  </table>
 
   {% else %}
-      <p>No artifacts for this revision {{ series.series }}.</p>
-      <p>{% button_add_artifact_with_permission user series %}</p>
+      <p>No artifacts for this revision {{ artifact.project_series }}.</p>
   {% endif %}
 
 
-  <h3>Revisions</h3>
-  
-  {% if revisions %}
+  <h3>Series</h3>
+
+  {% if series %}
     
     <table class="table table-hover">
       <thead>
         <tr>
-          <th>Revision</th>
+          <th>Series</th>
           <th>Artifacts</th>
-          <th>Creation date</th>
+          <th>Description</th>
         </tr>
       </thead>
       <tbody>
-        {% for rev in revisions %}
+        {% for serie in series %}
           <tr>
             <td class="text-nowrap">
-             <a href="{% url 'project_revision' project.id rev.id %}">{{rev.revision}}</a>
+             <small><span style="font-family:monospace;">{{ serie.series }}</span></small>
             </td>
             <td class="text-nowrap">
-             <small>{{ rev.artifacts.all|length }}</small>
+             <small>{{ serie.artifacts.all|length }}</small>
             </td>
             <td class="text-nowrap">
-            <small>
-            {% if rev.commit_time %}
-             {{ rev.commit_time|utc }}
-            {% else %}
-             not provided
-            {% endif %}
-            </small>
+            <small>{{ serie.description_mk|markd|safe }}</small>
             </td>
-          </tr>        
+          </tr>
         {% endfor %}
       </tbody>
     </table>
-          
-    
+
+
   {% else %}
     This series contains no revisions.
   {% endif %}

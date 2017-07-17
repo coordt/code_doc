@@ -10,6 +10,8 @@
 from django.test import TestCase
 from django.test import Client
 from django.conf import settings
+from django.contrib.auth.models import User
+from django.core.urlresolvers import reverse
 
 from ..models.projects import Project, ProjectSeries
 from ..models.artifacts import Artifact
@@ -176,7 +178,7 @@ class RevisionTest(TestCase):
         self.assertIn(rev3_artifact1, self.new_series.artifacts.all())
         self.assertIn(rev3_artifact1, stable_series.artifacts.all())
 
-        # only one of the serie should contain the non promoted artifact
+        # only one of the series should contain the non promoted artifact
         self.assertIn(rev3_artifact2, self.new_series.artifacts.all())
         self.assertNotIn(rev3_artifact2, stable_series.artifacts.all())
 
@@ -716,7 +718,7 @@ class RevisionTest(TestCase):
         return all_revisions
 
     def test_remove_oldest_artifacts_without_revision(self):
-        """Tests that the earliest artifacts added for a serie are removed if
+        """Tests that the earliest artifacts added for a series are removed if
            there are too many of them.
 
            The artifacts do not have any revision, they are a revision on their own.
@@ -828,3 +830,94 @@ class RevisionTest(TestCase):
 
         self.assertEqual(other_series.artifacts.count(), 1)
         self.assertEqual(self.new_series.artifacts.count(), 1)
+
+
+class RevisionViewTest(TestCase):
+    """ Tests for the revision view. """
+
+    def setUp(self):
+        self.client = Client()
+
+        # URL name
+        self.path = 'project_revision'
+
+        # Create user
+        self.first_user = User.objects.create_user(username='test_series_user',
+                                                   password='test_series_user',
+                                                   email="b@b.com")
+        # Create project
+        self.project = Project.objects.create(name='test_project')
+
+        # Set up two series
+        # For the moment, let's make the series public. We will deal with restrictions later...
+        self.series1 = ProjectSeries.objects.create(series="series1",
+                                                    project=self.project,
+                                                    release_date=datetime.datetime.now(),
+                                                    is_public=True)
+        self.series2 = ProjectSeries.objects.create(series="series2",
+                                                    project=self.project,
+                                                    release_date=datetime.datetime.now(),
+                                                    is_public=True)
+
+        # Set up revision
+        self.revision = Revision.objects.create(revision='revision', project=self.project)
+
+        # Test file
+        self.test_file = RevisionTest.get_test_file()
+
+        # Add 3 Artifacts to revision
+        self.art1 = Artifact.objects.create(project=self.project,
+                                            revision=self.revision,
+                                            md5hash='1',
+                                            artifactfile=self.test_file)
+        self.art2 = Artifact.objects.create(project=self.project,
+                                            revision=self.revision,
+                                            md5hash='2',
+                                            artifactfile=self.test_file)
+        self.art3 = Artifact.objects.create(project=self.project,
+                                            revision=self.revision,
+                                            md5hash='3',
+                                            artifactfile=self.test_file)
+
+        # These three artifacts belong to different series
+        self.art1.project_series = [self.series1]
+        self.art2.project_series = [self.series2]
+        self.art3.project_series = [self.series2]
+
+    def test_project_revision_empty(self):
+        """ Test is the project series is ok. """
+
+        # Set up empty revision
+        empty_revision = Revision.objects.create(revision='empty_revision', project=self.project)
+
+        # Test non existing revision
+        response = self.client.get(reverse(self.path, args=[self.project.id, empty_revision.id + 41]))
+        self.assertEqual(response.status_code, 404)
+
+        # Test existing revision
+        response = self.client.get(reverse(self.path, args=[self.project.id, empty_revision.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context['series']), 0)
+        self.assertEqual(len(response.context['artifacts']), 0)
+
+    def test_project_revision_context(self):
+        """ Test the context data of a revision. """
+
+        # Test our "real" revision
+        response = self.client.get(reverse(self.path, args=[self.project.id, self.revision.id]))
+        self.assertEqual(response.status_code, 200)
+
+        self.assertEqual(response.context['project'], self.project)
+        self.assertEqual(len(response.context['series']), 2)
+        self.assertEqual(len(response.context['artifacts']), 3)
+
+        # Check that artifacts and series names are there
+        self.assertContains(response, self.art1.filename())
+        self.assertContains(response, self.art2.filename())
+        self.assertContains(response, self.art3.filename())
+
+        self.assertContains(response, self.series1.series)
+        self.assertContains(response, self.series2.series)
+
+        # TO DO: Check that the correct series are shown next to each artifact
+        # Now showing code_doc.ProjectSeries.None

@@ -1,3 +1,4 @@
+from django.core.urlresolvers import reverse
 from django.db import models
 import logging
 
@@ -9,6 +10,7 @@ logger = logging.getLogger(__name__)
 class Revision(models.Model):
     """A Revision is a collection of artifacts, that were produced by the same
        state of the Project's code."""
+
     revision = models.CharField(max_length=200)  # can be anything
     project = models.ForeignKey(Project, related_name='revisions')
     commit_time = models.DateTimeField('Time of creation',
@@ -27,6 +29,10 @@ class Revision(models.Model):
         for artifact in self.artifacts.all():
             list_of_series += artifact.project_series.all()
         return list(set(list_of_series))
+
+    def get_absolute_url(self):
+        return reverse('project_revision', kwargs={'project_id': self.project.pk,
+                                                   'revision_id': self.id})
 
 
 class Branch(models.Model):
