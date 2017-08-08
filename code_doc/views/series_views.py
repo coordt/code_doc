@@ -155,8 +155,7 @@ class SeriesDetailsView(SerieAccessViewBase, DetailView):
         context['project'] = series_object.project
         context['project_id'] = series_object.project.id
         context['artifacts'] = series_object.artifacts.all()
-        context['revisions'] = set([art.revision for art in context['artifacts'] if art.revision is not None])
-
+        context['revisions'] = list(set([art.revision for art in context['artifacts']]))
         return context
 
 

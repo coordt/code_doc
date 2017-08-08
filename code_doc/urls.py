@@ -49,7 +49,7 @@ urlpatterns = [
     # Revisions
     # See the contents of a revision
     url(r'^revision/(?P<project_id>\d+)/(?P<revision_id>\d+)/$',
-        revision_views.RevisionDetailView.as_view(),
+        revision_views.RevisionDetailsView.as_view(),
         name='project_revision'),
 
     # @todo update and delete of a series

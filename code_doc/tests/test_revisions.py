@@ -842,11 +842,119 @@ class RevisionViewTest(TestCase):
         self.path = 'project_revision'
 
         # Create user
-        self.first_user = User.objects.create_user(username='test_series_user',
-                                                   password='test_series_user',
+        self.first_user = User.objects.create_user(username='test_revision_user',
+                                                   password='test_revision_user',
                                                    email="b@b.com")
+
         # Create project
         self.project = Project.objects.create(name='test_project')
+
+        # Test file
+        self.test_file = RevisionTest.get_test_file()
+
+        # Admin
+        self.project.administrators = [self.first_user]
+
+    def test_project_revision_view_no_restricted_series(self):
+        """ Test permission on series that has no restriction """
+
+        # Series
+        new_series = ProjectSeries.objects.create(series="1234",
+                                                  project=self.project,
+                                                  release_date=datetime.datetime.now(),
+                                                  is_public=True)
+
+        # Revisions
+        revision = Revision.objects.create(revision='revision',
+                                           project=self.project)
+
+        # Artifact
+        art1 = Artifact.objects.create(project=self.project,
+                                       revision=revision,
+                                       md5hash='1',
+                                       artifactfile=self.test_file)
+        art1.project_series = [new_series]
+
+        # Check response from revision page (we should see one revision and one artifact)
+        response = self.client.get(reverse(self.path, args=[self.project.id, revision.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context['series']), 1)
+        self.assertEqual(len(response.context['artifacts']), 1)
+
+        # Check that we can go to the series view
+        response = self.client.get(reverse('project_series', args=[self.project.id, new_series.id]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_project_revision_view_with_restrictions_on_series(self):
+        """ Test permission on series that has restrictions """
+
+        # Series
+        new_series = ProjectSeries.objects.create(series="1234",
+                                                  project=self.project,
+                                                  release_date=datetime.datetime.now())
+
+        # Revisions
+        revision = Revision.objects.create(revision='revision',
+                                           project=self.project)
+
+        # Artifact
+        art1 = Artifact.objects.create(project=self.project,
+                                       revision=revision,
+                                       md5hash='1',
+                                       artifactfile=self.test_file)
+        art1.project_series = [new_series]
+
+        # Check response from revision page if we have no permission
+        _ = User.objects.create_user(username='weak_user', password='weak_user', email="w@w.fr")
+        response = self.client.login(username='weak_user', password='weak_user')
+        self.assertTrue(response)
+        response = self.client.get(reverse(self.path, args=[self.project.id, revision.id]))
+        self.assertEqual(response.status_code, 401)
+
+        # Check that we cannot go to the series view
+        response = self.client.get(reverse('project_series', args=[self.project.id, new_series.id]))
+        self.assertEqual(response.status_code, 401)
+
+        # Check response from revision page if we are admin
+        response = self.client.login(username='test_revision_user', password='test_revision_user')
+        self.assertTrue(response)
+        response = self.client.get(reverse(self.path, args=[self.project.id, revision.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context['series']), 1)
+        self.assertEqual(len(response.context['artifacts']), 1)
+
+        # Check that we can go to the series view
+        response = self.client.get(reverse('project_series', args=[self.project.id, new_series.id]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_project_revision_empty_access(self):
+        """ Test if the project revision is ok. """
+
+        # Set up empty revision
+        empty_revision = Revision.objects.create(revision='empty_revision', project=self.project)
+
+        # Test non existing revision
+        response = self.client.get(reverse(self.path, args=[self.project.id, empty_revision.id + 41]))
+        self.assertEqual(response.status_code, 401)
+
+        # Test existing revision but to wrong project
+        response = self.client.get(reverse(self.path, args=[self.project.id + 41, empty_revision.id]))
+        self.assertEqual(response.status_code, 401)
+
+        # Test existing revision from anonymous user
+        response = self.client.get(reverse(self.path, args=[self.project.id, empty_revision.id]))
+        self.assertEqual(response.status_code, 302)  # redirect
+
+        # Test existing revision from admin user
+        response = self.client.login(username='test_revision_user', password='test_revision_user')
+        self.assertTrue(response)
+        response = self.client.get(reverse(self.path, args=[self.project.id, empty_revision.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context['series']), 0)
+        self.assertEqual(len(response.context['artifacts']), 0)
+
+    def test_project_revision_context(self):
+        """ Test the context data of a revision. """
 
         # Set up two series
         # For the moment, let's make the series public. We will deal with restrictions later...
@@ -859,11 +967,8 @@ class RevisionViewTest(TestCase):
                                                     release_date=datetime.datetime.now(),
                                                     is_public=True)
 
-        # Set up revision
+        # Set up public revision
         self.revision = Revision.objects.create(revision='revision', project=self.project)
-
-        # Test file
-        self.test_file = RevisionTest.get_test_file()
 
         # Add 3 Artifacts to revision
         self.art1 = Artifact.objects.create(project=self.project,
@@ -884,26 +989,7 @@ class RevisionViewTest(TestCase):
         self.art2.project_series = [self.series2]
         self.art3.project_series = [self.series2]
 
-    def test_project_revision_empty(self):
-        """ Test is the project series is ok. """
-
-        # Set up empty revision
-        empty_revision = Revision.objects.create(revision='empty_revision', project=self.project)
-
-        # Test non existing revision
-        response = self.client.get(reverse(self.path, args=[self.project.id, empty_revision.id + 41]))
-        self.assertEqual(response.status_code, 404)
-
-        # Test existing revision
-        response = self.client.get(reverse(self.path, args=[self.project.id, empty_revision.id]))
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.context['series']), 0)
-        self.assertEqual(len(response.context['artifacts']), 0)
-
-    def test_project_revision_context(self):
-        """ Test the context data of a revision. """
-
-        # Test our "real" revision
+        # Test the revision
         response = self.client.get(reverse(self.path, args=[self.project.id, self.revision.id]))
         self.assertEqual(response.status_code, 200)
 
@@ -918,6 +1004,3 @@ class RevisionViewTest(TestCase):
 
         self.assertContains(response, self.series1.series)
         self.assertContains(response, self.series2.series)
-
-        # TO DO: Check that the correct series are shown next to each artifact
-        # Now showing code_doc.ProjectSeries.None

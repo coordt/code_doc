@@ -43,7 +43,11 @@
 
 	          <td>
 	          {% if artifact.project_series %}
-	            <small><span style="font-family:monospace;">{{ artifact.project_series }}</span></small>
+	          	{% for serie in artifact.project_series.all %}
+	          		{% if serie in series %}
+	                  <small><span style="font-family:monospace;">{{ serie.series }} / </span></small>
+	            	{% endif %}
+	            {% endfor %}
 	          {% else %}
 	          	No related series.
 	          {% endif %}
