@@ -49,7 +49,7 @@ class SerieAccessViewBase(PermissionOnObjectViewMixin):
 
     def get_permission_object_from_request(self, request, *args, **kwargs):
         # this already checks the coherence of the url:
-        # if the serie does not belong to the project, an PermissionDenied is raised
+        # if the series does not belong to the project, an PermissionDenied is raised
 
         return self.get_serie_from_request(request, *args, **kwargs)
 
@@ -111,7 +111,7 @@ class SeriesUpdateView(SeriesEditViewBase, UpdateView):
     # part of the url giving the proper object
     pk_url_kwarg = 'series_id'
 
-    # we should have the following priviledges on the serie in order to be able to edit anything
+    # we should have the following privileges on the series in order to be able to edit anything
     permissions_on_object = ('code_doc.series_edit',)
 
     def get_context_data(self, **kwargs):
@@ -139,7 +139,7 @@ class SeriesDetailsView(SerieAccessViewBase, DetailView):
 
     template_name = 'code_doc/series/series_details.html'
 
-    # we should have admin priviledges on the object in order to be able to add anything
+    # we should have admin privileges on the object in order to be able to add anything
     permissions_on_object = ('code_doc.series_view',)
 
     def get_context_data(self, **kwargs):
@@ -155,8 +155,7 @@ class SeriesDetailsView(SerieAccessViewBase, DetailView):
         context['project'] = series_object.project
         context['project_id'] = series_object.project.id
         context['artifacts'] = series_object.artifacts.all()
-        context['revisions'] = set([art.revision for art in context['artifacts'] if art.revision is not None])
-
+        context['revisions'] = list(set([art.revision for art in context['artifacts']]))
         return context
 
 

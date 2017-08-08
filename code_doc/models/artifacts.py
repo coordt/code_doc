@@ -129,6 +129,10 @@ class Artifact(models.Model):
         return artifact.revision
 
     @staticmethod
+    def get_project_series(artifact):
+        return artifact.project_series.all()
+
+    @staticmethod
     def md5_equals(md5_1, md5_2):
         return md5_1.upper() == md5_2.upper()
 

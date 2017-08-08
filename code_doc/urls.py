@@ -1,7 +1,7 @@
 from django.conf.urls import url
 from django.contrib.auth.views import login, logout
 
-from .views import global_views, project_views, author_views, artifact_views
+from .views import global_views, project_views, author_views, artifact_views, revision_views
 from code_doc.views import series_views
 
 urlpatterns = [
@@ -45,6 +45,12 @@ urlpatterns = [
     url(r'^series/(?P<project_id>\d+)/add/$',
         series_views.SeriesAddView.as_view(),
         name='project_series_add'),
+
+    # Revisions
+    # See the contents of a revision
+    url(r'^revision/(?P<project_id>\d+)/(?P<revision_id>\d+)/$',
+        revision_views.RevisionDetailsView.as_view(),
+        name='project_revision'),
 
     # @todo update and delete of a series
 

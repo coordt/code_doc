@@ -39,11 +39,11 @@ class SeriesEditionForm(ModelForm):
             'nb_revisions_to_keep': 'Revisions limit'
         }
         help_texts = {
-            'is_public': 'If checked, the serie will be visible from everyone. If not you have to specify the users/groups to which'
+            'is_public': 'If checked, the series will be visible from everyone. If not you have to specify the users/groups to which'
             'you are granting access',
             'description_mk': 'Description/content/scope of the series in MarkDown format',
             'nb_revisions_to_keep':
-                'Indicates the maximum number of revisions that this serie will keep. An artifact without '
+                'Indicates the maximum number of revisions that this series will keep. An artifact without '
                 'any revision is considered on its own revision. Leave blank to avoid the limit.'
         }
         widgets = {
