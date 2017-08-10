@@ -178,7 +178,7 @@ class ProjectSeries(models.Model):
         verbose_name_plural = "Project series"
         unique_together = (("project", "series"),)
         permissions = (
-            ("series_view", "User/group has access to this serie and its content"),
+            ("series_view", "User/group has access to this series and its content"),
             ("series_edit", "User/group can edit the definition of this series"),
             ("series_artifact_add", "User/group is allowed to add an artifact"),
             ("series_artifact_delete", "User/group is allowed to delete an artifact"),

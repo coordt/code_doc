@@ -81,35 +81,35 @@ A project contains the following informations:
 * its authors
 * and a list of series
 
-A serie is composed of
+A series is composed of
 
 * a name
-* a description which indicates the purpose of the serie (continuous build, /release/, /stable/, /developments/, /experimental/ ...)
+* a description which indicates the purpose of the series (continuous build, /release/, /stable/, /developments/, /experimental/ ...)
 * a release date
 * a set of permissions indicating what operations are granted to each user/group
 * a list of artifacts that can either be single files or archives containing documentation
 
 ## Create a project
-At the moment, creating a project is an *admin* priviledge, so you should ask your administrator to create a project for you.
+At the moment, creating a project is an *admin* privilege, so you should ask your administrator to create a project for you.
 A project has one or more **maintainers** that have full access to all functionalities for this particular project (`maintainer`
 access).
 
-## Create a serie
-You can create a new serie if you have the proper credentials on the project. If this is the case, a "+" button is active right to the 
+## Create a series
+You can create a new series if you have the proper credentials on the project. If this is the case, a "+" button is active right to the 
 "Series" header on the project page.
 
-When the serie is created, the access rights given to the users or groups of users may be specified. Different type of access are 
+When the series is created, the access rights given to the users or groups of users may be specified. Different type of access are 
 provided:
 
-* either the serie is public: everybody, logged in or not, is able to download or visualize the artifacts contained in the serie. 
-  However it is not possible to add or remove an artifact without the proper priviledges.
-* or the serie is restricted: specific users/groups are allowed to read, add or remove artifacts. 
+* either the series is public: everybody, logged in or not, is able to download or visualize the artifacts contained in the series. 
+  However it is not possible to add or remove an artifact without the proper privileges.
+* or the series is restricted: specific users/groups are allowed to read, add or remove artifacts. 
 
 !!! alert "Note"
     Please note that `remove` permission grants automatically `add` permission, and `add` permission grants `view`. 
 
 ## Add an artifact
-Now that the serie is created, one or several artifacts may be added to it. An artifact is more or less a file with some meta-data
+Now that the series is created, one or several artifacts may be added to it. An artifact is more or less a file with some meta-data
 that changes the way it is visualized by the application.
 
 It is possible to add an artifact from the web interface or from the command line (detailed below). An artifact may come 
@@ -117,7 +117,7 @@ with a revision and/or a branch, which may be created on-the-fly during the uplo
 (for instance an artifact from `continuous` may be promoted to `stable` or `release` series). 
 
 !!! alert
-    In order to be able to add an artifact to a serie, the user/group should have the `add` permission at the serie level, or
+    In order to be able to add an artifact to a series, the user/group should have the `add` permission at the series level, or
     an admin access to the project.
 
 ### Revisions and branches
@@ -129,7 +129,7 @@ a **revision** (number or string):
 
 ### Command line upload of an artifact
 
-One of the nice functionalities of *code doc* is to be able to push artifacts on the server. This enables the project/serie content to be
+One of the nice functionalities of *code doc* is to be able to push artifacts on the server. This enables the project/series content to be
 update from a build server for instance.
 
 The following steps should be followed:
@@ -158,7 +158,7 @@ The following steps should be followed:
 The parameters of the upload script are the following:
 
 * `--project` the project to which the artifact belongs. This parameter is *necessary*.
-* `--artifact_series` the serie to which the artifact will be first stored. This parameter is *necessary*.
+* `--artifact_series` the series to which the artifact will be first stored. This parameter is *necessary*.
 * `--file` the file to send. This parameter is *necessary*.
 * `--artifact_branch` specifies the branch of the artifact (case sensitive). If the branch is specified and not empty, the revision should
   also be specified.
@@ -169,18 +169,18 @@ The parameters of the upload script are the following:
 * `--artifact_description` a short description of the artifact  
 
 ### Limiting the number of revisions
-It is possible to limit the number of revisions at the serie level. Each artifact may or not be associated to one unique revision, but a
-revision may contain several artifacts. If the serie does not have any restriction on this limit (0 or blank), the project default is used
+It is possible to limit the number of revisions at the series level. Each artifact may or not be associated to one unique revision, but a
+revision may contain several artifacts. If the series does not have any restriction on this limit (0 or blank), the project default is used
 instead. If in turn the project does not have any limit neither, all artifacts are kept.
 
 !!! alert "Remark"
     In case the artifact is not associated to any revision, it is considered as having a *dedicated* revision.
 
-Once the limit over the revisions is reached, all artifacts of the oldest revisions are disassociated from the serie:
+Once the limit over the revisions is reached, all artifacts of the oldest revisions are dissociated from the series:
 
-* a revision is **deleted** if it is not associated to any serie,
+* a revision is **deleted** if it is not associated to any series,
 * a revision is **deleted** when it does not contain any artifact,
-* an artifact is **deleted** when it does not belong to any serie
+* an artifact is **deleted** when it does not belong to any series
 
 
 ## Associating users and authors

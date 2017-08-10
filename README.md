@@ -68,7 +68,7 @@ This project is based on the Django framework and has very few dependencies, whi
 > . my_env/bin/activate
 
 # install the dependencies
-> pip install django, pillow, django-markdown, pygments, pytz
+> pip install django pillow django-markdown pygments pytz
 ```
 
 and now you can just test the application as follow (we deflate Bootstrap which is part of the source code):

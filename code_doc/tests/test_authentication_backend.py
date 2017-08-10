@@ -11,6 +11,8 @@ import datetime
 
 from ..models.projects import Project, ProjectSeries
 from ..models.authors import Author
+from ..models.revisions import Revision
+from ..models.artifacts import Artifact
 
 
 class AuthenticationBackendTest(TestCase):
@@ -54,6 +56,13 @@ class PermissionBackendTest(TestCase):
         self.new_series = ProjectSeries.objects.create(series="12345", project=self.project,
                                                        release_date=datetime.datetime.now())
 
+        self.revision = Revision.objects.create(revision='revision', project=self.project)
+
+        self.art1 = Artifact.objects.create(project=self.project,
+                                            revision=self.revision,
+                                            md5hash='1',
+                                            artifactfile='blabla')
+
     def test_administrator_has_proper_permissions(self):
         """Test the permissions of administrators"""
         self.assertTrue(self.first_user.has_perm('code_doc.project_administrate', self.project))
@@ -83,6 +92,10 @@ class PermissionBackendTest(TestCase):
         # anon user cannot access non-public series
         self.assertFalse(anon_user.has_perm('code_doc.series_view', self.new_series))
 
+        # anon user cannot access corresponding revision
+        self.art1.project_series = [self.new_series]
+        self.assertFalse(anon_user.has_perm('code_doc.revision_view', self.revision))
+
     def test_anonymous_user_permission_public_object(self):
         anon_user = AnonymousUser()
 
@@ -90,5 +103,9 @@ class PermissionBackendTest(TestCase):
                                                      project=self.project,
                                                      release_date=datetime.datetime.now(),
                                                      is_public=True)
-        # anon user cannot access non-public series
+        # anon user can access public series
         self.assertTrue(anon_user.has_perm('code_doc.series_view', public_series))
+
+        # anon user cannot access corresponding revision
+        self.art1.project_series = [public_series]
+        self.assertTrue(anon_user.has_perm('code_doc.revision_view', self.revision))
