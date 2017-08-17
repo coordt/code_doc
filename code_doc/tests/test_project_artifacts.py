@@ -45,6 +45,40 @@ class ProjectSeriesArtifactTest(TestCase):
         self.imgfile2 = StringIO.StringIO('GIF87a\x10\x00\x01\x00\x80\x01\x00\x00\x00\x00ccc,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;')
         self.imgfile2.name = 'test_img_file2.gif'
 
+    def create_artifact_file(self, file_to_add=None):
+        """Utility for creating a tar in memory"""
+        from StringIO import StringIO
+        f = StringIO()
+
+        # create a temporary tar object
+        tar = tarfile.open(fileobj=f, mode='w:bz2')
+
+        if file_to_add is not None:
+            info = tarfile.TarInfo(name='myfile')
+            info.size = len(file_to_add.read())
+            file_to_add.seek(0)
+            tar.addfile(tarinfo=info,
+                        fileobj=file_to_add)
+            source_file = 'myfile'
+        else:
+            from inspect import getsourcefile
+            source_file = getsourcefile(lambda _: None)
+
+            tar.add(os.path.abspath(source_file),
+                    arcname=os.path.basename(source_file))
+
+            dummy = tarfile.TarInfo('basename2')
+            dummy.type = tarfile.DIRTYPE
+            tar.addfile(dummy)
+            tar.add(os.path.abspath(source_file),
+                    arcname='basename/' + os.path.basename(source_file) + '2')
+
+            source_file = os.path.basename(source_file)
+        tar.close()
+
+        f.seek(0)
+        return f, source_file
+
     def test_series_uniqueness(self):
         with self.assertRaises(IntegrityError):
             ProjectSeries.objects.create(series="12345", project=self.project,
@@ -130,10 +164,12 @@ class ProjectSeriesArtifactTest(TestCase):
 
         self.assertEqual(self.new_series.artifacts.count(), 0)
 
+        f, _ = self.create_artifact_file()
+
         initial_path = reverse(self.path, args=[self.project.id, self.new_series.id])
         response = self.client.post(initial_path,
                                     {'description': 'blabla',
-                                     'artifactfile': self.imgfile,
+                                     'artifactfile': f,
                                      'is_documentation': False,
                                      'branch': 'blahblah',
                                      'revision': 'blah'},
@@ -160,8 +196,8 @@ class ProjectSeriesArtifactTest(TestCase):
         self.assertIn(branch, artifact.revision.branches.all())
 
         # Check the response content
-
-        self.assertIn(hashlib.md5(self.imgfile.getvalue()).hexdigest().upper(), response.content)
+        f.seek(0)
+        self.assertIn(hashlib.md5(f.read()).hexdigest().upper(), response.content)
 
     def test_get_all_artifacts_json(self):
         """Tests if the json received by the api view is correct"""
@@ -173,10 +209,13 @@ class ProjectSeriesArtifactTest(TestCase):
 
         self.assertEqual(self.new_series.artifacts.count(), 0)
 
+        art = self.create_artifact_file(file_to_add=self.imgfile)[0]
+        art.name = 'f1'
+
         initial_path = reverse(self.path, args=[self.project.id, self.new_series.id])
         response = self.client.post(initial_path,
                                     {'description': 'blabla',
-                                     'artifactfile': self.imgfile,
+                                     'artifactfile': art,
                                      'is_documentation': False,
                                      'branch': 'blah',
                                      'revision': 'blah1'
@@ -216,24 +255,29 @@ class ProjectSeriesArtifactTest(TestCase):
         self.assertEqual(artifact_object.revision.project, self.project)
         self.assertIn(branch, artifact_object.revision.branches.all())
 
+        art.seek(0)
         self.assertEquals(artifact_dict_entry['md5'].upper(),
-                          hashlib.md5(self.imgfile.getvalue()).hexdigest().upper())
+                          hashlib.md5(art.read()).hexdigest().upper())
 
     def test_revision_and_branch_creation_on_artifact_upload(self):
         """Test if the on-the-fly Revision and Branch generation works, when we upload an Artifact
         """
 
         response = self.client.login(username='toto', password='titi')
+        self.assertTrue(response)
+
+        f, _ = self.create_artifact_file()
 
         initial_path = reverse(self.path, args=[self.project.id, self.new_series.id])
         response = self.client.post(initial_path,
                                     {'description': 'blabla',
-                                     'artifactfile': self.imgfile,
+                                     'artifactfile': f,
                                      'is_documentation': False,
                                      'branch': 'blah',
                                      'revision': 'blah1'
                                      },
                                     follow=True)
+        self.assertEqual(response.status_code, 200)
 
         try:
             Revision.objects.get(revision='blah1')
@@ -241,7 +285,7 @@ class ProjectSeriesArtifactTest(TestCase):
             self.fail("[Revision.DoesNotExist] The Revisions returned no object from the get query")
         except Revision.MultipleObjectsReturned:
             self.fail("[Revision.MultipleObjectsReturned] The Revisions returned more than one object from the get query")
-        except:
+        except Exception:
             self.fail("Unexpected Exception in get query")
             raise
 
@@ -251,7 +295,7 @@ class ProjectSeriesArtifactTest(TestCase):
             self.fail("[Branch.DoesNotExist] The Branches returned no object from the get query")
         except Branch.MultipleObjectsReturned:
             self.fail("[Branch.MultipleObjectsReturned] The Branches returned more than one object from the get query")
-        except:
+        except Exception:
             self.fail("Unexpected Exception in get query")
             raise
 
@@ -263,32 +307,45 @@ class ProjectSeriesArtifactTest(TestCase):
         """Tests if we can upload multiple revisions for the same branch
         """
         response = self.client.login(username='toto', password='titi')
+        self.assertTrue(response)
 
         initial_path = reverse(self.path, args=[self.project.id, self.new_series.id])
-        self.client.post(initial_path,
-                         {'description': 'blabla',
-                          'artifactfile': self.imgfile,
-                          'is_documentation': False,
-                          'branch': 'blah',
-                          'revision': 'blah1'
-                          },
-                         follow=True)
-        self.client.post(initial_path,
-                         {'description': 'blabla',
-                          'artifactfile': self.imgfile1,
-                          'is_documentation': False,
-                          'branch': 'blah',
-                          'revision': 'blah2'
-                          },
-                         follow=True)
-        self.client.post(initial_path,
-                         {'description': 'blabla',
-                          'artifactfile': self.imgfile2,
-                          'is_documentation': False,
-                          'branch': 'blah',
-                          'revision': 'blah3'
-                          },
-                         follow=True)
+
+        art = self.create_artifact_file(file_to_add=self.imgfile)[0]
+        art.name = 'f1'
+        response = self.client.post(initial_path,
+                                    {'description': 'blabla',
+                                     'artifactfile': art,
+                                     'is_documentation': False,
+                                     'branch': 'blah',
+                                     'revision': 'blah1'
+                                     },
+                                    follow=True)
+        self.assertEqual(response.status_code, 200)
+
+        art = self.create_artifact_file(file_to_add=self.imgfile1)[0]
+        art.name = 'f2'
+        response = self.client.post(initial_path,
+                                    {'description': 'blabla',
+                                     'artifactfile': art,
+                                     'is_documentation': False,
+                                     'branch': 'blah',
+                                     'revision': 'blah2'
+                                     },
+                                    follow=True)
+        self.assertEqual(response.status_code, 200)
+
+        art = self.create_artifact_file(file_to_add=self.imgfile2)[0]
+        art.name = 'f3'
+        response = self.client.post(initial_path,
+                                    {'description': 'blabla',
+                                     'artifactfile': art,
+                                     'is_documentation': False,
+                                     'branch': 'blah',
+                                     'revision': 'blah3'
+                                     },
+                                    follow=True)
+        self.assertEqual(response.status_code, 200)
 
         try:
             Revision.objects.get(revision='blah1')
@@ -298,7 +355,7 @@ class ProjectSeriesArtifactTest(TestCase):
             self.fail("[DoesNotExist] One of the Revisions returned no object from the get query")
         except Revision.MultipleObjectsReturned:
             self.fail("[MultipleObjectsReturned] One of the Revisions returned more than one object from the get query")
-        except:
+        except Exception:
             self.fail("Unexpected Exception in get query")
             raise
 
@@ -308,7 +365,7 @@ class ProjectSeriesArtifactTest(TestCase):
             self.fail("[Branch.DoesNotExist] The Branches returned no object from the get query")
         except Branch.MultipleObjectsReturned:
             self.fail("[Branch.MultipleObjectsReturned] The Branches returned more than one object from the get query")
-        except:
+        except Exception:
             self.fail("Unexpected Exception in get query")
             raise
 
@@ -322,32 +379,44 @@ class ProjectSeriesArtifactTest(TestCase):
         """Tests if we can upload multiple Artifacts for the same revision
         """
         response = self.client.login(username='toto', password='titi')
+        self.assertTrue(response)
 
         initial_path = reverse(self.path, args=[self.project.id, self.new_series.id])
-        self.client.post(initial_path,
-                         {'description': 'blabla',
-                          'artifactfile': self.imgfile,
-                          'is_documentation': False,
-                          'branch': 'blah',
-                          'revision': 'blah1'
-                          },
-                         follow=True)
-        self.client.post(initial_path,
-                         {'description': 'blabla',
-                          'artifactfile': self.imgfile1,
-                          'is_documentation': False,
-                          'branch': 'blah',
-                          'revision': 'blah1'
-                          },
-                         follow=True)
-        self.client.post(initial_path,
-                         {'description': 'blabla',
-                          'artifactfile': self.imgfile2,
-                          'is_documentation': False,
-                          'branch': 'blah',
-                          'revision': 'blah1'
-                          },
-                         follow=True)
+        art = self.create_artifact_file(file_to_add=self.imgfile)[0]
+        art.name = 'f1'
+        response = self.client.post(initial_path,
+                                    {'description': 'blabla',
+                                     'artifactfile': art,
+                                     'is_documentation': False,
+                                     'branch': 'blah',
+                                     'revision': 'blah1'
+                                     },
+                                    follow=True)
+        self.assertEqual(response.status_code, 200)
+
+        art = self.create_artifact_file(file_to_add=self.imgfile1)[0]
+        art.name = 'f2'
+        response = self.client.post(initial_path,
+                                    {'description': 'blabla',
+                                     'artifactfile': art,
+                                     'is_documentation': False,
+                                     'branch': 'blah',
+                                     'revision': 'blah1'
+                                     },
+                                    follow=True)
+        self.assertEqual(response.status_code, 200)
+
+        art = self.create_artifact_file(file_to_add=self.imgfile2)[0]
+        art.name = 'f3'
+        response = self.client.post(initial_path,
+                                    {'description': 'blabla',
+                                     'artifactfile': art,
+                                     'is_documentation': False,
+                                     'branch': 'blah',
+                                     'revision': 'blah1'
+                                     },
+                                    follow=True)
+        self.assertEqual(response.status_code, 200)
 
         try:
             Revision.objects.get(revision='blah1')
@@ -355,7 +424,7 @@ class ProjectSeriesArtifactTest(TestCase):
             self.fail("[Revision.DoesNotExist] The Revisions returned no object from the get query")
         except Revision.MultipleObjectsReturned:
             self.fail("[Revision.MultipleObjectsReturned] The Revisions returned more than one object from the get query")
-        except:
+        except Exception:
             self.fail("Unexpected Exception in get query")
             raise
 
@@ -368,7 +437,7 @@ class ProjectSeriesArtifactTest(TestCase):
             self.fail("[Branch.DoesNotExist] The Branches returned no object from the get query")
         except Branch.MultipleObjectsReturned:
             self.fail("[Branch.MultipleObjectsReturned] The Branches returned more than one object from the get query")
-        except:
+        except Exception:
             self.fail("Unexpected Exception in get query")
             raise
 
@@ -383,10 +452,13 @@ class ProjectSeriesArtifactTest(TestCase):
 
         self.assertEqual(self.new_series.artifacts.count(), 0)
 
+        art = self.create_artifact_file(file_to_add=self.imgfile)[0]
+        art.name = 'f1'
+
         initial_path = reverse(self.path, args=[self.project.id, self.new_series.id])
         response = self.client.post(initial_path,
                                     {'description': 'blabla',
-                                     'artifactfile': self.imgfile,
+                                     'artifactfile': art,
                                      'is_documentation': False,
                                      'branch': 'blahblah',
                                      'revision': 'blah'},
@@ -394,17 +466,20 @@ class ProjectSeriesArtifactTest(TestCase):
 
         import hashlib
         self.assertEqual(response.status_code, 200)
-        self.assertIn(hashlib.md5(self.imgfile.getvalue()).hexdigest().upper(), response.content)
+        art.seek(0)
+        self.assertIn(hashlib.md5(art.read()).hexdigest().upper(), response.content)
 
         self.assertEqual(self.new_series.artifacts.count(), 1)
 
         # warning, the input file here should be reseted to its origin
         self.imgfile.seek(0)
+        art = self.create_artifact_file(file_to_add=self.imgfile)[0]
+        art.name = 'f1'
 
         # second send should not create a new one for a specific revision
         response = self.client.post(initial_path,
                                     {'description': 'blabla',
-                                     'artifactfile': self.imgfile,
+                                     'artifactfile': art,
                                      'is_documentation': False,
                                      'branch': 'blahblah',
                                      'revision': 'blah'},
@@ -447,30 +522,6 @@ class ProjectSeriesArtifactTest(TestCase):
 
             if(os.path.exists(get_deflation_directory(new_artifact))):
                 shutil.rmtree(get_deflation_directory(new_artifact))
-
-    def create_artifact_file(self):
-        """Utility for creating a tar in memory"""
-        from StringIO import StringIO
-        f = StringIO()
-
-        # create a temporary tar object
-        tar = tarfile.open(fileobj=f, mode='w:bz2')
-
-        from inspect import getsourcefile
-        source_file = getsourcefile(lambda _: None)
-
-        tar.add(os.path.abspath(source_file),
-                arcname=os.path.basename(source_file))
-
-        dummy = tarfile.TarInfo('basename2')
-        dummy.type = tarfile.DIRTYPE
-        tar.addfile(dummy)
-        tar.add(os.path.abspath(source_file),
-                arcname='basename/' + os.path.basename(source_file) + '2')
-        tar.close()
-
-        f.seek(0)
-        return f, os.path.basename(source_file)
 
     def test_check_artifact_consistency_on_upload(self):
         """Checks the consistency of a documentation artifact"""
