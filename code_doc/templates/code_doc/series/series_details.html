@@ -49,9 +49,13 @@
 
 	          <td>
 	          {% if artifact.revision %}
-	            <small><span style="font-family:monospace;">{{ artifact.revision.revision }}</span></small>
+	            <small>
+	             <a href="{{ artifact.revision.get_absolute_url }}">
+	               <span style="font-family:monospace;">{{ artifact.revision.revision }}</span>
+	             </a>
+	            </small>
 	          {% else %}
-	            None
+	            -
 	          {% endif %}
 	          </td>
 	          
@@ -108,7 +112,9 @@
           {% if rev %}
             <tr>
               <td class="text-nowrap">
-               <a href="{% url 'project_revision' project.id rev.id %}">{{rev.revision}}</a>
+               <span style="font-family:monospace;">
+                <a href="{{ rev.get_absolute_url }}">{{rev.revision}}</a>
+               </span>
               </td>
               <td class="text-nowrap">
                <small>{{ rev.artifacts.all|length }}</small>
