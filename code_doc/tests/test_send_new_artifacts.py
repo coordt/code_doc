@@ -38,48 +38,60 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
     def test_send_new_file_new_api(self):
         """In this test, we know in advance the login url"""
         self.assertEqual(len(self.series.artifacts.all()), 0)
-        with tempfile.NamedTemporaryFile() as f:
 
-            f.write('GIF87a\x01\x00\x01\x00\x80\x01\x00\x00\x00\x00ccc,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;')
-            f.seek(0)
+        s = 'GIF87a\x01\x00\x01\x00\x80\x01\x00\x00\x00\x00ccc,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
 
-            fields = {}
+        import tarfile
+        from StringIO import StringIO
+        f = StringIO()
+        f.name = 'test'
 
-            fields['description'] = "revision from client based application"
-            fields['is_documentation'] = "False"
-            fields['documentation_entry_file'] = ''
-            fields['upload_date'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            fields['branch'] = 'blah'
-            fields['revision'] = 'blahblah'
+        # create a temporary tar object
+        tar = tarfile.open(fileobj=f, mode='w:bz2')
 
-            files = []
+        info = tarfile.TarInfo(name='myfile')
+        info.size = len(s)
+        tar.addfile(tarinfo=info,
+                    fileobj=StringIO(s))
+        tar.close()
+        f.seek(0)
 
-            # see remarks in test test_send_new_file
-            files.append(('artifactfile', f))
+        fields = {}
 
-            instance = PostMultipartWithSession(host=self.live_server_url)
+        fields['description'] = "revision from client based application"
+        fields['is_documentation'] = "False"
+        fields['documentation_entry_file'] = ''
+        fields['upload_date'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        fields['branch'] = 'blah'
+        fields['revision'] = 'blahblah'
 
-            post_url = '/artifacts/%d/%d/add' % (self.project.id, self.series.id)
+        files = []
 
-            instance.login(login_page="/accounts/login/",
-                           username=self.first_user.username,
-                           password='test_series_user')
+        # see remarks in test test_send_new_file
+        files.append(('artifactfile', f))
 
-            f.seek(0)
-            ret = instance.post_multipart(post_url,
-                                          fields,
-                                          files,
-                                          avoid_redirections=False)
+        instance = PostMultipartWithSession(host=self.live_server_url)
 
-            self.assertEqual(len(self.series.artifacts.all()), 1)
-            artifact = self.series.artifacts.all()[0]
-            self.assertEqual(artifact.filename(), os.path.basename(f.name))
+        post_url = '/artifacts/%d/%d/add' % (self.project.id, self.series.id)
 
-            import hashlib
-            f.seek(0)
-            self.assertEqual(artifact.md5hash, hashlib.md5(f.read()).hexdigest())
+        instance.login(login_page="/accounts/login/",
+                       username=self.first_user.username,
+                       password='test_series_user')
 
-            self.assertEqual(ret.code, 200)
+        ret = instance.post_multipart(post_url,
+                                      fields,
+                                      files,
+                                      avoid_redirections=False)
+
+        self.assertEqual(len(self.series.artifacts.all()), 1)
+        artifact = self.series.artifacts.all()[0]
+        self.assertEqual(artifact.filename(), os.path.basename(f.name))
+
+        import hashlib
+        f.seek(0)
+        self.assertEqual(artifact.md5hash, hashlib.md5(f.read()).hexdigest())
+
+        self.assertEqual(ret.code, 200)
 
     def test_get_redirection(self):
         """Tests if the redirection is ok"""
