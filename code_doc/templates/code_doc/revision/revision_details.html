@@ -100,7 +100,7 @@
         {% for serie in series %}
           <tr>
             <td class="text-nowrap">
-             <small><span style="font-family:monospace;">{{ serie.series }}</span></small>
+             <a href="{% url 'project_series' project.id serie.id %}" >{{ serie.series }}</a>
             </td>
             <td class="text-nowrap">
              <small>{{ serie.artifacts.all|length }}</small>
