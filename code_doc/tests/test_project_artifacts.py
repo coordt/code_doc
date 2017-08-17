@@ -448,6 +448,155 @@ class ProjectSeriesArtifactTest(TestCase):
             if(os.path.exists(get_deflation_directory(new_artifact))):
                 shutil.rmtree(get_deflation_directory(new_artifact))
 
+    def create_artifact_file(self):
+        """Utility for creating a tar in memory"""
+        from StringIO import StringIO
+        f = StringIO()
+
+        # create a temporary tar object
+        tar = tarfile.open(fileobj=f, mode='w:bz2')
+
+        from inspect import getsourcefile
+        source_file = getsourcefile(lambda _: None)
+
+        tar.add(os.path.abspath(source_file),
+                arcname=os.path.basename(source_file))
+
+        dummy = tarfile.TarInfo('basename2')
+        dummy.type = tarfile.DIRTYPE
+        tar.addfile(dummy)
+        tar.add(os.path.abspath(source_file),
+                arcname='basename/' + os.path.basename(source_file) + '2')
+        tar.close()
+
+        f.seek(0)
+        return f, os.path.basename(source_file)
+
+    def test_check_artifact_consistency_on_upload(self):
+        """Checks the consistency of a documentation artifact"""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        f, source_file = self.create_artifact_file()
+        test_file = SimpleUploadedFile('filename.tar.bz2', f.read())
+
+        response = self.client.login(username='toto', password='titi')
+        self.assertTrue(response)
+
+        initial_path = reverse(self.path, args=[self.project.id,
+                                                self.new_series.id])
+
+        response_get = self.client.get(initial_path)
+
+        # invalid file (empty size)
+        response = self.client.post(initial_path,
+                                    {'description': 'blabla',
+                                     'csrf_token': response_get.context['csrf_token'],
+                                     'artifactfile': SimpleUploadedFile('filename.tar.bz2', ''),
+                                     'is_documentation': True,
+                                     'branch': 'blah',
+                                     'revision': 'blah1'
+                                     })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Artifact.objects.count(), 0)
+        self.assertFormError(response,
+                             'form',
+                             field=None,
+                             errors="The submitted file is invalid")
+
+        # entry point not given
+        response = self.client.post(initial_path,
+                                    {'description': 'blabla',
+                                     'csrf_token': response_get.context['csrf_token'],
+                                     'artifactfile': test_file,
+                                     'is_documentation': True,
+                                     'branch': 'blah',
+                                     'revision': 'blah1'
+                                     })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Artifact.objects.count(), 0)
+        self.assertFormError(response,
+                             'form',
+                             field=None,
+                             errors="The field 'documentation entry' should be filled for an artifact of type documentation")
+
+        # entry point non-existent
+        f.seek(0)
+        test_file = SimpleUploadedFile('filename.tar.bz2', f.read())
+        response = self.client.post(initial_path,
+                                    {'description': 'blabla',
+                                     'csrf_token': response_get.context['csrf_token'],
+                                     'artifactfile': test_file,
+                                     'is_documentation': True,
+                                     'documentation_entry_file': 'non-existent',
+                                     'branch': 'blah',
+                                     'revision': 'blah1'
+                                     })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Artifact.objects.count(), 0)
+        self.assertFormError(response,
+                             'form',
+                             field=None,
+                             errors='The documentation entry "non-existent" was not found in the archive')
+
+        # invalid tar
+        f.seek(0)
+        test_file = SimpleUploadedFile('filename.tar.bz2', 'toto' + f.read())
+        response = self.client.post(initial_path,
+                                    {'description': 'blabla',
+                                     'csrf_token': response_get.context['csrf_token'],
+                                     'artifactfile': test_file,
+                                     'is_documentation': True,
+                                     'documentation_entry_file': 'non-existent',
+                                     'branch': 'blah',
+                                     'revision': 'blah1'
+                                     })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Artifact.objects.count(), 0)
+        self.assertFormError(response,
+                             'form',
+                             field=None,
+                             errors='The submitted file does not seem to be a valid tar file')
+
+        # entry point not file
+        f.seek(0)
+        test_file = SimpleUploadedFile('filename.tar.bz2', f.read())
+        response = self.client.post(initial_path,
+                                    {'description': 'blabla',
+                                     'csrf_token': response_get.context['csrf_token'],
+                                     'artifactfile': test_file,
+                                     'is_documentation': True,
+                                     'documentation_entry_file': 'basename2',
+                                     'branch': 'blah',
+                                     'revision': 'blah1'
+                                     })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Artifact.objects.count(), 0)
+        self.assertFormError(response,
+                             'form',
+                             field=None,
+                             errors='The documentation entry "basename2" does points to a directory')
+
+        # now this should work
+        f.seek(0)
+        test_file = SimpleUploadedFile('filename.tar.bz2', f.read())
+        response = self.client.post(initial_path,
+                                    {'description': 'blabla',
+                                     'csrf_token': response_get.context['csrf_token'],
+                                     'artifactfile': test_file,
+                                     'is_documentation': True,
+                                     'documentation_entry_file': 'basename/' + source_file + '2',
+                                     'branch': 'blah',
+                                     'revision': 'blah1'
+                                     })
+
+        self.assertRedirects(response, self.new_series.get_absolute_url())
+        self.assertEqual(Artifact.objects.count(), 1)
+
     def test_remove_artifact(self):
         from django.core.files.uploadedfile import SimpleUploadedFile
 

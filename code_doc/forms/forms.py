@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 from django.forms import Form, ModelForm, FileField, CharField, Textarea, DateInput, CheckboxSelectMultiple, TextInput, EmailInput, Select
 from django.contrib.auth.models import User, Group
+from django.core.exceptions import ValidationError
 
 from ..models.projects import Project, ProjectSeries
 from ..models.authors import Author
 from ..models.artifacts import Artifact
+from django.core.files.temp import NamedTemporaryFile
+from tarfile import TarFile
 
 
 class AuthorForm(ModelForm):
@@ -185,3 +188,50 @@ class ArtifactEditionForm(ModelForm):
 
     def clean_branch(self):
         return self.cleaned_data['branch'].strip()
+
+    def clean_description(self):
+        return self.cleaned_data['description'].strip()
+
+    def clean_documentation_entry_file(self):
+        if self.cleaned_data['documentation_entry_file']:
+            return self.cleaned_data['documentation_entry_file'].strip()
+        return None
+
+    def clean(self):
+        """Validates the submitted archive"""
+
+        if 'artifactfile' not in self.cleaned_data:
+            raise ValidationError('The submitted file is invalid')
+
+        import tarfile
+        artifact_file = self.cleaned_data['artifactfile']
+
+        try:
+            # same logic as tarfile.is_tarfile(tmpfile) but we have fileoj
+            tar = TarFile.open(fileobj=artifact_file)
+        except tarfile.TarError:
+            raise ValidationError('The submitted file does not seem to be a valid tar file')
+
+        is_doc = self.cleaned_data['is_documentation']
+
+        # additional checks if we have a doc
+        if is_doc:
+
+            if not self.cleaned_data['documentation_entry_file']:
+                raise ValidationError("The field 'documentation entry' should be filled for an artifact of type documentation")
+
+            # check that the content of the archive is accessible
+
+            doc_entry = self.cleaned_data['documentation_entry_file']
+            for e in tar.getmembers():
+                if e.name == doc_entry:
+                    break
+            else:
+                raise ValidationError('The documentation entry "%(value)s" was not found in the archive',
+                                      params={'value': doc_entry})
+
+            if e.isdir():
+                raise ValidationError('The documentation entry "%(value)s" does points to a directory',
+                                      params={'value': doc_entry})
+
+        return self.cleaned_data
