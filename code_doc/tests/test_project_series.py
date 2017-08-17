@@ -7,6 +7,7 @@ import datetime
 
 from ..models.projects import Project, ProjectSeries
 from ..models.authors import Author
+from ..models.artifacts import Artifact
 
 
 class ProjectSeriesTest(TestCase):
@@ -152,3 +153,23 @@ class ProjectSeriesTest(TestCase):
         self.assertTrue(user2.has_perm(current_permission, new_series))
         self.assertIn(current_permission, user2.get_all_permissions(new_series))
         self.assertNotIn(current_permission, user2.get_all_permissions())
+
+    def test_series_views_with_artifact_without_revision(self):
+        """ Test the view in case an artifact has no revision. """
+
+        new_series = ProjectSeries.objects.create(series="1234", project=self.project,
+                                                  release_date=datetime.datetime.now(),
+                                                  is_public=True)
+
+        art = Artifact.objects.create(project=self.project,
+                                      md5hash='1',
+                                      artifactfile='mais_oui!')
+
+        art.project_series = [new_series]
+
+        # Test the series details page (one artifact with no revision)
+        response = self.client.get(reverse('project_series', args=[self.project.id, new_series.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context['artifacts']), 1)
+        self.assertEqual(len(response.context['revisions']), 1)
+        self.assertIsNone(response.context['revisions'][0])

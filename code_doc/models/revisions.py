@@ -1,11 +1,8 @@
 from django.core.urlresolvers import reverse
 from django.db import models
-from django.contrib.auth.models import Group
-from django.conf import settings
 
 import logging
 
-from .models import manage_permission_on_object
 from .projects import Project
 
 logger = logging.getLogger(__name__)

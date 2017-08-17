@@ -45,7 +45,7 @@
 	          {% if artifact.project_series %}
 	          	{% for serie in artifact.project_series.all %}
 	          		{% if serie in series %}
-	                  <small><span style="font-family:monospace;">{{ serie.series }} / </span></small>
+	               <small><a href="{{ serie.get_absolute_url }}">{{ serie.series }}</a></small>
 	            	{% endif %}
 	            {% endfor %}
 	          {% else %}
@@ -100,7 +100,7 @@
         {% for serie in series %}
           <tr>
             <td class="text-nowrap">
-             <small><span style="font-family:monospace;">{{ serie.series }}</span></small>
+             <a href="{{ serie.get_absolute_url }}">{{ serie.series }}</a>
             </td>
             <td class="text-nowrap">
              <small>{{ serie.artifacts.all|length }}</small>
