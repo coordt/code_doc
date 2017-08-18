@@ -927,7 +927,7 @@ class RevisionViewTest(TestCase):
         response = self.client.get(reverse('project_series', args=[self.project.id, new_series.id]))
         self.assertEqual(response.status_code, 200)
 
-    def test_project_revision_empty_access(self):
+    def test_project_revision_view_empty_access(self):
         """ Test if the project revision is ok. """
 
         # Set up empty revision
