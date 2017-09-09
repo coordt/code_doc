@@ -1,8 +1,9 @@
-# Documentation and artifacts store django application #
+# Storing internal code documentation #
 
-This project provides a simple web application written in Django/python that aims at sharing artifacts and documentation in a public or private way.
-It is especially suited to be the companion of a build server that generates the documentation and eg. installers, and needs to make those visible
-to a group of developers.
+This project provides a simple web application written in Django/python that helps sharing documentation and other artifacts in a public or private way.
+
+It is the perfect companion of a build server (which generates the documentation and eg. installers) when it comes to sharing those 
+artifacts with different group of developers in your organization. 
 
 [TOC]
 
@@ -51,7 +52,7 @@ Each series can have a different set of access permissions.
 ![series page](./doc/images/series-window.jpg "Series page")
 
 ## License and Copyright #
-The project is developed at the [Max Planck Institute for Intelligent Systems](https://is.tuebingen.mpg.de/), TÃ¼bingen, Germany, within the [Software Workshop](https://is.tuebingen.mpg.de/en/software-workshop).
+The project is developed at the [Max Planck Institute for Intelligent Systems](https://is.tuebingen.mpg.de/), Tübingen, Germany, within the [Software Workshop](https://is.tuebingen.mpg.de/en/software-workshop).
 It is released under the BSD-3 clauses license.
 
 ## Contribution #
