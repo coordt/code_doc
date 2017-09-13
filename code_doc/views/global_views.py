@@ -4,12 +4,17 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from django.views.generic.detail import DetailView
 from django.views.generic import ListView
+from django.contrib.auth.models import User
+from django.views.generic.edit import FormView
+from django.core.urlresolvers import reverse
 
 import os
+import json
 import logging
 
-from ..models.projects import Project
+from ..models.projects import Project, ProjectSeries
 from ..models.models import Topic
+from ..forms.forms import ModalAddUserForm
 
 logger = logging.getLogger(__name__)
 
@@ -104,6 +109,64 @@ def script(request):
     response['Content-Disposition'] = 'attachment; filename=%s' % filename
     response['Content-Length'] = len(file_content)
     return response
+
+
+def get_usernames(request):
+    """ Method for getting all usernames. """
+
+    all_users = User.objects.all()
+    dict_users = {}
+    for user in all_users:
+        dict_users[user.username] = user
+
+    if request.is_ajax():
+        q = request.GET.get('term', '')
+
+        names = [name for name in dict_users.keys() if q in name]
+        results = []
+        for cn in names:
+            cn_json = {'value': cn}
+            results.append(cn_json)
+        data = json.dumps(results)
+    else:
+        data = 'fail'
+    mimetype = 'application/json'
+    return HttpResponse(data, mimetype)
+
+
+class ModalAddUserView(FormView):
+    form_class = ModalAddUserForm
+    template_name = 'code_doc/series/modal_add_user_form.html'
+
+    def get_form_kwargs(self):
+        kwargs = FormView.get_form_kwargs(self)
+
+        # Add project and series id
+        current_serie = ProjectSeries.objects.get(pk=self.kwargs['series_id'])
+        kwargs.update({'serie': current_serie,
+                       'project': current_serie.project
+                       })
+        return kwargs
+
+    def get_success_url(self, **kwargs):
+        return reverse('project_series_edit', kwargs={'project_id': self.kwargs['project_id'],
+                                                      'series_id': self.kwargs['series_id']})
+
+    def form_valid(self, form):
+
+        # Occurs after the form validation
+        # Here we need to add a user.
+        current_serie = ProjectSeries.objects.get(pk=self.kwargs['series_id'])
+
+        # Find corresponding user
+        # Form has been validated, so we don't need to check for Errors.
+        user = User.objects.get(username=form.cleaned_data['username'])
+
+        # Give view permission
+        current_serie.view_users.add(user)
+
+        #return super(ModalAddUserView, self).form_valid(form)
+        return render(self.request, 'code_doc/series/modal_add_user_form_success.html')
 
 
 class TopicView(DetailView):
