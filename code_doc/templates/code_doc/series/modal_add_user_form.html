@@ -26,7 +26,7 @@
 <script>
 
   $( '#add-user-form' ).ajaxForm({
-	  url: '{% url 'project_series_add_user' form.project.id form.serie.id %}',
+	  url: '{% url 'project_series_add_user' form.project.id form.series.id %}',
 	  target: '#modal_add_user'
   });
 
@@ -38,7 +38,7 @@
       <div class="modal-content">
 
 	    <!-- the form action has to be a valid url to a created view of the form type -->
-	    <form action="{% url 'project_series_add_user' form.project.id form.serie.id %}" id="add-user-form" method="post" class="form">
+	    <form action="{% url 'project_series_add_user' form.project.id form.series.id %}" id="add-user-form" method="post" class="form">
 	    {% csrf_token %}
         <div class="modal-header">
           
@@ -51,10 +51,13 @@
         </div>
         <div class="modal-body">
           <div class="ui-widget">
-            {{ form.username }}
+             <label for="usrname"><span class="glyphicon glyphicon-user"></span> Username: </label>
+             {{ form.username }}
           </div>
           
-          <!-- Show errros -->
+          {# inline #}
+          {% comment %} Show errors {% endcomment %}
+          
           {% if form.errors %}
             <br/>
             {% for field in form %}
@@ -73,8 +76,10 @@
           
         </div>
         <div class="modal-footer">
-
-          <!-- Buttons -->
+        
+		  {# inline #}
+          {% comment %} Buttons {% endcomment %}
+         
           <input id=ok_btn class="btn btn-primary" type="submit" value="Add">
           <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
           

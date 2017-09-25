@@ -250,19 +250,21 @@ class ModalAddUserForm(Form):
                          initial='',
                          widget=TextInput(attrs={'id': "user_selection"}))
 
-    def __init__(self, project, serie, *args, **kwargs):
+    def __init__(self, project, series, *args, **kwargs):
         super(ModalAddUserForm, self).__init__(*args, **kwargs)
 
         self.project = project
-        self.serie = serie
+        self.series = series
 
     def clean_username(self):
 
+        username = self.data['username'].strip()
+
         # Try to find corresponding user
         try:
-            User.objects.get(username=self.data['username'])
-            return self.data['username'].strip()
-
-        except:
-            raise ValidationError('Username "%(value)s" is not registered',
+            User.objects.get(username=username)
+        except User.DoesNotExist:
+            raise ValidationError('Username %(value)s is not registered',
                                   params={'value': self.data['username']})
+
+        return username

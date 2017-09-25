@@ -181,7 +181,20 @@ class ProjectSeriesTest(TestCase):
         new_series = ProjectSeries.objects.create(series="1234", project=self.project,
                                                   release_date=datetime.datetime.now())
 
-        # Anybody has access to the form, but permission will be required to add a user
+        # Anonymous user (no permission)
+        response = self.client.get(reverse('project_series_add_user', args=[self.project.id, new_series.id]))
+        self.assertEqual(response.status_code, 401)
+
+        # Logged-in user but without permission
+        _ = User.objects.create_user(username='user2', password='user2', email="c@c.com")
+        response = self.client.login(username='user2', password='user2')
+        self.assertTrue(response)
+        response = self.client.get(reverse('project_series_add_user', args=[self.project.id, new_series.id]), follow=True)
+        self.assertEqual(response.status_code, 401)
+
+        # Superuser, access granted
+        response = self.client.login(username='test_series_user', password='test_series_user')
+        self.assertTrue(response)
         response = self.client.get(reverse('project_series_add_user', args=[self.project.id, new_series.id]))
         self.assertEqual(response.status_code, 200)
 
@@ -191,51 +204,57 @@ class ProjectSeriesTest(TestCase):
         new_series = ProjectSeries.objects.create(series="1234", project=self.project,
                                                   release_date=datetime.datetime.now())
 
-        form1 = ModalAddUserForm(self.project, new_series, data={})
-        form2 = ModalAddUserForm(self.project, new_series, data={'username': 'dirk'})
-        form3 = ModalAddUserForm(self.project, new_series, data={'username': self.first_user.username})
-
-        # Check the validity of the forms
-        self.assertFalse(form1.is_valid())
-        self.assertFalse(form2.is_valid())
-        self.assertTrue(form3.is_valid())
-
+        # Log in as superuser and post forms
+        response = self.client.login(username='test_series_user', password='test_series_user')
+        self.assertTrue(response)
         path = reverse('project_series_add_user', args=[self.project.id, new_series.id])
 
-        response1 = self.client.post(path, form1.data, follow=True)
-        response2 = self.client.post(path, form2.data, follow=True)
-        response3 = self.client.post(path, form3.data, follow=True)
+        # Forms
+        form1 = ModalAddUserForm(self.project, new_series, data={})
+        form2 = ModalAddUserForm(self.project, new_series, data={'username': 'dirk'})
+        form3 = ModalAddUserForm(self.project, new_series, data={'username': 'test_series_user'})
 
-        # Responses 1 and 2: the form is not valid, so no redirect
-        self.assertEqual(len(response1.redirect_chain), 0)
-        self.assertEqual(len(response2.redirect_chain), 0)
+        # Form1 is empty
+        self.assertFalse(form1.is_valid())
+        response1 = self.client.post(path, form1.data)
+        self.assertEqual(response1.status_code, 200)
+        self.assertTemplateUsed(response1, 'code_doc/series/modal_add_user_form.html')
 
-        # Response 3: the form is valid, but the user does not have the permissions
-        last_url, status_code = response3.redirect_chain[-1]
-        self.assertEqual(status_code, 302)
-        self.assertIn(reverse('login'), last_url)
+        # Form2 is invalid: error thrown
+        self.assertFalse(form2.is_valid())
+        response2 = self.client.post(path, form2.data)
+        self.assertEqual(response2.status_code, 200)
+        self.assertTemplateUsed(response2, 'code_doc/series/modal_add_user_form.html')
+        self.assertContains(response2, 'Username dirk is not registered')
 
-        # Now log in as super user
-        response = self.client.login(username=self.first_user.username, password='test_series_user')
+        # Form 3 is valid: redirect to edit page via success page.
+        self.assertTrue(form3.is_valid())
+        response3 = self.client.post(path, form3.data)
+        self.assertEqual(response3.status_code, 200)
+        self.assertTemplateUsed(response3, 'code_doc/series/modal_add_user_form_success.html')
+
+    def test_add_user_with_view_permission(self):
+        """ Test giving view permission to a new user. """
+
+        new_series = ProjectSeries.objects.create(series="1234", project=self.project,
+                                                  release_date=datetime.datetime.now())
+
+        # Log in as superuser and post forms
+        response = self.client.login(username='test_series_user', password='test_series_user')
         self.assertTrue(response)
+        path = reverse('project_series_add_user', args=[self.project.id, new_series.id])
 
         # Create second user
         self.second_user = User.objects.create_user(username='dirk',
                                                     password='41',
                                                     email="dirk@dirk.com")
+        # Form should now be valid
+        form = ModalAddUserForm(self.project, new_series, data={'username': 'dirk'})
+        self.assertTrue(form.is_valid())
 
-        # Form 2 should now be valid
-        # Need to clean before asking for validity
-        form2.full_clean()
-        self.assertTrue(form2.is_valid())
+        # Post form
+        response = self.client.post(path, form.data, follow=True)
+        self.assertEqual(response.status_code, 200)
 
-        # Post
-        response4 = self.client.post(path, form2.data, follow=True)
-
-        # We should be back to the series_edit view
-        last_url, status_code = response4.redirect_chain[-1]
-        self.assertEqual(status_code, 302)
-        self.assertEqual(last_url, reverse('project_series_edit', args=[self.project.id, new_series.id]))
-
-        # Second user should now have view permission
-        self.assertEqual(type(new_series.view_users.get(username=self.second_user.username)), User)
+        # Dirk should now have view permission
+        self.assertEqual(type(new_series.view_users.get(username='dirk')), User)
