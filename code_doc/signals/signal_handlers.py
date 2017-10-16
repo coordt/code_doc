@@ -277,6 +277,21 @@ def is_deflated(instance):
         os.path.splitext(instance.artifactfile.name)[1] in ['.tar', '.bz2', '.gz']
 
 
+# Removing deflate folder
+def delete_deflate_folder(instance):
+    """ Checks if the deflate folder exists, and deletes it. """
+
+    deflate_directory = get_deflation_directory(instance)
+    if(os.path.exists(deflate_directory)):
+
+        def on_error(instance, function, path, excinfo):
+            logger.warning('[project artifact] error removing %s for instance %s',
+                           path, instance)
+            return
+
+        shutil.rmtree(deflate_directory, False, functools.partial(on_error, instance=instance))
+
+
 @receiver(pre_save, sender=Artifact)
 def callback_artifact_documentation_clean_on_save(sender, instance, **kwargs):
     """ Clean the doc in case of change of Field. """
@@ -295,16 +310,7 @@ def callback_artifact_documentation_clean_on_save(sender, instance, **kwargs):
     # In this case, must delete the deflate folder
     if old_value != new_value:
         if not new_value:
-
-            deflate_directory = get_deflation_directory(instance)
-            if(os.path.exists(deflate_directory)):
-
-                def on_error(instance, function, path, excinfo):
-                    logger.warning('[project artifact] error removing %s for instance %s',
-                                   path, instance)
-                    return
-
-                shutil.rmtree(deflate_directory, False, functools.partial(on_error, instance=instance))
+            delete_deflate_folder(instance)
 
 
 @receiver(post_save, sender=Artifact)
@@ -357,16 +363,7 @@ def callback_artifact_documentation_delete(sender, instance, using, **kwargs):
 
     # deflate if documentation and archive
     if is_deflated(instance):
-        deflate_directory = get_deflation_directory(instance)
-        if(os.path.exists(deflate_directory)):
-            # logger.debug('[project artifact] removing deflated artifact %s from %s', instance, deflate_directory)
-
-            def on_error(instance, function, path, excinfo):
-                logger.warning('[project artifact] error removing %s for instance %s',
-                               path, instance)
-                return
-
-            shutil.rmtree(deflate_directory, False, functools.partial(on_error, instance=instance))
+        delete_deflate_folder(instance)
 
     # removing the file on post delete
     pass
