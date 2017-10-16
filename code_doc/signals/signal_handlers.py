@@ -5,8 +5,8 @@ from django.dispatch import receiver
 from django.conf import settings
 
 from ..models.authors import Author
-from ..models.projects import Project, ProjectSeries
-from ..models.revisions import Branch, Revision
+from ..models.projects import ProjectSeries
+from ..models.revisions import Revision
 from ..models.artifacts import Artifact, get_deflation_directory
 
 import logging
@@ -277,6 +277,36 @@ def is_deflated(instance):
         os.path.splitext(instance.artifactfile.name)[1] in ['.tar', '.bz2', '.gz']
 
 
+@receiver(pre_save, sender=Artifact)
+def callback_artifact_documentation_clean_on_save(sender, instance, **kwargs):
+    """ Clean the doc in case of change of Field. """
+
+    logger.debug('[project artifact] pre_save artifact %s', instance)
+
+    try:
+        obj = sender.objects.get(pk=instance.pk)
+    except sender.DoesNotExist:
+        return  # object is new, return
+
+    old_value = obj.is_documentation
+    new_value = instance.is_documentation
+
+    # Only do something if documentation flag is removed
+    # In this case, must delete the deflate folder
+    if old_value != new_value:
+        if not new_value:
+
+            deflate_directory = get_deflation_directory(instance)
+            if(os.path.exists(deflate_directory)):
+
+                def on_error(instance, function, path, excinfo):
+                    logger.warning('[project artifact] error removing %s for instance %s',
+                                   path, instance)
+                    return
+
+                shutil.rmtree(deflate_directory, False, functools.partial(on_error, instance=instance))
+
+
 @receiver(post_save, sender=Artifact)
 def callback_artifact_deflation_on_save(sender,
                                         instance,
@@ -292,31 +322,28 @@ def callback_artifact_deflation_on_save(sender,
     if raw:
         return
 
-    # we do not perform any action in case of save failure
-    if not created:
-        return
+    # If documentation, check if we need to deflate
+    # Logically, we should deflate but this signal is emitted twice
+    # so we have to make sure to do it only once
+    if instance.is_documentation:
+        deflate_directory = get_deflation_directory(instance)
 
-    # deflate if documentation
-    if is_deflated(instance):
+        if not (os.path.exists(deflate_directory)):
+            instance.artifactfile.open()
+            with tempfile.NamedTemporaryFile(dir=settings.USER_UPLOAD_TEMPORARY_STORAGE) as f:
+                for chunk in instance.artifactfile.chunks():
+                    f.write(chunk)
+                f.seek(0)
+                instance.artifactfile.close()
 
-        # I do not know if this one is needed in fact, it is if we are in the save method of
-        # Artifact but from here the file should be fully accessible
-        with tempfile.NamedTemporaryFile(dir=settings.USER_UPLOAD_TEMPORARY_STORAGE) as f:
-            for chunk in instance.artifactfile.chunks():
-                f.write(chunk)
-            f.seek(0)
-            instance.artifactfile.close()
+                tar = tarfile.open(fileobj=f)
 
-            deflate_directory = get_deflation_directory(instance)
-            # logger.debug('[project artifact] deflating artifact %s to %s', instance, deflate_directory)
-            tar = tarfile.open(fileobj=f)
-
-            curdir = os.path.abspath(os.curdir)
-            if(not os.path.exists(deflate_directory)):
-                os.makedirs(deflate_directory)
-            os.chdir(deflate_directory)
-            tar.extractall()  # path = deflate_directory)
-            os.chdir(curdir)
+                curdir = os.path.abspath(os.curdir)
+                if(not os.path.exists(deflate_directory)):
+                    os.makedirs(deflate_directory)
+                os.chdir(deflate_directory)
+                tar.extractall()  # path = deflate_directory)
+                os.chdir(curdir)
 
     pass
 

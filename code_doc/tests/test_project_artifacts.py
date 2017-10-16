@@ -648,6 +648,50 @@ class ProjectSeriesArtifactTest(TestCase):
         self.assertRedirects(response, self.new_series.get_absolute_url())
         self.assertEqual(Artifact.objects.count(), 1)
 
+    def test_check_documentation_flag_changed(self):
+        """Checks if the upload behaves correctly when the flag for documentation is changed. """
+
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        f, source_file = self.create_artifact_file()
+
+        response = self.client.login(username='toto', password='titi')
+        self.assertTrue(response)
+
+        initial_path = reverse(self.path, args=[self.project.id,
+                                                self.new_series.id])
+        response_get = self.client.get(initial_path)
+
+        # Normal submission
+        test_file = SimpleUploadedFile('new_filename.tar.bz2', f.read())
+        response = self.client.post(initial_path,
+                                    {'description': 'blabla',
+                                     'csrf_token': response_get.context['csrf_token'],
+                                     'artifactfile': test_file,
+                                     'is_documentation': True,
+                                     'documentation_entry_file': 'basename/' + source_file + '2',
+                                     'branch': 'blah',
+                                     'revision': 'blah1'
+                                     })
+
+        self.assertRedirects(response, self.new_series.get_absolute_url())
+        self.assertEqual(Artifact.objects.count(), 1)
+
+        # Check that the deflate directory has been created
+        art = Artifact.objects.all()[0]
+        deflate_directory = get_deflation_directory(art)
+        self.assertTrue(os.path.exists(deflate_directory))
+
+        # Now unflag it as a documentation - deflate directory should have been deleted
+        art.is_documentation = False
+        art.save()
+        self.assertFalse(os.path.exists(deflate_directory))
+
+        # Put it back as documentation
+        art.is_documentation = True
+        art.save()
+        self.assertTrue(os.path.exists(deflate_directory))
+
     def test_remove_artifact(self):
         from django.core.files.uploadedfile import SimpleUploadedFile
 
