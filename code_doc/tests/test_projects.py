@@ -170,7 +170,8 @@ class ProjectViewTest(TestCase):
         rev1 = timezone.now()
 
         f, _ = self.create_artifact_file()
-        test_file = SimpleUploadedFile('new_filename.tar.bz2', f.read())
+        file_content = f.read()
+        test_file = SimpleUploadedFile('new_filename.tar.bz2', file_content)
 
         artifact0 = Artifact.objects.create(project=self.project, revision=revision, md5hash='0',
                                             is_documentation=True,
@@ -179,15 +180,13 @@ class ProjectViewTest(TestCase):
                                             documentation_entry_file='truc.html')
 
         artifact0.project_series.add(new_series)
-        f.seek(0)
-        test_file = SimpleUploadedFile('filename.tar.bz2', f.read())
+        test_file = SimpleUploadedFile('filename.tar.bz2', file_content)
         artifact1 = Artifact.objects.create(project=self.project, revision=revision, md5hash='1',
                                             artifactfile=test_file,
                                             upload_date=rev1)
         artifact1.project_series.add(new_series)
 
-        f.seek(0)
-        test_file = SimpleUploadedFile('filename.tar.bz2', f.read())
+        test_file = SimpleUploadedFile('filename.tar.bz2', file_content)
         artifact2 = Artifact.objects.create(project=self.project, revision=revision, md5hash='2',
                                             is_documentation=True,
                                             upload_date=rev1,

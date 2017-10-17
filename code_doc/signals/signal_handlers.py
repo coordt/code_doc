@@ -292,27 +292,6 @@ def delete_deflate_folder(instance):
         shutil.rmtree(deflate_directory, False, functools.partial(on_error, instance=instance))
 
 
-@receiver(pre_save, sender=Artifact)
-def callback_artifact_documentation_clean_on_save(sender, instance, **kwargs):
-    """ Clean the doc in case of change of Field. """
-
-    logger.debug('[project artifact] pre_save artifact %s', instance)
-
-    try:
-        obj = sender.objects.get(pk=instance.pk)
-    except sender.DoesNotExist:
-        return  # object is new, return
-
-    old_value = obj.is_documentation
-    new_value = instance.is_documentation
-
-    # Only do something if documentation flag is removed
-    # In this case, must delete the deflate folder
-    if old_value != new_value:
-        if not new_value:
-            delete_deflate_folder(instance)
-
-
 @receiver(post_save, sender=Artifact)
 def callback_artifact_deflation_on_save(sender,
                                         instance,
@@ -328,28 +307,22 @@ def callback_artifact_deflation_on_save(sender,
     if raw:
         return
 
-    # If documentation, check if we need to deflate
-    # Logically, we should deflate but this signal is emitted twice
-    # so we have to make sure to do it only once
+    # If documentation, check that there is a deflate dir. If not, create it.
+    # If not documentation, check that there is no deflate dir. If there is, delete it.
+    deflate_directory = get_deflation_directory(instance)
     if instance.is_documentation:
-        deflate_directory = get_deflation_directory(instance)
+        # Create if not existing
+        if not os.path.exists(deflate_directory):
+            os.makedirs(deflate_directory)
 
-        if not (os.path.exists(deflate_directory)):
-            instance.artifactfile.open()
-            with tempfile.NamedTemporaryFile(dir=settings.USER_UPLOAD_TEMPORARY_STORAGE) as f:
-                for chunk in instance.artifactfile.chunks():
-                    f.write(chunk)
-                f.seek(0)
-                instance.artifactfile.close()
-
-                tar = tarfile.open(fileobj=f)
-
-                curdir = os.path.abspath(os.curdir)
-                if(not os.path.exists(deflate_directory)):
-                    os.makedirs(deflate_directory)
-                os.chdir(deflate_directory)
-                tar.extractall()  # path = deflate_directory)
-                os.chdir(curdir)
+            # Extract
+            tar = tarfile.open(fileobj=instance.artifactfile)
+            tar.extractall(deflate_directory)
+            instance.artifactfile.close()
+    else:
+        # Remove if existing
+        if os.path.exists(deflate_directory):
+            delete_deflate_folder(instance)
 
     pass
 

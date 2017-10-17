@@ -678,7 +678,7 @@ class ProjectSeriesArtifactTest(TestCase):
         self.assertEqual(Artifact.objects.count(), 1)
 
         # Check that the deflate directory has been created
-        art = Artifact.objects.all()[0]
+        art = Artifact.objects.first()
         deflate_directory = get_deflation_directory(art)
         self.assertTrue(os.path.exists(deflate_directory))
 
