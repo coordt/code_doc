@@ -5,8 +5,8 @@ from django.dispatch import receiver
 from django.conf import settings
 
 from ..models.authors import Author
-from ..models.projects import Project, ProjectSeries
-from ..models.revisions import Branch, Revision
+from ..models.projects import ProjectSeries
+from ..models.revisions import Revision
 from ..models.artifacts import Artifact, get_deflation_directory
 
 import logging
@@ -277,6 +277,21 @@ def is_deflated(instance):
         os.path.splitext(instance.artifactfile.name)[1] in ['.tar', '.bz2', '.gz']
 
 
+# Removing deflate folder
+def delete_deflate_folder(instance):
+    """ Checks if the deflate folder exists, and deletes it. """
+
+    deflate_directory = get_deflation_directory(instance)
+    if(os.path.exists(deflate_directory)):
+
+        def on_error(instance, function, path, excinfo):
+            logger.warning('[project artifact] error removing %s for instance %s',
+                           path, instance)
+            return
+
+        shutil.rmtree(deflate_directory, False, functools.partial(on_error, instance=instance))
+
+
 @receiver(post_save, sender=Artifact)
 def callback_artifact_deflation_on_save(sender,
                                         instance,
@@ -292,31 +307,22 @@ def callback_artifact_deflation_on_save(sender,
     if raw:
         return
 
-    # we do not perform any action in case of save failure
-    if not created:
-        return
+    # If documentation, check that there is a deflate dir. If not, create it.
+    # If not documentation, check that there is no deflate dir. If there is, delete it.
+    deflate_directory = get_deflation_directory(instance)
+    if instance.is_documentation:
+        # Create if not existing
+        if not os.path.exists(deflate_directory):
+            os.makedirs(deflate_directory)
 
-    # deflate if documentation
-    if is_deflated(instance):
-
-        # I do not know if this one is needed in fact, it is if we are in the save method of
-        # Artifact but from here the file should be fully accessible
-        with tempfile.NamedTemporaryFile(dir=settings.USER_UPLOAD_TEMPORARY_STORAGE) as f:
-            for chunk in instance.artifactfile.chunks():
-                f.write(chunk)
-            f.seek(0)
+            # Extract
+            tar = tarfile.open(fileobj=instance.artifactfile)
+            tar.extractall(deflate_directory)
             instance.artifactfile.close()
-
-            deflate_directory = get_deflation_directory(instance)
-            # logger.debug('[project artifact] deflating artifact %s to %s', instance, deflate_directory)
-            tar = tarfile.open(fileobj=f)
-
-            curdir = os.path.abspath(os.curdir)
-            if(not os.path.exists(deflate_directory)):
-                os.makedirs(deflate_directory)
-            os.chdir(deflate_directory)
-            tar.extractall()  # path = deflate_directory)
-            os.chdir(curdir)
+    else:
+        # Remove if existing
+        if os.path.exists(deflate_directory):
+            delete_deflate_folder(instance)
 
     pass
 
@@ -330,16 +336,7 @@ def callback_artifact_documentation_delete(sender, instance, using, **kwargs):
 
     # deflate if documentation and archive
     if is_deflated(instance):
-        deflate_directory = get_deflation_directory(instance)
-        if(os.path.exists(deflate_directory)):
-            # logger.debug('[project artifact] removing deflated artifact %s from %s', instance, deflate_directory)
-
-            def on_error(instance, function, path, excinfo):
-                logger.warning('[project artifact] error removing %s for instance %s',
-                               path, instance)
-                return
-
-            shutil.rmtree(deflate_directory, False, functools.partial(on_error, instance=instance))
+        delete_deflate_folder(instance)
 
     # removing the file on post delete
     pass
