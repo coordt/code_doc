@@ -154,4 +154,8 @@ class Artifact(models.Model):
                 m.update(chunk)
             self.md5hash = m.hexdigest()
 
+        # Make sure that the documentation_entry_file is blank if the artifact is not a documentation
+        if not self.is_documentation:
+            self.documentation_entry_file = None
+
         super(Artifact, self).save(*args, **kwargs)  # Call the "real" save() method.
