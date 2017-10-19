@@ -85,7 +85,14 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
 
         self.assertEqual(len(self.series.artifacts.all()), 1)
         artifact = self.series.artifacts.all()[0]
-        self.assertEqual(artifact.filename(), os.path.basename(f.name))
+
+        try:
+            self.assertEqual(artifact.filename(), os.path.basename(f.name))
+        except AssertionError:
+            self.assertIn(os.path.basename(f.name), artifact.filename())
+            path_already_taken = os.path.join(os.path.dirname(artifact.full_path_name()),
+                                              os.path.basename(f.name))
+            self.assertTrue(os.path.exists(os.path.abspath(path_already_taken)))
 
         import hashlib
         f.seek(0)
