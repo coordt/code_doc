@@ -664,12 +664,13 @@ class ProjectSeriesArtifactTest(TestCase):
 
         # Normal submission
         test_file = SimpleUploadedFile('new_filename.tar.bz2', f.read())
+        entry_file = 'basename/' + source_file + '2'
         response = self.client.post(initial_path,
                                     {'description': 'blabla',
                                      'csrf_token': response_get.context['csrf_token'],
                                      'artifactfile': test_file,
                                      'is_documentation': True,
-                                     'documentation_entry_file': 'basename/' + source_file + '2',
+                                     'documentation_entry_file': entry_file,
                                      'branch': 'blah',
                                      'revision': 'blah1'
                                      })
@@ -686,9 +687,11 @@ class ProjectSeriesArtifactTest(TestCase):
         art.is_documentation = False
         art.save()
         self.assertFalse(os.path.exists(deflate_directory))
+        self.assertEqual(art.documentation_entry_file, None)
 
         # Put it back as documentation
         art.is_documentation = True
+        art.documentation_entry_file = unicode(entry_file)
         art.save()
         self.assertTrue(os.path.exists(deflate_directory))
 
