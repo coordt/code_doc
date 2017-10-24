@@ -11,6 +11,8 @@ from ..models.artifacts import Artifact
 from ..models.revisions import Revision
 
 import datetime
+import tarfile
+import os
 
 
 class ProjectTest(TestCase):
@@ -119,10 +121,45 @@ class ProjectViewTest(TestCase):
         self.project.authors = [self.author1]
         self.project.administrators = [self.first_user]
 
+    def create_artifact_file(self, file_to_add=None):
+        """Utility for creating a tar in memory"""
+        from StringIO import StringIO
+        f = StringIO()
+
+        # create a temporary tar object
+        tar = tarfile.open(fileobj=f, mode='w:bz2')
+
+        if file_to_add is not None:
+            info = tarfile.TarInfo(name='myfile')
+            info.size = len(file_to_add.read())
+            file_to_add.seek(0)
+            tar.addfile(tarinfo=info,
+                        fileobj=file_to_add)
+            source_file = 'myfile'
+        else:
+            from inspect import getsourcefile
+            source_file = getsourcefile(lambda _: None)
+
+            tar.add(os.path.abspath(source_file),
+                    arcname=os.path.basename(source_file))
+
+            dummy = tarfile.TarInfo('basename2')
+            dummy.type = tarfile.DIRTYPE
+            tar.addfile(dummy)
+            tar.add(os.path.abspath(source_file),
+                    arcname='basename/' + os.path.basename(source_file) + '2')
+
+            source_file = os.path.basename(source_file)
+        tar.close()
+
+        f.seek(0)
+        return f, source_file
+
     def test_link_last_artifact_doc(self):
         """Number of files tests"""
 
         from django.utils import timezone
+        from django.core.files.uploadedfile import SimpleUploadedFile
 
         self.assertEqual(self.project.get_number_of_files(), 0)
 
@@ -131,22 +168,29 @@ class ProjectViewTest(TestCase):
         revision = Revision.objects.create(revision='1', project=self.project)
 
         rev1 = timezone.now()
+
+        f, _ = self.create_artifact_file()
+        file_content = f.read()
+        test_file = SimpleUploadedFile('new_filename.tar.bz2', file_content)
+
         artifact0 = Artifact.objects.create(project=self.project, revision=revision, md5hash='0',
                                             is_documentation=True,
                                             upload_date=rev1 - datetime.timedelta(hours=1),
-                                            artifactfile=__file__,
+                                            artifactfile=test_file,
                                             documentation_entry_file='truc.html')
-        artifact0.project_series.add(new_series)
 
+        artifact0.project_series.add(new_series)
+        test_file = SimpleUploadedFile('filename.tar.bz2', file_content)
         artifact1 = Artifact.objects.create(project=self.project, revision=revision, md5hash='1',
-                                            artifactfile=__file__,
+                                            artifactfile=test_file,
                                             upload_date=rev1)
         artifact1.project_series.add(new_series)
 
+        test_file = SimpleUploadedFile('filename.tar.bz2', file_content)
         artifact2 = Artifact.objects.create(project=self.project, revision=revision, md5hash='2',
                                             is_documentation=True,
                                             upload_date=rev1,
-                                            artifactfile=__file__,
+                                            artifactfile=test_file,
                                             documentation_entry_file='bidule.html')
         artifact2.project_series.add(new_series)
 
