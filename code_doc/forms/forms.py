@@ -230,7 +230,7 @@ class ArtifactEditionForm(ModelForm):
                 if e.name == doc_entry:
                     break
             else:
-                logger.error('Documentation entry not found in the tar')
+                logger.error("Documentation entry '%s' not found in the tar" % (doc_entry))
                 raise ValidationError('The documentation entry "%(value)s" was not found in the archive',
                                       params={'value': doc_entry})
 
