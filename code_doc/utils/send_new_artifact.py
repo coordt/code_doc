@@ -1,3 +1,16 @@
+# -*- coding: utf-8 -*-
+"""The intent of this module is to send "artifacts" to a code_doc server, without using any of the
+Django related stuff and possibly no extra packages. This is done by
+
+* logging into the code_doc server using credentials and storing the cookies associated to
+  this session
+* filling a form that contains the details of the artifact to send
+* sending the content
+
+The main class is :class:`PostMultipartWithSession` and the entry point when used as a script
+is the :func:`main`.
+"""
+
 import httplib
 import mimetypes
 import mimetools
@@ -10,20 +23,6 @@ import StringIO
 import types
 import logging
 
-
-# -*- coding: utf-8 -*-
-__doc__ = """
-The intent of this module is to send "artifacts" to a code_doc server, without using any of the
-Django related stuff and possibly no extra packages. This is done by
-
-* logging into the code_doc server using credentials and storing the cookies associated to
-  this session
-* filling a form that contains the details of the artifact to send
-* sending the content
-
-The main class is :class:`PostMultipartWithSession` and the entry point when used as a script
-is the :func:`main`.
-"""
 
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 logger = logging

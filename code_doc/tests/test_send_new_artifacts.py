@@ -41,19 +41,11 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
 
         s = 'GIF87a\x01\x00\x01\x00\x80\x01\x00\x00\x00\x00ccc,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
 
-        import tarfile
+        # not necessarily a tar file
         from StringIO import StringIO
         f = StringIO()
         f.name = 'test'
-
-        # create a temporary tar object
-        tar = tarfile.open(fileobj=f, mode='w:bz2')
-
-        info = tarfile.TarInfo(name='myfile')
-        info.size = len(s)
-        tar.addfile(tarinfo=info,
-                    fileobj=StringIO(s))
-        tar.close()
+        f.write(s)
         f.seek(0)
 
         fields = {}
@@ -83,8 +75,8 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
                                       files,
                                       avoid_redirections=False)
 
-        self.assertEqual(len(self.series.artifacts.all()), 1)
-        artifact = self.series.artifacts.all()[0]
+        self.assertEqual(self.series.artifacts.count(), 1)
+        artifact = self.series.artifacts.first()
 
         try:
             self.assertEqual(artifact.filename(), os.path.basename(f.name))

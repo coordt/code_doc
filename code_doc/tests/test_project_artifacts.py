@@ -45,36 +45,45 @@ class ProjectSeriesArtifactTest(TestCase):
         self.imgfile2 = StringIO.StringIO('GIF87a\x10\x00\x01\x00\x80\x01\x00\x00\x00\x00ccc,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;')
         self.imgfile2.name = 'test_img_file2.gif'
 
-    def create_artifact_file(self, file_to_add=None):
+    def create_artifact_file(self, file_to_add=None, is_documentation=False):
         """Utility for creating a tar in memory"""
         from StringIO import StringIO
+        from inspect import getsourcefile
+
         f = StringIO()
 
-        # create a temporary tar object
-        tar = tarfile.open(fileobj=f, mode='w:bz2')
+        if is_documentation:
+            # in case of a documentation artifact, we tar the content
+            # create a temporary tar object
+            tar = tarfile.open(fileobj=f, mode='w:bz2')
 
-        if file_to_add is not None:
-            info = tarfile.TarInfo(name='myfile')
-            info.size = len(file_to_add.read())
-            file_to_add.seek(0)
-            tar.addfile(tarinfo=info,
-                        fileobj=file_to_add)
-            source_file = 'myfile'
+            if file_to_add is not None:
+                info = tarfile.TarInfo(name='myfile')
+                info.size = len(file_to_add.read())
+                file_to_add.seek(0)
+                tar.addfile(tarinfo=info,
+                            fileobj=file_to_add)
+                source_file = 'myfile'
+            else:
+                source_file = getsourcefile(lambda _: None)
+                tar.add(os.path.abspath(source_file),
+                        arcname=os.path.basename(source_file))
+
+                dummy = tarfile.TarInfo('basename2')
+                dummy.type = tarfile.DIRTYPE
+                tar.addfile(dummy)
+                tar.add(os.path.abspath(source_file),
+                        arcname='basename/' + os.path.basename(source_file) + '2')
+
+                source_file = os.path.basename(source_file)
+            tar.close()
         else:
-            from inspect import getsourcefile
-            source_file = getsourcefile(lambda _: None)
-
-            tar.add(os.path.abspath(source_file),
-                    arcname=os.path.basename(source_file))
-
-            dummy = tarfile.TarInfo('basename2')
-            dummy.type = tarfile.DIRTYPE
-            tar.addfile(dummy)
-            tar.add(os.path.abspath(source_file),
-                    arcname='basename/' + os.path.basename(source_file) + '2')
-
-            source_file = os.path.basename(source_file)
-        tar.close()
+            if file_to_add is not None:
+                source_file = 'myfile'
+                f.write(file_to_add.read())
+            else:
+                source_file = getsourcefile(lambda _: None)
+                f.write(open(source_file, "rb").read())
 
         f.seek(0)
         return f, source_file
@@ -527,7 +536,7 @@ class ProjectSeriesArtifactTest(TestCase):
         """Checks the consistency of a documentation artifact"""
         from django.core.files.uploadedfile import SimpleUploadedFile
 
-        f, source_file = self.create_artifact_file()
+        f, source_file = self.create_artifact_file(is_documentation=True)
         test_file = SimpleUploadedFile('filename.tar.bz2', f.read())
 
         response = self.client.login(username='toto', password='titi')
@@ -653,7 +662,7 @@ class ProjectSeriesArtifactTest(TestCase):
 
         from django.core.files.uploadedfile import SimpleUploadedFile
 
-        f, source_file = self.create_artifact_file()
+        f, source_file = self.create_artifact_file(is_documentation=True)
 
         response = self.client.login(username='toto', password='titi')
         self.assertTrue(response)
@@ -695,92 +704,109 @@ class ProjectSeriesArtifactTest(TestCase):
         art.save()
         self.assertTrue(os.path.exists(deflate_directory))
 
+    def test_check_documentation_flag_changed_non_tars(self):
+        """Checks if the upload behaves correctly when the flag for documentation is changed. """
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        f, source_file = self.create_artifact_file(is_documentation=False)
+
+        new_artifact = Artifact.objects.create(description='blabla',
+                                               artifactfile=SimpleUploadedFile("some", f.read()),
+                                               is_documentation=False,
+                                               documentation_entry_file=None,
+                                               project=self.project)
+
+        self.assertEqual(Artifact.objects.count(), 1)
+
+        # flag as documentation: should not be possible because of the content not being tar
+        new_artifact.is_documentation = True
+        with self.assertRaises(IntegrityError) as exp:
+            new_artifact.save()
+        self.assertIn('has incorrect', exp.exception.message)
+
+        new_artifact.documentation_entry_file = "some file"
+        with self.assertRaises(IntegrityError) as exp:
+            new_artifact.save()
+
+        self.assertIn('not valid tar file', exp.exception.message)
+
+        f, source_file = self.create_artifact_file(is_documentation=True)
+        test_file = SimpleUploadedFile('new_filename.tar.bz2', f.read())
+        entry_file = 'basename/' + source_file + '2'
+
+        new_artifact.documentation_entry_file = entry_file
+        new_artifact.artifactfile = test_file
+        new_artifact.md5hash = None
+        new_artifact.save()
+
     def test_remove_artifact(self):
         from django.core.files.uploadedfile import SimpleUploadedFile
 
-        with tempfile.NamedTemporaryFile(dir=settings.USER_UPLOAD_TEMPORARY_STORAGE,
-                                         suffix='.tar.bz2') as f:
-            # create a temporary tar object
-            tar = tarfile.open(fileobj=f, mode='w:bz2')
+        f, _ = self.create_artifact_file()
 
-            from inspect import getsourcefile
-            source_file = getsourcefile(lambda _: None)
+        f.seek(0)
+        test_file = SimpleUploadedFile('filename.tar.bz2', f.read())
 
-            tar.add(os.path.abspath(source_file), arcname=os.path.basename(source_file))
-            tar.close()
+        new_artifact = Artifact.objects.create(project=self.project,
+                                               revision=self.revision,
+                                               md5hash='1',
+                                               description='test artifact',
+                                               is_documentation=False,
+                                               documentation_entry_file=os.path.basename(__file__),
+                                               artifactfile=test_file)
+        new_artifact.project_series.add(self.new_series)
 
-            f.seek(0)
-            test_file = SimpleUploadedFile('filename.tar.bz2', f.read())
+        test_file.close()
 
-            new_artifact = Artifact.objects.create(project=self.project,
-                                                   revision=self.revision,
-                                                   md5hash='1',
-                                                   description='test artifact',
-                                                   is_documentation=False,
-                                                   documentation_entry_file=os.path.basename(__file__),
-                                                   artifactfile=test_file)
-            new_artifact.project_series.add(self.new_series)
+        # a file has been created
+        self.assertTrue(os.path.exists(new_artifact.full_path_name()),
+                        "Artifact not existent on disk %s" % new_artifact.full_path_name())
 
-            test_file.close()
+        # not a documentation artifact
+        self.assertFalse(os.path.exists(get_deflation_directory(new_artifact)))
 
-            # a file has been created
-            self.assertTrue(os.path.exists(new_artifact.full_path_name()),
-                            "Artifact not existent on disk %s" % new_artifact.full_path_name())
+        new_artifact.save()
 
-            # not a documentation artifact
-            self.assertFalse(os.path.exists(get_deflation_directory(new_artifact)))
+        # file still here
+        self.assertTrue(os.path.exists(new_artifact.full_path_name()),
+                        "Artifact not existent on disk %s" % new_artifact.full_path_name())
 
-            new_artifact.save()
+        self.assertFalse(os.path.exists(get_deflation_directory(new_artifact)))
 
-            # file still here
-            self.assertTrue(os.path.exists(new_artifact.full_path_name()),
-                            "Artifact not existent on disk %s" % new_artifact.full_path_name())
+        new_artifact.delete()
 
-            self.assertFalse(os.path.exists(get_deflation_directory(new_artifact)))
-
-            new_artifact.delete()
-
-            self.assertFalse(os.path.exists(new_artifact.full_path_name()))
-            self.assertFalse(os.path.exists(get_deflation_directory(new_artifact)))
+        self.assertFalse(os.path.exists(new_artifact.full_path_name()))
+        self.assertFalse(os.path.exists(get_deflation_directory(new_artifact)))
 
     def test_remove_documentation_artifact(self):
         """Tests that the deflated documentation is removed as well"""
         from django.core.files.uploadedfile import SimpleUploadedFile
 
-        with tempfile.NamedTemporaryFile(dir=settings.USER_UPLOAD_TEMPORARY_STORAGE,
-                                         suffix='.tar.bz2') as f:
-            # create a temporary tar object
-            tar = tarfile.open(fileobj=f, mode='w:bz2')
+        f, _ = self.create_artifact_file(is_documentation=True)
 
-            from inspect import getsourcefile
-            source_file = getsourcefile(lambda _: None)
+        f.seek(0)
+        test_file = SimpleUploadedFile('filename.tar.bz2', f.read())
 
-            tar.add(os.path.abspath(source_file), arcname=os.path.basename(source_file))
-            tar.close()
+        new_artifact = Artifact.objects.create(project=self.project,
+                                               revision=self.revision,
+                                               md5hash='1',
+                                               description='test artifact',
+                                               is_documentation=True,
+                                               documentation_entry_file=os.path.basename(__file__),
+                                               artifactfile=test_file)
+        new_artifact.project_series.add(self.new_series)
 
-            f.seek(0)
-            test_file = SimpleUploadedFile('filename.tar.bz2', f.read())
+        test_file.close()
 
-            new_artifact = Artifact.objects.create(project=self.project,
-                                                   revision=self.revision,
-                                                   md5hash='1',
-                                                   description='test artifact',
-                                                   is_documentation=True,
-                                                   documentation_entry_file=os.path.basename(__file__),
-                                                   artifactfile=test_file)
-            new_artifact.project_series.add(self.new_series)
+        self.assertTrue(os.path.exists(get_deflation_directory(new_artifact)))
 
-            test_file.close()
+        new_artifact.save()
 
-            self.assertTrue(os.path.exists(get_deflation_directory(new_artifact)))
+        self.assertTrue(os.path.exists(get_deflation_directory(new_artifact)))
 
-            new_artifact.save()
+        new_artifact.delete()
 
-            self.assertTrue(os.path.exists(get_deflation_directory(new_artifact)))
-
-            new_artifact.delete()
-
-            self.assertFalse(os.path.exists(get_deflation_directory(new_artifact)))
+        self.assertFalse(os.path.exists(get_deflation_directory(new_artifact)))
 
     def test_prune_directories_on_remove(self):
         """Tests that the directory containing the artifact is properly pruned, only
