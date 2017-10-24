@@ -166,6 +166,11 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': True,
         },
+        'code_doc.forms': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
         'code_doc.permissions': {
             'handlers': ['console'],
             'level': 'WARNING',
