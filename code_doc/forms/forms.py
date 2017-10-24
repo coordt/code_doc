@@ -7,6 +7,7 @@ from ..models.projects import Project, ProjectSeries
 from ..models.authors import Author
 from ..models.artifacts import Artifact
 
+import os
 import logging
 logger = logging.getLogger(__name__)
 
@@ -195,7 +196,7 @@ class ArtifactEditionForm(ModelForm):
 
     def clean_documentation_entry_file(self):
         if self.cleaned_data['documentation_entry_file']:
-            return self.cleaned_data['documentation_entry_file'].strip()
+            return os.path.relpath(self.cleaned_data['documentation_entry_file'].strip())
         return None
 
     def clean(self):
@@ -224,10 +225,9 @@ class ArtifactEditionForm(ModelForm):
                 raise ValidationError('The submitted file does not seem to be a valid tar file')
 
             # check that the content of the archive is accessible
-
             doc_entry = self.cleaned_data['documentation_entry_file']
             for e in tar.getmembers():
-                if e.name == doc_entry:
+                if os.path.relpath(e.name) == os.path.relpath(doc_entry):
                     break
             else:
                 logger.error("Documentation entry '%s' not found in the tar" % (doc_entry))

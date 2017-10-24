@@ -45,10 +45,16 @@ class ProjectSeriesArtifactTest(TestCase):
         self.imgfile2 = StringIO.StringIO('GIF87a\x10\x00\x01\x00\x80\x01\x00\x00\x00\x00ccc,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;')
         self.imgfile2.name = 'test_img_file2.gif'
 
-    def create_artifact_file(self, file_to_add=None, is_documentation=False):
+    def create_artifact_file(self,
+                             file_to_add=None,
+                             is_documentation=False,
+                             tar_basename=None):
         """Utility for creating a tar in memory"""
         from StringIO import StringIO
         from inspect import getsourcefile
+
+        if tar_basename is None:
+            tar_basename = 'basename/'
 
         f = StringIO()
 
@@ -73,7 +79,7 @@ class ProjectSeriesArtifactTest(TestCase):
                 dummy.type = tarfile.DIRTYPE
                 tar.addfile(dummy)
                 tar.add(os.path.abspath(source_file),
-                        arcname='basename/' + os.path.basename(source_file) + '2')
+                        arcname=tar_basename + os.path.basename(source_file) + '2')
 
                 source_file = os.path.basename(source_file)
             tar.close()
@@ -703,6 +709,37 @@ class ProjectSeriesArtifactTest(TestCase):
         art.documentation_entry_file = unicode(entry_file)
         art.save()
         self.assertTrue(os.path.exists(deflate_directory))
+
+    def test_documentation_entry_point_check_relative_paths(self):
+        """Checks that the documentation entry point check in the form is agnostic to relative paths"""
+
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        f, source_file = self.create_artifact_file(is_documentation=True,
+                                                   tar_basename='./')  # the important bit is here!
+
+        response = self.client.login(username='toto', password='titi')
+        self.assertTrue(response)
+
+        initial_path = reverse(self.path, args=[self.project.id,
+                                                self.new_series.id])
+        response_get = self.client.get(initial_path)
+
+        # Normal submission
+        test_file = SimpleUploadedFile('new_filename.tar.bz2', f.read())
+        entry_file = source_file + '2'
+        response = self.client.post(initial_path,
+                                    {'description': 'blabla',
+                                     'csrf_token': response_get.context['csrf_token'],
+                                     'artifactfile': test_file,
+                                     'is_documentation': True,
+                                     'documentation_entry_file': entry_file,
+                                     'branch': 'blah',
+                                     'revision': 'blah1'
+                                     })
+
+        self.assertRedirects(response, self.new_series.get_absolute_url())
+        self.assertEqual(Artifact.objects.count(), 1)
 
     def test_check_documentation_flag_changed_non_tars(self):
         """Checks if the upload behaves correctly when the flag for documentation is changed. """
