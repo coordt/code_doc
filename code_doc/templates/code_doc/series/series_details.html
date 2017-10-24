@@ -63,10 +63,10 @@
             <td>
             {% if artifact.is_documentation %}
               <span class="label label-info">doc</span>
-            {% endif %}
               {% if artifact.documentation_entry_file %}
                 <a href="{%get_media_prefix%}{{artifact.get_documentation_url}}">read online</a>
               {% endif %}
+            {% endif %}
             </td>
             
 	          <td>

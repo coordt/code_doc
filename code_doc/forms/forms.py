@@ -6,8 +6,9 @@ from django.core.exceptions import ValidationError
 from ..models.projects import Project, ProjectSeries
 from ..models.authors import Author
 from ..models.artifacts import Artifact
-from django.core.files.temp import NamedTemporaryFile
-from tarfile import TarFile
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 class AuthorForm(ModelForm):
@@ -203,22 +204,24 @@ class ArtifactEditionForm(ModelForm):
         if 'artifactfile' not in self.cleaned_data:
             raise ValidationError('The submitted file is invalid')
 
-        import tarfile
         artifact_file = self.cleaned_data['artifactfile']
-
-        try:
-            # same logic as tarfile.is_tarfile(tmpfile) but we have fileoj
-            tar = TarFile.open(fileobj=artifact_file)
-        except tarfile.TarError:
-            raise ValidationError('The submitted file does not seem to be a valid tar file')
-
         is_doc = self.cleaned_data['is_documentation']
 
         # additional checks if we have a doc
         if is_doc:
 
             if not self.cleaned_data['documentation_entry_file']:
+                logger.error("The field 'documentation entry' should be filled for an artifact of type documentation")
                 raise ValidationError("The field 'documentation entry' should be filled for an artifact of type documentation")
+
+            # we check if we can open the file with tar
+            import tarfile
+            try:
+                # same logic as tarfile.is_tarfile(tmpfile) but we have fileoj
+                tar = tarfile.TarFile.open(fileobj=artifact_file)
+            except tarfile.TarError:
+                logger.error('The submitted file does not seem to be a valid tar file')
+                raise ValidationError('The submitted file does not seem to be a valid tar file')
 
             # check that the content of the archive is accessible
 
@@ -227,10 +230,12 @@ class ArtifactEditionForm(ModelForm):
                 if e.name == doc_entry:
                     break
             else:
+                logger.error('Documentation entry not found in the tar')
                 raise ValidationError('The documentation entry "%(value)s" was not found in the archive',
                                       params={'value': doc_entry})
 
             if e.isdir():
+                logger.error('Documentation entry not a file in the tar')
                 raise ValidationError('The documentation entry "%(value)s" does points to a directory',
                                       params={'value': doc_entry})
 

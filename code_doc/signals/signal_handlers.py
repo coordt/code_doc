@@ -10,11 +10,10 @@ from ..models.revisions import Revision
 from ..models.artifacts import Artifact, get_deflation_directory
 
 import logging
-import tempfile
 import os
-import tarfile
 import shutil
 import functools
+import tarfile
 
 # logger for this file
 logger = logging.getLogger(__name__)
@@ -45,10 +44,10 @@ def linkToAuthor(sender, **kwargs):
                 linked_author = Author.objects.get(email=user_instance.email)
             else:
                 linked_author = Author.objects.create(
-                                  lastname=user_instance.last_name,
-                                  firstname=user_instance.first_name,
-                                  email=user_instance.email,
-                                  django_user=user_instance)
+                    lastname=user_instance.last_name,
+                    firstname=user_instance.first_name,
+                    email=user_instance.email,
+                    django_user=user_instance)
             user_instance.author = linked_author
             user_instance.save()
 
@@ -292,6 +291,48 @@ def delete_deflate_folder(instance):
         shutil.rmtree(deflate_directory, False, functools.partial(on_error, instance=instance))
 
 
+@receiver(pre_save, sender=Artifact)
+def callback_artifact_field_checks(sender,
+                                   instance,
+                                   raw,
+                                   update_fields,
+                                   **kwargs):
+    """Callback received before an artifact is saved"""
+
+    logger.debug('[project artifact] pre_save artifact %s', instance)
+
+    # we do not perform operation in case of database populating action
+    if raw:
+        return
+
+    # inspects the instance in case of documentation
+    if instance.is_documentation:
+        if not instance.documentation_entry_file:
+            raise IntegrityError("Artifact has incorrect 'documentation_entry_file' field")
+
+        if instance.artifactfile.closed:
+            if not tarfile.is_tarfile(instance.artifactfile.path):
+                raise IntegrityError('Artifact cannot be documentation: not valid tar file')
+        else:
+            # in this case, the file may not be yet on disk??
+            import tempfile
+            with tempfile.TemporaryFile() as f:
+
+                for chunk in instance.artifactfile.chunks():
+                    f.write(chunk)
+
+                f.seek(0)
+                try:
+                    # same logic as tarfile.is_tarfile(tmpfile) but we have fileoj
+                    _ = tarfile.TarFile.open(fileobj=f)
+                except tarfile.TarError:
+                    raise IntegrityError('Artifact cannot be documentation: not valid tar file')
+
+        pass
+
+    pass
+
+
 @receiver(post_save, sender=Artifact)
 def callback_artifact_deflation_on_save(sender,
                                         instance,
@@ -358,4 +399,4 @@ def callback_artifact_delete(sender, instance, using, **kwargs):
         try:
             os.rmdir(parent_directory)
         except Exception, e:
-            logger.debug('[signal][artifact][post_delete] failed to remote %s: %s', parent_directory, e)
+            logger.error('[signal][artifact][post_delete] failed to remote %s: %s', parent_directory, e)
