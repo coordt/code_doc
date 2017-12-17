@@ -47,7 +47,6 @@ def button_edit_series_with_permission(user, serie):
 @register.inclusion_tag('code_doc/tags/button_edit_with_permission_tag.html')
 def button_edit_author_with_permission(user, author):
     logger.debug('[templatetag|button author] User %s editing Author %s', user, author)
-
     return {'permission_ok': author.has_user_author_edit_permission(user),
             'user': user,
             'next': reverse_lazy('author_edit', args=[author.id])}

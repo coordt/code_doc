@@ -10,6 +10,8 @@
 
 {% block content %}
 
+
+
     {% if series.series  %}
 
       <h1>{{ project.name }} - Series <a href={% url 'project_series' project.id series.id %}>{{series.series}}</a></h1>
@@ -25,18 +27,16 @@
       </div>
       
       <div class="alert alert-tip" role="alert">
-          A series is a line of development, and contains the artefacts of those developments. For instance "night-builds", "stable", "experimental", etc.</br>
-          Once created, a series can receive files, documentations, revision and branches.</br> 
-          A series can also have restricted accesses, which allows a subset of
-          users sharing common interests on this line of development to access those artifacts.    
-          
-	  </div>	
+        A series is a line of development, and contains the artefacts of those developments. For instance "night-builds", "stable", "experimental", etc.</br>
+        Once created, a series can receive files, documentations, revision and branches.</br>
+        A series can also have restricted accesses, which allows a subset of
+        users sharing common interests on this line of development to access those artifacts.
+	  </div>
+    
     {% endif %}
 
-
-
     {% if form.errors %}
-        <div class="alert alert-danger" role="alert">The following error occurred with your submission {{form.errors}}</div>
+      <div class="alert alert-danger" role="alert">The following error occurred with your submission {{form.errors}}</div>
     {% endif %}
 
 
@@ -67,37 +67,43 @@
         {% endfor %}
         
         
-        <h3>Permissions</h3>
+        <h3>Permissions
+        {% if series.series %}
+          <a type="button" class="btn btn-default btn-sm" data-toggle="modal" data-backdrop="static" data-target="#modal_add_user">
+			<span class="glyphicon glyphicon-plus"></span> Add User
+		  </a>
+        {% endif %}
+        </h3>
         <p class="help-block">Indicate in the table below the permissions on this series granted to each user or group.</p>
         <table class="table table-hover table-condensed">
         <thead>
-            <tr>
-              <th width="30%">Users</th>
-              {% for header in permission_headers %}
-                <th>{{header}}</th>
-              {% endfor %}
-            </tr>
+          <tr>
+            <th width="30%">Users</th>
+            {% for header in permission_headers %}
+              <th>{{header}}</th>
+            {% endfor %}
+          </tr>
         </thead>
 
         <tbody>
-            {% for index, user, checks in user_permissions %}
+          {% for index, user, checks in users_with_view_permission %}
             <tr>
               <td width="30%">
-                {{user}}
+                {{user}} 
               </td>
               {% for check1 in checks %}
-              <td>
+                <td>
                 <label for="{{check1.id_for_label}}">
                 <input
                 {% if check1.is_checked %}
-                checked="checked"
+                  checked="checked"
                 {% endif %}
-                id="{{check1.id_for_label}}" type="{{check1.input_type}}" value="{{check1.choice_value}}" name="{{check1.name}}"/>
+                  id="{{check1.id_for_label}}" type="checkbox" value="{{check1.choice_value}}" name="{{check1.name}}"/>
                 </label>
-              </td>
+                </td>
               {% endfor %}
             </tr>
-            {% endfor %}
+          {% endfor %}
         </tbody>
         </table>
 
@@ -132,13 +138,35 @@
             {% endfor %}
           </tbody>
         </table>
-
+        
         {% if series.series %}
           <button type="submit" class="btn btn-info" />Save</button>
         {% else %}
           <button type="submit" class="btn btn-info" />Create</button>
         {% endif %}
-
+        
     </form>
-
+    <div class="modal fade" id="modal_add_user"></div>
+    
+    
+<script>	
+	$('.b-link').on('click', function(e){
+		e.stopPropagation();
+	});
+	
+    $('#modal_add_user').on('show.bs.modal', function (event) {
+        var modal = $(this);
+    	var project_id = "{{ project.id }}";
+    	var series_id = "{{ series.id }}";
+    	var url = "{% url 'project_series_add_user' '00' '000' %}".replace('000', series_id.toString()).replace('00', project_id.toString());;
+    	
+    	$.ajax({
+    		url: url,
+    		context: document.body
+    	}).done(function(response) {
+            modal.html(response);
+    	});
+    })
+</script>
+        
 {% endblock %}

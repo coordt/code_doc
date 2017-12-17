@@ -97,6 +97,7 @@ class SeriesEditionForm(ModelForm):
                                           form['view_users'],
                                           form['perms_users_artifacts_add'],
                                           form['perms_users_artifacts_del'])
+
         # group the permissions in a tuple so that we can parse them easily
         context['user_permissions'] = [(perms[0], perms[1], tuple(perms[2:])) for perms in context['user_permissions']]
 
@@ -240,3 +241,30 @@ class ArtifactEditionForm(ModelForm):
                                       params={'value': doc_entry})
 
         return self.cleaned_data
+
+
+class ModalAddUserForm(Form):
+
+    username = CharField(label='user_selection',
+                         required=True,
+                         initial='',
+                         widget=TextInput(attrs={'id': "user_selection"}))
+
+    def __init__(self, project, series, *args, **kwargs):
+        super(ModalAddUserForm, self).__init__(*args, **kwargs)
+
+        self.project = project
+        self.series = series
+
+    def clean_username(self):
+
+        username = self.data['username'].strip()
+
+        # Try to find corresponding user
+        try:
+            User.objects.get(username=username)
+        except User.DoesNotExist:
+            raise ValidationError('Username %(value)s is not registered',
+                                  params={'value': self.data['username']})
+
+        return username

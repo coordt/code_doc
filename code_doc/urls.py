@@ -4,6 +4,7 @@ from django.contrib.auth.views import login, logout
 from .views import global_views, project_views, author_views, artifact_views, revision_views
 from code_doc.views import series_views
 
+
 urlpatterns = [
     url(r'^$', global_views.index, name='index'),
     url(r'^about$', global_views.about, name='about'),
@@ -45,6 +46,10 @@ urlpatterns = [
     url(r'^series/(?P<project_id>\d+)/add/$',
         series_views.SeriesAddView.as_view(),
         name='project_series_add'),
+    # adding user to a particular project series
+    url(r'^project/(?P<project_id>\d+)/(?P<series_id>\w+)/add_user',
+        global_views.ModalAddUserView.as_view(),
+        name='project_series_add_user'),
 
     # Revisions
     # See the contents of a revision
@@ -76,6 +81,10 @@ urlpatterns = [
         project_views.GetProjectRevisionIds.as_view(),
         name='api_get_ids'),
 
+    # get all usernames
+    url(r'^api/get_usernames/',
+        global_views.JSONResponseUsernamesView.as_view(),
+        name='api_usernames'),
 
     # maintainers
     url(r'^maintainer/(?P<maintainer_id>\d+)/$',

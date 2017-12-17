@@ -8,6 +8,7 @@ import datetime
 from ..models.projects import Project, ProjectSeries
 from ..models.authors import Author
 from ..models.artifacts import Artifact
+from ..forms.forms import ModalAddUserForm
 
 
 class ProjectSeriesTest(TestCase):
@@ -173,3 +174,87 @@ class ProjectSeriesTest(TestCase):
         self.assertEqual(len(response.context['artifacts']), 1)
         self.assertEqual(len(response.context['revisions']), 1)
         self.assertIsNone(response.context['revisions'][0])
+
+    def test_modal_add_user_view_access(self):
+        """ Test the access to the ModalAddUserView. """
+
+        new_series = ProjectSeries.objects.create(series="1234", project=self.project,
+                                                  release_date=datetime.datetime.now())
+
+        # Anonymous user (no permission)
+        response = self.client.get(reverse('project_series_add_user', args=[self.project.id, new_series.id]))
+        self.assertEqual(response.status_code, 401)
+
+        # Logged-in user but without permission
+        _ = User.objects.create_user(username='user2', password='user2', email="c@c.com")
+        response = self.client.login(username='user2', password='user2')
+        self.assertTrue(response)
+        response = self.client.get(reverse('project_series_add_user', args=[self.project.id, new_series.id]), follow=True)
+        self.assertEqual(response.status_code, 401)
+
+        # Superuser, access granted
+        response = self.client.login(username='test_series_user', password='test_series_user')
+        self.assertTrue(response)
+        response = self.client.get(reverse('project_series_add_user', args=[self.project.id, new_series.id]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_modal_add_user_post_forms(self):
+        """ Test posting forms. """
+
+        new_series = ProjectSeries.objects.create(series="1234", project=self.project,
+                                                  release_date=datetime.datetime.now())
+
+        # Log in as superuser and post forms
+        response = self.client.login(username='test_series_user', password='test_series_user')
+        self.assertTrue(response)
+        path = reverse('project_series_add_user', args=[self.project.id, new_series.id])
+
+        # Forms
+        form1 = ModalAddUserForm(self.project, new_series, data={})
+        form2 = ModalAddUserForm(self.project, new_series, data={'username': 'dirk'})
+        form3 = ModalAddUserForm(self.project, new_series, data={'username': 'test_series_user'})
+
+        # Form1 is empty
+        self.assertFalse(form1.is_valid())
+        response1 = self.client.post(path, form1.data)
+        self.assertEqual(response1.status_code, 200)
+        self.assertTemplateUsed(response1, 'code_doc/series/modal_add_user_form.html')
+
+        # Form2 is invalid: error thrown
+        self.assertFalse(form2.is_valid())
+        response2 = self.client.post(path, form2.data)
+        self.assertEqual(response2.status_code, 200)
+        self.assertTemplateUsed(response2, 'code_doc/series/modal_add_user_form.html')
+        self.assertContains(response2, 'Username dirk is not registered')
+
+        # Form 3 is valid: redirect to edit page via success page.
+        self.assertTrue(form3.is_valid())
+        response3 = self.client.post(path, form3.data)
+        self.assertEqual(response3.status_code, 200)
+        self.assertTemplateUsed(response3, 'code_doc/series/modal_add_user_form_success.html')
+
+    def test_add_user_with_view_permission(self):
+        """ Test giving view permission to a new user. """
+
+        new_series = ProjectSeries.objects.create(series="1234", project=self.project,
+                                                  release_date=datetime.datetime.now())
+
+        # Log in as superuser and post forms
+        response = self.client.login(username='test_series_user', password='test_series_user')
+        self.assertTrue(response)
+        path = reverse('project_series_add_user', args=[self.project.id, new_series.id])
+
+        # Create second user
+        self.second_user = User.objects.create_user(username='dirk',
+                                                    password='41',
+                                                    email="dirk@dirk.com")
+        # Form should now be valid
+        form = ModalAddUserForm(self.project, new_series, data={'username': 'dirk'})
+        self.assertTrue(form.is_valid())
+
+        # Post form
+        response = self.client.post(path, form.data, follow=True)
+        self.assertEqual(response.status_code, 200)
+
+        # Dirk should now have view permission
+        self.assertEqual(type(new_series.view_users.get(username='dirk')), User)

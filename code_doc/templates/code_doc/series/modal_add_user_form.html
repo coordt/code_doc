@@ -1,0 +1,107 @@
+{% load static %}
+
+{% block additionalhead %}
+  <link rel="stylesheet" href="{% static "jquery-ui-1.12.1.css" %}">
+  <script language="javascript" type="text/javascript" src="{% static "jquery-ui-1.12.1.js" %}"></script>
+  <script language="javascript" type="text/javascript" src="{% static "jquery.forms.min.js" %}"></script>
+  <link rel="stylesheet" href="{% static "autocomplete.css" %}">
+{% endblock %}
+
+{% block content %}
+
+<style>
+	.modal-body .form-horizontal .col-sm-2,
+	.modal-body .form-horizontal .col-sm-10 {
+	    width: 100%
+	}
+	
+	.modal-body .form-horizontal .control-label {
+	    text-align: left;
+	}
+	.modal-body .form-horizontal .col-sm-offset-2 {
+	    margin-left: 15px;
+	}
+</style>
+
+<script>
+
+  $( '#add-user-form' ).ajaxForm({
+	  url: '{% url 'project_series_add_user' form.project.id form.series.id %}',
+	  target: '#modal_add_user'
+  });
+
+</script>
+
+
+<div class="modal-dialog modal-lg" id="modal_add_user" role="dialog">
+	<!-- Modal content-->
+      <div class="modal-content">
+
+	    <!-- the form action has to be a valid url to a created view of the form type -->
+	    <form action="{% url 'project_series_add_user' form.project.id form.series.id %}" id="add-user-form" method="post" class="form">
+	    {% csrf_token %}
+        <div class="modal-header">
+          
+		  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+		  <span aria-hidden="true">×</span>
+		  <span class="sr-only">Close</span>
+		  </button>
+		  
+          <h3 class="modal-title">Grant permission view to:</h3>
+        </div>
+        <div class="modal-body">
+          <div class="ui-widget">
+             <label for="usrname"><span class="glyphicon glyphicon-user"></span> Username: </label>
+             {{ form.username }}
+          </div>
+          
+          {# inline #}
+          {% comment %} Show errors {% endcomment %}
+          
+          {% if form.errors %}
+            <br/>
+            {% for field in form %}
+              {% for error in field.errors %}
+                <div class="alert alert-danger">
+                <strong>{{ error|escape }}</strong>
+                </div>
+              {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+               <div class="alert alert-danger">
+               <strong>{{ error|escape }}</strong>
+               </div>
+            {% endfor %}
+          {% endif %}
+          
+        </div>
+        <div class="modal-footer">
+        
+		  {# inline #}
+          {% comment %} Buttons {% endcomment %}
+         
+          <input id=ok_btn class="btn btn-primary" type="submit" value="Add">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          
+        </div>
+      </div>
+      
+    </form>
+    
+</div>
+</div>
+
+<script>
+$(document).ready(function(){
+
+  $( "#user_selection" ).autocomplete({
+    source: "/api/get_usernames/",
+    classes: {
+      "ui-autocomplete": "highlight",
+      "ui-menu": "highlight"
+    }
+  });
+});
+</script>
+
+{% endblock %}

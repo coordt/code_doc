@@ -116,6 +116,7 @@ class SeriesUpdateView(SeriesEditViewBase, UpdateView):
 
     def get_context_data(self, **kwargs):
         """Method used for populating the template context"""
+
         context = super(SeriesUpdateView, self).get_context_data(**kwargs)
         series_object = self.object
 
@@ -123,6 +124,8 @@ class SeriesUpdateView(SeriesEditViewBase, UpdateView):
 
         # We need this to distinguish between Adding and Editing a Series
         context['series'] = series_object
+        context['users_with_view_permission'] = [perms for perms in context['user_permissions']
+                                                 if perms[1].has_perm('code_doc.series_view', series_object)]
 
         return context
 
