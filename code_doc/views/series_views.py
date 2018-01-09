@@ -5,6 +5,7 @@ from django.http import Http404, HttpResponse
 from django.views.generic.base import RedirectView
 from django.views.generic.edit import CreateView, UpdateView
 from django.views.generic.detail import DetailView
+from django.contrib.auth.models import User
 
 from django.core.urlresolvers import reverse
 
@@ -89,16 +90,38 @@ class SeriesAddView(SeriesEditViewBase, CreateView):
         # specific case since we are adding to the project
         return self.get_project_from_request(request, *args, **kwargs)
 
+    def get_form_kwargs(self):
+        kwargs = super(SeriesAddView, self).get_form_kwargs()
+
+        # Add project and series id
+        kwargs['series'] = None
+        return kwargs
+
     def form_valid(self, form):
         # in this case we need to set the project of the object otherwise the association
         # of the created object does not work.
+
         try:
             current_project = Project.objects.get(pk=self.kwargs['project_id'])
         except Project.DoesNotExist:
             raise Http404
 
         form.instance.project = current_project
-        return super(SeriesAddView, self).form_valid(form)
+
+        view_users = User.objects.filter(pk__in=form.cleaned_data['view_users'])
+
+        response = super(SeriesAddView, self).form_valid(form)
+
+        for user in view_users:
+            form.instance.view_users.add(user)
+
+            if user.pk in form.cleaned_data['perms_users_artifacts_add']:
+                form.instance.perms_users_artifacts_add.add(user)
+
+            if user.pk in form.cleaned_data['perms_users_artifacts_del']:
+                form.instance.perms_users_artifacts_del.add(user)
+
+        return response
 
 
 class SeriesUpdateView(SeriesEditViewBase, UpdateView):
@@ -113,6 +136,7 @@ class SeriesUpdateView(SeriesEditViewBase, UpdateView):
 
     # we should have the following privileges on the series in order to be able to edit anything
     permissions_on_object = ('code_doc.series_edit',)
+    form_class = SeriesEditionForm
 
     def get_context_data(self, **kwargs):
         """Method used for populating the template context"""
@@ -124,10 +148,45 @@ class SeriesUpdateView(SeriesEditViewBase, UpdateView):
 
         # We need this to distinguish between Adding and Editing a Series
         context['series'] = series_object
-        context['users_with_view_permission'] = [perms for perms in context['user_permissions']
-                                                 if perms[1].has_perm('code_doc.series_view', series_object)]
 
         return context
+
+    def get_form_kwargs(self):
+        kwargs = super(SeriesUpdateView, self).get_form_kwargs()
+
+        # Add project and series id
+        current_series = get_object_or_404(ProjectSeries, pk=self.kwargs['series_id'])
+        kwargs['series'] = current_series
+        return kwargs
+
+    def form_valid(self, form):
+
+        series_object = self.object
+
+        # TO OPTIMIZE
+        # What is the most efficient: one full query or make differences between queries?
+        for user in User.objects.all():
+            pk = str(user.pk)
+
+            # View permission
+            if pk in form.cleaned_data['view_users']:
+                series_object.view_users.add(user)
+            else:
+                series_object.view_users.remove(user)
+
+            # Add artifact
+            if pk in form.cleaned_data['perms_users_artifacts_add']:
+                series_object.perms_users_artifacts_add.add(user)
+            else:
+                series_object.perms_users_artifacts_add.remove(user)
+
+            # Remove artifact
+            if pk in form.cleaned_data['perms_users_artifacts_del']:
+                series_object.perms_users_artifacts_del.add(user)
+            else:
+                series_object.perms_users_artifacts_del.remove(user)
+
+        return super(SeriesUpdateView, self).form_valid(form)
 
 
 class SeriesDetailsView(SerieAccessViewBase, DetailView):

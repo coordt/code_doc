@@ -18,7 +18,6 @@ from ..forms.forms import ModalAddUserForm
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.shortcuts import get_object_or_404
 
-
 logger = logging.getLogger(__name__)
 
 
