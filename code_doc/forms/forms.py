@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from django.forms import Form, ModelForm, CharField, Textarea, DateInput, MultipleChoiceField, CheckboxSelectMultiple, TextInput, EmailInput, Select
+from django.forms import Form, ModelForm, CharField, Textarea, DateInput, CheckboxSelectMultiple, TextInput, EmailInput
 from django.contrib.auth.models import User, Group
 from django.core.exceptions import ValidationError
 
@@ -27,28 +27,16 @@ class AuthorForm(ModelForm):
 
 
 class SeriesEditionForm(ModelForm):
-    """Form definition that is used when adding and editing a project series"""
-
-    view_users = MultipleChoiceField(widget=CheckboxSelectMultiple,
-                                     label='',
-                                     required=False)
-
-    perms_users_artifacts_add = MultipleChoiceField(widget=CheckboxSelectMultiple,
-                                                    label='',
-                                                    required=False)
-
-    perms_users_artifacts_del = MultipleChoiceField(widget=CheckboxSelectMultiple,
-                                                    label='',
-                                                    required=False)
+    """Form definition that is used when adding and editing a project series."""
 
     class Meta:
         model = ProjectSeries
         fields = (
             'series', 'release_date', 'description_mk',
             'is_public',
-            'view_groups',
-            'perms_groups_artifacts_add',
-            'perms_groups_artifacts_del',
+            'view_users', 'view_groups',
+            'perms_users_artifacts_add', 'perms_groups_artifacts_add',
+            'perms_users_artifacts_del', 'perms_groups_artifacts_del',
             'nb_revisions_to_keep'
         )
         labels = {
@@ -75,33 +63,31 @@ class SeriesEditionForm(ModelForm):
                                              'data-date-format': "dd/mm/yyyy",
                                              'data-provide': 'datepicker'},
                                       format='%d/%m/%Y'),
+            'view_users': CheckboxSelectMultiple,
             'view_groups': CheckboxSelectMultiple,
+            'perms_users_artifacts_add': CheckboxSelectMultiple,
             'perms_groups_artifacts_add': CheckboxSelectMultiple,
+            'perms_users_artifacts_del': CheckboxSelectMultiple,
             'perms_groups_artifacts_del': CheckboxSelectMultiple,
         }
 
-    def __init__(self, series, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
+
+        initials = kwargs.get('initial', None)
+        if initials:
+            active_users = initials.pop('active_users', None)
 
         super(SeriesEditionForm, self).__init__(*args, **kwargs)
 
-        choices_users = User.objects.all()
+        if active_users is not None:
+            for perm in ('view_users', 'perms_users_artifacts_add', 'perms_users_artifacts_del'):
+                self.fields[perm].queryset = self.fields[perm].queryset.filter(username__in=active_users)
+                self.fields[perm].choices = [(_.pk, '----') for _ in self.fields[perm].queryset]
 
-        # If we are creating the series, show all available users such that one can define all permissions
-        # Else show only the users having view permission
-        if series is None:
-            self.fields['view_users'].initial = []
-            self.fields['perms_users_artifacts_add'].initial = []
-            self.fields['perms_users_artifacts_del'].initial = []
-        else:
-            choices_users = [_ for _ in choices_users if series.has_user_series_view_permission(_)]
-            self.fields['view_users'].initial = [_.pk for _ in choices_users]
-            self.fields['perms_users_artifacts_add'].initial = [_.pk for _ in choices_users if series.has_user_series_artifact_add_permission(_)]
-            self.fields['perms_users_artifacts_del'].initial = [_.pk for _ in choices_users if series.has_user_series_artifact_delete_permission(_)]
-
-        choices = [(_.pk, '-----') for _ in choices_users]
-        self.fields['view_users'].choices = choices
-        self.fields['perms_users_artifacts_add'].choices = choices
-        self.fields['perms_users_artifacts_del'].choices = choices
+                # If creation, the active user has all permissions checked and not-editable
+                if kwargs['instance'] is None:
+                    self.fields[perm].initial = active_users
+                    self.fields[perm].disabled = True
 
     @staticmethod
     def set_context_for_template(context, project_id):
@@ -123,13 +109,10 @@ class SeriesEditionForm(ModelForm):
         context['permission_headers'] = ['View and download', 'Adding artifacts', 'Removing artifacts']
 
         # filter out users that do not have access to the project?
-        if 'projectseries' in context:
-            shown_users = User.objects.filter(pk__in=form['view_users'].initial)
-        else:
-            shown_users = User.objects.all()
+        context['active_users'] = form['view_users'].field.queryset
 
-        context['user_permissions'] = zip(xrange(len(shown_users)),
-                                          shown_users,
+        context['user_permissions'] = zip(xrange(len(context['active_users'])),
+                                          context['active_users'],
                                           form['view_users'],
                                           form['perms_users_artifacts_add'],
                                           form['perms_users_artifacts_del'])

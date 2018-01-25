@@ -269,27 +269,28 @@ class ProjectSeriesTest(TestCase):
         num_xtra_users = 20
         for i in range(num_xtra_users):
             User.objects.create_user(username=generate_random_string(),
-                                     password='password_' + str(i), email="%s@mail.com" % i)
+                                     password='password_' + str(i), email="user_%s@mail.com" % i)
 
         response = self.client.login(username='test_series_user', password='test_series_user')
         self.assertTrue(response)
 
         # Case 1: creating a series
-        # We should see all users, with all permissions unchecked
+        # We should see only the current user
         response = self.client.get(reverse("project_series_add", args=[self.project.id]))
         self.assertEqual(response.status_code, 200)
 
         all_users = User.objects.all()
         perms = response.context['user_permissions']
 
-        self.assertEqual(len(perms), num_xtra_users + 1)
+        self.assertEqual(len(perms), 1)
         for _, user, checks in perms:
-            self.assertIn(user, all_users)
+            self.assertEqual(user.username, self.first_user.username)
             for check in checks:
-                self.assertFalse(check.data['selected'])
+                self.assertTrue(check.data['selected'])
+                self.assertTrue(check.data['attrs']['disabled'])
 
         # Case 2: editing a series
-        # We should see only the users with view permissions, with the appropriate checkboxes checked
+        # We should see all the users that have at least one permission
         new_series = ProjectSeries.objects.create(series="1234", project=self.project,
                                                   release_date=datetime.datetime.now())
 
@@ -302,9 +303,7 @@ class ProjectSeriesTest(TestCase):
                 else:
                     new_series.perms_users_artifacts_del.add(user)
             else:
-
-                # Even if we add artifact permissions to some users, they should not appear
-                if (i - 1) % 4 == 0:
+                if i % 4 == 1:
                     new_series.perms_users_artifacts_add.add(user)
                     new_series.perms_users_artifacts_del.add(user)
 
@@ -312,13 +311,19 @@ class ProjectSeriesTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
         perms = response.context['user_permissions']
-        view_users = zip(*perms)[1]
+        rendered_users = zip(*perms)[1]
+
+        # Database
+        view_users = new_series.view_users.all()
+        perm_art_add_users = new_series.perms_users_artifacts_add.all()
+        perm_art_del_users = new_series.perms_users_artifacts_del.all()
+        union_query = view_users.union(perm_art_add_users, perm_art_del_users)
 
         for user in all_users:
-            if not new_series.has_user_series_view_permission(user):
-                self.assertNotIn(user, view_users)
+            if user in union_query:
+                self.assertIn(user, rendered_users)
             else:
-                self.assertIn(user, view_users)
+                self.assertNotIn(user, rendered_users)
 
         for _, user, checks in perms:
             for check in checks:
@@ -328,11 +333,11 @@ class ProjectSeriesTest(TestCase):
                 status = check.data['selected']
 
                 if name == 'view_users':
-                    self.assertEqual(status, new_series.has_user_series_view_permission(user))
+                    self.assertEqual(status, user in view_users)
                 elif name == 'perms_users_artifacts_add':
-                    self.assertEqual(status, new_series.has_user_series_artifact_add_permission(user))
+                    self.assertEqual(status, user in perm_art_add_users)
                 elif name == 'perms_users_artifacts_del':
-                    self.assertEqual(status, new_series.has_user_series_artifact_delete_permission(user))
+                    self.assertEqual(status, user in perm_art_del_users)
                 else:
                     self.fail('Unknown permission name %s' % name)
 
@@ -347,8 +352,6 @@ class ProjectSeriesTest(TestCase):
         self.second_user = User.objects.create_user(username='dirk',
                                                     password='41',
                                                     email="dirk@dirk.com")
-        all_users = User.objects.all()
-        all_users_ids = [user.pk for user in all_users]
 
         # Create series and give permissions to both users
         url = reverse('project_series_add', args=[self.project.id])
@@ -359,65 +362,67 @@ class ProjectSeriesTest(TestCase):
         data['csrf_token'] = response_get.context['csrf_token']
         data['series'] = 'New series'
         data['release_date'] = [unicode(datetime.datetime.now().strftime("%Y-%m-%d"))]
-        data['view_users'] = all_users_ids
 
-        response = self.client.post(url, data, follow=True)
-        new_series = ProjectSeries.objects.get(id=response.context['series'].id)
+        response = self.client.post(url, data)
+        new_series = ProjectSeries.objects.all()[0]
 
-        self.assertEqual(response.status_code, 200)  # 200 instead of 302 because we use follow = True to get the series id
+        self.assertEqual(response.status_code, 302)
         self.assertRedirects(response, reverse('project_series', args=[self.project.id, new_series.id]))
 
         # First user has all rights because he created the series
-        self.assertTrue(new_series.has_user_series_view_permission(self.first_user))
-        self.assertTrue(new_series.has_user_series_artifact_add_permission(self.first_user))
-        self.assertTrue(new_series.has_user_series_artifact_delete_permission(self.first_user))
-
-        # Second user is only granted view permission
-        self.assertTrue(new_series.has_user_series_view_permission(self.second_user))
-        self.assertFalse(new_series.has_user_series_artifact_add_permission(self.second_user))
-        self.assertFalse(new_series.has_user_series_artifact_delete_permission(self.second_user))
+        self.assertIn(self.first_user, new_series.view_users.all())
+        self.assertIn(self.first_user, new_series.perms_users_artifacts_add.all())
+        self.assertIn(self.first_user, new_series.perms_users_artifacts_del.all())
 
         # From now on, we will modify the permissions
         url = reverse('project_series_edit', args=[self.project.id, new_series.id])
 
-        # Add perms_users_artifacts_add
-        data['perms_users_artifacts_add'] = all_users_ids
-
-        response = self.client.post(url, data)
-        self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('project_series', args=[self.project.id, new_series.id]))
-
-        self.assertTrue(new_series.has_user_series_view_permission(self.second_user))
-        self.assertTrue(new_series.has_user_series_artifact_add_permission(self.second_user))
-        self.assertFalse(new_series.has_user_series_artifact_delete_permission(self.second_user))
-
-        # Add perms_users_artifacts_del
-        data['perms_users_artifacts_del'] = all_users_ids
-
-        response = self.client.post(url, data)
-        self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('project_series', args=[self.project.id, new_series.id]))
-
-        self.assertTrue(new_series.has_user_series_view_permission(self.second_user))
-        self.assertTrue(new_series.has_user_series_artifact_add_permission(self.second_user))
-        self.assertTrue(new_series.has_user_series_artifact_delete_permission(self.second_user))
-
-        # Remove all permissions to both users:
-        #    - first_user will keep everything as he created the series
-        #    - second_user will lose everything
+        # Removing view permissions
         data['view_users'] = []
-        data['perms_users_artifacts_del'] = []
+        data['perms_users_artifacts_add'] = [self.first_user.id]
+        data['perms_users_artifacts_del'] = [self.first_user.id]
+
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('project_series', args=[self.project.id, new_series.id]))
+
+        self.assertNotIn(self.first_user, new_series.view_users.all())
+        self.assertIn(self.first_user, new_series.perms_users_artifacts_add.all())
+        self.assertIn(self.first_user, new_series.perms_users_artifacts_del.all())
+
+        # Remove perms_users_artifacts_add
         data['perms_users_artifacts_add'] = []
 
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, 302)
         self.assertRedirects(response, reverse('project_series', args=[self.project.id, new_series.id]))
 
-        self.assertFalse(new_series.has_user_series_view_permission(self.second_user))
-        self.assertFalse(new_series.has_user_series_artifact_add_permission(self.second_user))
-        self.assertFalse(new_series.has_user_series_artifact_delete_permission(self.second_user))
+        self.assertNotIn(self.first_user, new_series.view_users.all())
+        self.assertNotIn(self.first_user, new_series.perms_users_artifacts_add.all())
+        self.assertIn(self.first_user, new_series.perms_users_artifacts_del.all())
 
-        self.assertTrue(new_series.has_user_series_view_permission(self.first_user))
-        self.assertTrue(new_series.has_user_series_artifact_add_permission(self.first_user))
-        self.assertTrue(new_series.has_user_series_artifact_delete_permission(self.first_user))
-        self.assertFalse(self.first_user.is_superuser)
+        # Remove perms_users_artifacts_add
+        data['perms_users_artifacts_del'] = []
+
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('project_series', args=[self.project.id, new_series.id]))
+
+        self.assertNotIn(self.first_user, new_series.view_users.all())
+        self.assertNotIn(self.first_user, new_series.perms_users_artifacts_add.all())
+        self.assertNotIn(self.first_user, new_series.perms_users_artifacts_del.all())
+
+        # Let's try to give first_user back all his permissions
+        # It won't work because he is not among the available choices anymore (one needs to add him through the modal)
+        data['view_users'] = [self.first_user.id]
+        data['perms_users_artifacts_add'] = [self.first_user.id]
+        data['perms_users_artifacts_del'] = [self.first_user.id]
+
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, 200)
+
+        # Check form errors
+        for m2m_field in ('view_users', 'perms_users_artifacts_add', 'perms_users_artifacts_del'):
+            self.assertFormError(response, 'form', m2m_field,
+                                 'Select a valid choice. %s is not one of the available choices.' % self.first_user.id)
+

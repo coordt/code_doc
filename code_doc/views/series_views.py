@@ -85,17 +85,20 @@ class SeriesAddView(SeriesEditViewBase, CreateView):
 
     # user should have the appropriate privileges on the object in order to be able to add anything
     permissions_on_object = ('code_doc.project_series_add',)
+    form_class = SeriesEditionForm
 
     def get_permission_object_from_request(self, request, *args, **kwargs):
         # specific case since we are adding to the project
         return self.get_project_from_request(request, *args, **kwargs)
 
-    def get_form_kwargs(self):
-        kwargs = super(SeriesAddView, self).get_form_kwargs()
+    def get_initial(self, *args, **kwargs):
 
-        # Add project and series id
-        kwargs['series'] = None
-        return kwargs
+        initial = super(SeriesAddView, self).get_initial()
+
+        # We show only the current user
+        initial['active_users'] = [User.objects.get(username=self.request.user)]
+
+        return initial
 
     def form_valid(self, form):
         # in this case we need to set the project of the object otherwise the association
@@ -107,19 +110,7 @@ class SeriesAddView(SeriesEditViewBase, CreateView):
             raise Http404
 
         form.instance.project = current_project
-
-        view_users = User.objects.filter(pk__in=form.cleaned_data['view_users'])
-
         response = super(SeriesAddView, self).form_valid(form)
-
-        for user in view_users:
-            form.instance.view_users.add(user)
-
-            if user.pk in form.cleaned_data['perms_users_artifacts_add']:
-                form.instance.perms_users_artifacts_add.add(user)
-
-            if user.pk in form.cleaned_data['perms_users_artifacts_del']:
-                form.instance.perms_users_artifacts_del.add(user)
 
         return response
 
@@ -151,42 +142,19 @@ class SeriesUpdateView(SeriesEditViewBase, UpdateView):
 
         return context
 
-    def get_form_kwargs(self):
-        kwargs = super(SeriesUpdateView, self).get_form_kwargs()
+    def get_initial(self, *args, **kwargs):
 
-        # Add project and series id
-        current_series = get_object_or_404(ProjectSeries, pk=self.kwargs['series_id'])
-        kwargs['series'] = current_series
-        return kwargs
-
-    def form_valid(self, form):
-
+        initial = super(SeriesUpdateView, self).get_initial()
         series_object = self.object
 
-        # TO OPTIMIZE
-        # What is the most efficient: one full query or make differences between queries?
-        for user in User.objects.all():
-            pk = str(user.pk)
+        # We show all users that have at least of the permissions
+        full_query = series_object.view_users.all().union(
+            series_object.perms_users_artifacts_add.all(),
+            series_object.perms_users_artifacts_del.all(),
+            )
+        initial['active_users'] = [user for user in full_query]
 
-            # View permission
-            if pk in form.cleaned_data['view_users']:
-                series_object.view_users.add(user)
-            else:
-                series_object.view_users.remove(user)
-
-            # Add artifact
-            if pk in form.cleaned_data['perms_users_artifacts_add']:
-                series_object.perms_users_artifacts_add.add(user)
-            else:
-                series_object.perms_users_artifacts_add.remove(user)
-
-            # Remove artifact
-            if pk in form.cleaned_data['perms_users_artifacts_del']:
-                series_object.perms_users_artifacts_del.add(user)
-            else:
-                series_object.perms_users_artifacts_del.remove(user)
-
-        return super(SeriesUpdateView, self).form_valid(form)
+        return initial
 
 
 class SeriesDetailsView(SerieAccessViewBase, DetailView):
