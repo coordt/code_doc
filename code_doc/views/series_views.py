@@ -98,6 +98,9 @@ class SeriesAddView(SeriesEditViewBase, CreateView):
         # We show only the current user
         initial['active_users'] = [User.objects.get(username=self.request.user)]
 
+        # We show no group
+        initial['active_groups'] = []
+
         return initial
 
     def form_valid(self, form):
@@ -148,11 +151,18 @@ class SeriesUpdateView(SeriesEditViewBase, UpdateView):
         series_object = self.object
 
         # We show all users that have at least of the permissions
-        full_query = series_object.view_users.all().union(
+        full_query_users = series_object.view_users.all().union(
             series_object.perms_users_artifacts_add.all(),
             series_object.perms_users_artifacts_del.all(),
             )
-        initial['active_users'] = [user for user in full_query]
+        initial['active_users'] = [user for user in full_query_users]
+
+        # We show all groups that have at least of the permissions
+        full_query_groups = series_object.view_groups.all().union(
+            series_object.perms_groups_artifacts_add.all(),
+            series_object.perms_groups_artifacts_del.all(),
+            )
+        initial['active_groups'] = [group for group in full_query_groups]
 
         return initial
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from django.forms import Form, ModelForm, CharField, Textarea, DateInput, CheckboxSelectMultiple, TextInput, EmailInput
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 
 from ..models.projects import Project, ProjectSeries
@@ -76,9 +76,11 @@ class SeriesEditionForm(ModelForm):
         initials = kwargs.get('initial', None)
         if initials:
             active_users = initials.pop('active_users', None)
+            active_groups = initials.pop('active_groups', None)
 
         super(SeriesEditionForm, self).__init__(*args, **kwargs)
 
+        # User permissions
         if active_users is not None:
             for perm in ('view_users', 'perms_users_artifacts_add', 'perms_users_artifacts_del'):
                 self.fields[perm].queryset = self.fields[perm].queryset.filter(username__in=active_users)
@@ -88,6 +90,12 @@ class SeriesEditionForm(ModelForm):
                 if kwargs['instance'] is None:
                     self.fields[perm].initial = active_users
                     self.fields[perm].disabled = True
+
+        # Group permissions
+        if active_groups is not None:
+            for perm in ('view_groups', 'perms_groups_artifacts_add', 'perms_groups_artifacts_del'):
+                self.fields[perm].queryset = self.fields[perm].queryset.filter(name__in=active_groups)
+                self.fields[perm].choices = [(_.pk, '----') for _ in self.fields[perm].queryset]
 
     @staticmethod
     def set_context_for_template(context, project_id):
@@ -108,7 +116,7 @@ class SeriesEditionForm(ModelForm):
 
         context['permission_headers'] = ['View and download', 'Adding artifacts', 'Removing artifacts']
 
-        # filter out users that do not have access to the project?
+        # filter out users that are not in the queryset
         context['active_users'] = form['view_users'].field.queryset
 
         context['user_permissions'] = zip(xrange(len(context['active_users'])),
@@ -118,8 +126,8 @@ class SeriesEditionForm(ModelForm):
                                           form['perms_users_artifacts_del'])
         context['user_permissions'] = [(perms[0], perms[1], tuple(perms[2:])) for perms in context['user_permissions']]
 
-        # group the permissions in a tuple so that we can parse them easily
-        context['active_groups'] = Group.objects.all()
+        # filter out groups that are not in the queryset
+        context['active_groups'] = form['view_groups'].field.queryset
         context['group_permissions'] = zip(xrange(len(context['active_groups'])),
                                            context['active_groups'],
                                            form['view_groups'],

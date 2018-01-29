@@ -84,92 +84,38 @@
             {% endfor %}
           </tr>
         </thead>
-		
-		
-		{% comment %}
-        <tbody>
-          {% for index, user, checks in users_with_view_permission %}
-            <tr>
-              <td width="30%">
-                {{user}} 
-              </td>
-              {% for check1 in checks %}
-                <td>
-                <label for="{{check1.id_for_label}}">
-                  <input type="checkbox"
-                    {% if check1.data.is_checked %}
-                      checked="checked"
-                    {% endif %}
-                      name={{ check1.data.name }} id={{ check1.data.attrs.id }} />
-                </label>
-                </td>
-              {% endfor %}
-            </tr>
-          {% endfor %}
-        </tbody>
-
-        <table class="table table-hover table-condensed">
-         <thead>
-           <tr>
-             <th width="30%">Groups</th>
-             {% for header in permission_headers %}
-               <th>{{header}}</th>
-             {% endfor %}
-           </tr>
-          </thead>
-        
-          <tbody>
-            {% for index, group, checks in group_permissions %}
-            <tr>
-              <td width="30%">
-                {{group}}
-              </td>
-              {% for check1 in checks %}
-              <td>
-                <label for="{{check1.id_for_label}}">
-                <input
-                {% if check1.is_checked %}
-                checked="checked"
-                {% endif %}
-                id="{{check1.id_for_label}}" type="{{check1.input_type}}" value="{{check1.choice_value}}" name="{{check1.name}}"/>
-                </label>
-              </td>
-              {% endfor %}             
-            </tr>
-            {% endfor %}
-          </tbody>
-
-	    
-        
-    	<tbody>
-	      {% for choice1, choice2 in all_perms %}
-	      <tr>
-	        <td width="30%">
-	          hello
-	        </td>
-	      
-	      	<td>
-	          <div class="checkbox">
-	    	    {{ choice1 }}
-	          </div>
-			</td>
-	      	<td>
-	          <div class="checkbox">
-	    	    {{ choice2 }}
-	          </div>
-			</td>
-		  </tr>
-	      {% endfor %}
-	    </tbody>
-        
-        {% endcomment %}
-	    
 	    
         <tbody>
           {% for index, user, checks in user_permissions %}
           <tr>
             <td width="30%">
               {{user}} 
+            </td>
+            {% for check1 in checks %}
+              <td>
+		        <div class="checkbox">
+		          {{ check1 }}
+		        </div>
+              </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+        
+		<thead>
+		  <tr>
+		    <th width="30%">Groups</th>
+		    {% for header in permission_headers %}
+		      <th>{{header}}</th>
+		    {% endfor %}
+		  </tr>
+		</thead>
+	    
+        <tbody>
+          {% for index, group, checks in group_permissions %}
+          <tr>
+            <td width="30%">
+              {{group}} 
             </td>
             {% for check1 in checks %}
               <td>

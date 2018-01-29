@@ -260,7 +260,7 @@ class ProjectSeriesTest(TestCase):
         # Dirk should now have view permission
         self.assertTrue(new_series.has_user_series_view_permission(self.second_user))
 
-    def test_project_series_permissions_rendering(self):
+    def test_project_series_user_permissions_rendering(self):
         """ Test the rendering of the user permissions. """
 
         from .tests import generate_random_string
@@ -348,12 +348,7 @@ class ProjectSeriesTest(TestCase):
         response = self.client.login(username='test_series_user', password='test_series_user')
         self.assertTrue(response)
 
-        # Create second user
-        self.second_user = User.objects.create_user(username='dirk',
-                                                    password='41',
-                                                    email="dirk@dirk.com")
-
-        # Create series and give permissions to both users
+        # Create series
         url = reverse('project_series_add', args=[self.project.id])
         response_get = self.client.get(url)
         self.assertEqual(response_get.status_code, 200)
@@ -425,4 +420,165 @@ class ProjectSeriesTest(TestCase):
         for m2m_field in ('view_users', 'perms_users_artifacts_add', 'perms_users_artifacts_del'):
             self.assertFormError(response, 'form', m2m_field,
                                  'Select a valid choice. %s is not one of the available choices.' % self.first_user.id)
+
+    def test_project_series_group_permissions_rendering(self):
+        """ Test the rendering of the grouop permissions. """
+
+        from .tests import generate_random_string
+
+        # Number of groups to create
+        num_xtra_groups = 20
+        for i in range(num_xtra_groups):
+            Group.objects.create(name=generate_random_string())
+
+        response = self.client.login(username='test_series_user', password='test_series_user')
+        self.assertTrue(response)
+
+        # Case 1: creating a series
+        # We should not see any group
+        response = self.client.get(reverse("project_series_add", args=[self.project.id]))
+        self.assertEqual(response.status_code, 200)
+
+        perms = response.context['group_permissions']
+        self.assertEqual(len(perms), 0)
+
+        # Case 2: editing a series
+        # We should see all the groups that have at least one permission
+        new_series = ProjectSeries.objects.create(series="1234", project=self.project,
+                                                  release_date=datetime.datetime.now())
+
+        all_groups = Group.objects.all()
+
+        for i, group in enumerate(all_groups):
+            if i % 2 == 0:
+                new_series.view_groups.add(group)
+
+                if i % 4 == 0:
+                    new_series.perms_groups_artifacts_add.add(group)
+                else:
+                    new_series.perms_groups_artifacts_del.add(group)
+            else:
+                if i % 4 == 1:
+                    new_series.perms_groups_artifacts_add.add(group)
+                    new_series.perms_groups_artifacts_del.add(group)
+
+        response = self.client.get(reverse("project_series_edit", args=[self.project.id, new_series.id]))
+        self.assertEqual(response.status_code, 200)
+
+        perms = response.context['group_permissions']
+        rendered_groups = zip(*perms)[1]
+
+        # Database
+        view_groups = new_series.view_groups.all()
+        perm_art_add_groups = new_series.perms_groups_artifacts_add.all()
+        perm_art_del_groups = new_series.perms_groups_artifacts_del.all()
+        union_query = view_groups.union(perm_art_add_groups, perm_art_del_groups)
+
+        for group in all_groups:
+            if group in union_query:
+                self.assertIn(group, rendered_groups)
+            else:
+                self.assertNotIn(group, rendered_groups)
+
+        for _, group, checks in perms:
+            for check in checks:
+
+                # May be there is a better way to do this...
+                name = check.data['name']
+                status = check.data['selected']
+
+                if name == 'view_groups':
+                    self.assertEqual(status, group in view_groups)
+                elif name == 'perms_groups_artifacts_add':
+                    self.assertEqual(status, group in perm_art_add_groups)
+                elif name == 'perms_groups_artifacts_del':
+                    self.assertEqual(status, group in perm_art_del_groups)
+                else:
+                    self.fail('Unknown permission name %s' % name)
+
+    def test_project_series_handle_group_permissions(self):
+        """Test creating and modifying the group permissions."""
+
+        # Log in as admin
+        response = self.client.login(username='test_series_user', password='test_series_user')
+        self.assertTrue(response)
+
+        # Create series
+        url = reverse('project_series_add', args=[self.project.id])
+        response_get = self.client.get(url)
+        self.assertEqual(response_get.status_code, 200)
+
+        data = {}
+        data['csrf_token'] = response_get.context['csrf_token']
+        data['series'] = 'New series'
+        data['release_date'] = [unicode(datetime.datetime.now().strftime("%Y-%m-%d"))]
+
+        response = self.client.post(url, data)
+        new_series = ProjectSeries.objects.all()[0]
+
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('project_series', args=[self.project.id, new_series.id]))
+
+        # Create group and give it all permissions
+        test_group = Group.objects.create(name='test_group')
+        new_series.view_groups.add(test_group)
+        new_series.perms_groups_artifacts_add.add(test_group)
+        new_series.perms_groups_artifacts_del.add(test_group)
+
+        # Group should have all permissions now
+        self.assertIn(test_group, new_series.view_groups.all())
+        self.assertIn(test_group, new_series.perms_groups_artifacts_add.all())
+        self.assertIn(test_group, new_series.perms_groups_artifacts_del.all())
+
+        # From now on, we will modify the permissions
+        url = reverse('project_series_edit', args=[self.project.id, new_series.id])
+
+        # Removing view permissions
+        data['view_groups'] = []
+        data['perms_groups_artifacts_add'] = [test_group.id]
+        data['perms_groups_artifacts_del'] = [test_group.id]
+
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('project_series', args=[self.project.id, new_series.id]))
+
+        self.assertNotIn(test_group, new_series.view_groups.all())
+        self.assertIn(test_group, new_series.perms_groups_artifacts_add.all())
+        self.assertIn(test_group, new_series.perms_groups_artifacts_del.all())
+
+        # Remove perms_groups_artifacts_add
+        data['perms_groups_artifacts_add'] = []
+
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('project_series', args=[self.project.id, new_series.id]))
+
+        self.assertNotIn(test_group, new_series.view_groups.all())
+        self.assertNotIn(test_group, new_series.perms_groups_artifacts_add.all())
+        self.assertIn(test_group, new_series.perms_groups_artifacts_del.all())
+
+        # Remove perms_groups_artifacts_add
+        data['perms_groups_artifacts_del'] = []
+
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('project_series', args=[self.project.id, new_series.id]))
+
+        self.assertNotIn(test_group, new_series.view_groups.all())
+        self.assertNotIn(test_group, new_series.perms_groups_artifacts_add.all())
+        self.assertNotIn(test_group, new_series.perms_groups_artifacts_del.all())
+
+        # Let's try to give the group back all his permissions
+        # It won't work because it is not among the available choices anymore (one needs to add it through the modal)
+        data['view_groups'] = [test_group.id]
+        data['perms_groups_artifacts_add'] = [test_group.id]
+        data['perms_groups_artifacts_del'] = [test_group.id]
+
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, 200)
+
+        # Check form errors
+        for m2m_field in ('view_groups', 'perms_groups_artifacts_add', 'perms_groups_artifacts_del'):
+            self.assertFormError(response, 'form', m2m_field,
+                                 'Select a valid choice. %s is not one of the available choices.' % test_group.id)
 
