@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from django.forms import Form, ModelForm, CharField, Textarea, DateInput, CheckboxSelectMultiple, TextInput, EmailInput
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from django.core.exceptions import ValidationError
 
 from ..models.projects import Project, ProjectSeries
@@ -294,3 +294,30 @@ class ModalAddUserForm(Form):
                                   params={'value': self.data['username']})
 
         return username
+
+
+class ModalAddGroupForm(Form):
+
+    groupname = CharField(label='group_selection',
+                         required=True,
+                         initial='',
+                         widget=TextInput(attrs={'id': "group_selection"}))
+
+    def __init__(self, project, series, *args, **kwargs):
+        super(ModalAddGroupForm, self).__init__(*args, **kwargs)
+
+        self.project = project
+        self.series = series
+
+    def clean_groupname(self):
+
+        groupname = self.data['groupname'].strip()
+
+        # Try to find corresponding user
+        try:
+            Group.objects.get(name=groupname)
+        except Group.DoesNotExist:
+            raise ValidationError('Group %(value)s is not registered',
+                                  params={'value': self.data['groupname']})
+
+        return groupname

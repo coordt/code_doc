@@ -140,7 +140,7 @@ class SeriesUpdateView(SeriesEditViewBase, UpdateView):
 
         assert(Project.objects.get(pk=self.kwargs['project_id']).id == series_object.project.id)
 
-        # We need this to distinguish between Adding and Editing a Series
+        # We need this to distinguish between adding and editing a series
         context['series'] = series_object
 
         return context
@@ -150,14 +150,14 @@ class SeriesUpdateView(SeriesEditViewBase, UpdateView):
         initial = super(SeriesUpdateView, self).get_initial()
         series_object = self.object
 
-        # We show all users that have at least of the permissions
+        # We show all users that have at least one of the permissions
         full_query_users = series_object.view_users.all().union(
             series_object.perms_users_artifacts_add.all(),
             series_object.perms_users_artifacts_del.all(),
             )
         initial['active_users'] = [user for user in full_query_users]
 
-        # We show all groups that have at least of the permissions
+        # We show all groups that have at least one of the permissions
         full_query_groups = series_object.view_groups.all().union(
             series_object.perms_groups_artifacts_add.all(),
             series_object.perms_groups_artifacts_del.all(),
@@ -190,7 +190,7 @@ class SeriesDetailsView(SerieAccessViewBase, DetailView):
 
         assert(Project.objects.get(pk=self.kwargs['project_id']).id == series_object.project.id)
 
-        # We need this to distinguish between Adding and Editing a Series
+        # We need this to distinguish between adding and editing a series
         context['series'] = series_object
         context['project'] = series_object.project
         context['project_id'] = series_object.project.id

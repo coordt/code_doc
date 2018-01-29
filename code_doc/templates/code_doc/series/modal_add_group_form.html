@@ -25,20 +25,20 @@
 
 <script>
 
-  $( '#add-user-form' ).ajaxForm({
-	  url: '{% url 'project_series_add_user' form.project.id form.series.id %}',
-	  target: '#modal_add_user'
+  $( '#add-group-form' ).ajaxForm({
+	  url: '{% url 'project_series_add_group' form.project.id form.series.id %}',
+	  target: '#modal_add_group'
   });
 
 </script>
 
 
-<div class="modal-dialog modal-lg" id="modal_add_user" role="dialog">
+<div class="modal-dialog modal-lg" id="modal_add_group" role="dialog">
 	<!-- Modal content-->
       <div class="modal-content">
 
 	    <!-- the form action has to be a valid url to a created view of the form type -->
-	    <form action="{% url 'project_series_add_user' form.project.id form.series.id %}" id="add-user-form" method="post" class="form">
+	    <form action="{% url 'project_series_add_group' form.project.id form.series.id %}" id="add-group-form" method="post" class="form">
 	    {% csrf_token %}
         <div class="modal-header">
           
@@ -51,8 +51,8 @@
         </div>
         <div class="modal-body">
           <div class="ui-widget">
-             <label for="username"><span class="glyphicon glyphicon-user"></span> User name: </label>
-             {{ form.username }}
+             <label for="groupname"><span class="glyphicon glyphicon-user"></span> Group name: </label>
+             {{ form.groupname }}
           </div>
           
           {# inline #}
@@ -94,8 +94,8 @@
 <script>
 $(document).ready(function(){
 
-  $( "#user_selection" ).autocomplete({
-    source: "/api/get_usernames/",
+  $( "#group_selection" ).autocomplete({
+    source: "/api/get_groupnames/",
     classes: {
       "ui-autocomplete": "highlight",
       "ui-menu": "highlight"

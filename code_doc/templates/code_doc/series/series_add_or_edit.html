@@ -72,6 +72,9 @@
           <a type="button" class="btn btn-default btn-sm" data-toggle="modal" data-backdrop="static" data-target="#modal_add_user">
 			<span class="glyphicon glyphicon-plus"></span> Add User
 		  </a>
+          <a type="button" class="btn btn-default btn-sm" data-toggle="modal" data-backdrop="static" data-target="#modal_add_group">
+			<span class="glyphicon glyphicon-plus"></span> Add Group
+		  </a>
         {% endif %}
         </h3>
         <p class="help-block">Indicate in the table below the permissions on this series granted to each user or group.</p>
@@ -101,16 +104,16 @@
           </tr>
           {% endfor %}
         </tbody>
-        
+
 		<thead>
 		  <tr>
 		    <th width="30%">Groups</th>
 		    {% for header in permission_headers %}
-		      <th>{{header}}</th>
+		      <th>  </th>
 		    {% endfor %}
 		  </tr>
 		</thead>
-	    
+
         <tbody>
           {% for index, group, checks in group_permissions %}
           <tr>
@@ -137,6 +140,7 @@
         
     </form>
     <div class="modal fade" id="modal_add_user"></div>
+    <div class="modal fade" id="modal_add_group"></div>
     
     
 <script>	
@@ -149,6 +153,20 @@
     	var project_id = "{{ project.id }}";
     	var series_id = "{{ series.id }}";
     	var url = "{% url 'project_series_add_user' '00' '000' %}".replace('000', series_id.toString()).replace('00', project_id.toString());;
+    	
+    	$.ajax({
+    		url: url,
+    		context: document.body
+    	}).done(function(response) {
+            modal.html(response);
+    	});
+    })
+	
+    $('#modal_add_group').on('show.bs.modal', function (event) {
+        var modal = $(this);
+    	var project_id = "{{ project.id }}";
+    	var series_id = "{{ series.id }}";
+    	var url = "{% url 'project_series_add_group' '00' '000' %}".replace('000', series_id.toString()).replace('00', project_id.toString());;
     	
     	$.ajax({
     		url: url,

@@ -8,7 +8,7 @@ import datetime
 from ..models.projects import Project, ProjectSeries
 from ..models.authors import Author
 from ..models.artifacts import Artifact
-from ..forms.forms import ModalAddUserForm
+from ..forms.forms import ModalAddUserForm, ModalAddGroupForm
 
 
 class ProjectSeriesTest(TestCase):
@@ -157,7 +157,7 @@ class ProjectSeriesTest(TestCase):
         self.assertNotIn(current_permission, user2.get_all_permissions())
 
     def test_series_views_with_artifact_without_revision(self):
-        """ Test the view in case an artifact has no revision. """
+        """Test the view in case an artifact has no revision."""
 
         new_series = ProjectSeries.objects.create(series="1234", project=self.project,
                                                   release_date=datetime.datetime.now(),
@@ -177,30 +177,57 @@ class ProjectSeriesTest(TestCase):
         self.assertIsNone(response.context['revisions'][0])
 
     def test_modal_add_user_view_access(self):
-        """ Test the access to the ModalAddUserView. """
+        """Test the access to the ModalAddUserView."""
 
         new_series = ProjectSeries.objects.create(series="1234", project=self.project,
                                                   release_date=datetime.datetime.now())
 
+        url = reverse('project_series_add_user', args=[self.project.id, new_series.id])
+
         # Anonymous user (no permission)
-        response = self.client.get(reverse('project_series_add_user', args=[self.project.id, new_series.id]))
+        response = self.client.get(url)
         self.assertEqual(response.status_code, 401)
 
         # Logged-in user but without permission
         _ = User.objects.create_user(username='user2', password='user2', email="c@c.com")
         response = self.client.login(username='user2', password='user2')
         self.assertTrue(response)
-        response = self.client.get(reverse('project_series_add_user', args=[self.project.id, new_series.id]), follow=True)
+        response = self.client.get(url)
         self.assertEqual(response.status_code, 401)
 
         # Superuser, access granted
         response = self.client.login(username='test_series_user', password='test_series_user')
         self.assertTrue(response)
-        response = self.client.get(reverse('project_series_add_user', args=[self.project.id, new_series.id]))
+        response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
 
-    def test_modal_add_user_post_forms(self):
-        """ Test posting forms. """
+    def test_modal_add_group_view_access(self):
+        """Test the access to the ModalAddGroupView."""
+
+        new_series = ProjectSeries.objects.create(series="1234", project=self.project,
+                                                  release_date=datetime.datetime.now())
+
+        url = reverse('project_series_add_group', args=[self.project.id, new_series.id])
+
+        # Anonymous user (no permission)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 401)
+
+        # Logged-in user but without permission
+        _ = User.objects.create_user(username='user2', password='user2', email="c@c.com")
+        response = self.client.login(username='user2', password='user2')
+        self.assertTrue(response)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 401)
+
+        # Superuser, access granted
+        response = self.client.login(username='test_series_user', password='test_series_user')
+        self.assertTrue(response)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_modal_add_user_via_form(self):
+        """Test posting forms to add user to view permissions."""
 
         new_series = ProjectSeries.objects.create(series="1234", project=self.project,
                                                   release_date=datetime.datetime.now())
@@ -210,32 +237,46 @@ class ProjectSeriesTest(TestCase):
         self.assertTrue(response)
         path = reverse('project_series_add_user', args=[self.project.id, new_series.id])
 
+        # Create user
+        dirk = User.objects.create_user(username='dirk',
+                                        password='41',
+                                        email="dirk@dirk.com")
+
+        # Dirk should not have view permissions
+        self.assertNotIn(dirk, new_series.view_users.all())
+
         # Forms
         form1 = ModalAddUserForm(self.project, new_series, data={})
-        form2 = ModalAddUserForm(self.project, new_series, data={'username': 'dirk'})
-        form3 = ModalAddUserForm(self.project, new_series, data={'username': 'test_series_user'})
+        form2 = ModalAddUserForm(self.project, new_series, data={'username': 'fake_user'})
+        form3 = ModalAddUserForm(self.project, new_series, data={'username': 'dirk'})
 
         # Form1 is empty
         self.assertFalse(form1.is_valid())
         response1 = self.client.post(path, form1.data)
         self.assertEqual(response1.status_code, 200)
         self.assertTemplateUsed(response1, 'code_doc/series/modal_add_user_form.html')
+        self.assertFormError(response1, 'form', 'username',
+                             'This field is required.')
 
-        # Form2 is invalid: error thrown
+        # Form2 is invalid: error
         self.assertFalse(form2.is_valid())
         response2 = self.client.post(path, form2.data)
         self.assertEqual(response2.status_code, 200)
         self.assertTemplateUsed(response2, 'code_doc/series/modal_add_user_form.html')
-        self.assertContains(response2, 'Username dirk is not registered')
+        self.assertFormError(response2, 'form', 'username',
+                             'Username fake_user is not registered')
 
         # Form 3 is valid: redirect to edit page via success page.
         self.assertTrue(form3.is_valid())
         response3 = self.client.post(path, form3.data)
         self.assertEqual(response3.status_code, 200)
-        self.assertTemplateUsed(response3, 'code_doc/series/modal_add_user_form_success.html')
+        self.assertTemplateUsed(response3, 'code_doc/series/modal_add_user_or_group_form_success.html')
 
-    def test_add_user_with_view_permission(self):
-        """ Test giving view permission to a new user. """
+        # Dirk should now have view permissions
+        self.assertIn(dirk, new_series.view_users.all())
+
+    def test_modal_add_group_via_form(self):
+        """Test posting forms to add group to view permissions."""
 
         new_series = ProjectSeries.objects.create(series="1234", project=self.project,
                                                   release_date=datetime.datetime.now())
@@ -243,25 +284,46 @@ class ProjectSeriesTest(TestCase):
         # Log in as superuser and post forms
         response = self.client.login(username='test_series_user', password='test_series_user')
         self.assertTrue(response)
-        path = reverse('project_series_add_user', args=[self.project.id, new_series.id])
+        path = reverse('project_series_add_group', args=[self.project.id, new_series.id])
 
-        # Create second user
-        self.second_user = User.objects.create_user(username='dirk',
-                                                    password='41',
-                                                    email="dirk@dirk.com")
-        # Form should now be valid
-        form = ModalAddUserForm(self.project, new_series, data={'username': 'dirk'})
-        self.assertTrue(form.is_valid())
+        # Create group
+        test_group = Group.objects.create(name='test_group')
 
-        # Post form
-        response = self.client.post(path, form.data, follow=True)
-        self.assertEqual(response.status_code, 200)
+        # Test group should not have view permissions
+        self.assertNotIn(test_group, new_series.view_groups.all())
 
-        # Dirk should now have view permission
-        self.assertTrue(new_series.has_user_series_view_permission(self.second_user))
+        # Forms
+        form1 = ModalAddGroupForm(self.project, new_series, data={})
+        form2 = ModalAddGroupForm(self.project, new_series, data={'groupname': 'fake_group'})
+        form3 = ModalAddGroupForm(self.project, new_series, data={'groupname': 'test_group'})
+
+        # Form1 is empty: error
+        self.assertFalse(form1.is_valid())
+        response1 = self.client.post(path, form1.data)
+        self.assertEqual(response1.status_code, 200)
+        self.assertTemplateUsed(response1, 'code_doc/series/modal_add_group_form.html')
+        self.assertFormError(response1, 'form', 'groupname',
+                             'This field is required.')
+
+        # Form2 is invalid: error
+        self.assertFalse(form2.is_valid())
+        response2 = self.client.post(path, form2.data)
+        self.assertEqual(response2.status_code, 200)
+        self.assertTemplateUsed(response2, 'code_doc/series/modal_add_group_form.html')
+        self.assertFormError(response2, 'form', 'groupname',
+                             'Group fake_group is not registered')
+
+        # Form 3 is valid: redirect to edit page via success page.
+        self.assertTrue(form3.is_valid())
+        response3 = self.client.post(path, form3.data)
+        self.assertEqual(response3.status_code, 200)
+        self.assertTemplateUsed(response3, 'code_doc/series/modal_add_user_or_group_form_success.html')
+
+        # Test group should now have view permissions
+        self.assertIn(test_group, new_series.view_groups.all())
 
     def test_project_series_user_permissions_rendering(self):
-        """ Test the rendering of the user permissions. """
+        """Test the rendering of the user permissions."""
 
         from .tests import generate_random_string
 
@@ -371,6 +433,7 @@ class ProjectSeriesTest(TestCase):
 
         # From now on, we will modify the permissions
         url = reverse('project_series_edit', args=[self.project.id, new_series.id])
+        url_redirect = reverse('project_series', args=[self.project.id, new_series.id])
 
         # Removing view permissions
         data['view_users'] = []
@@ -379,7 +442,7 @@ class ProjectSeriesTest(TestCase):
 
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('project_series', args=[self.project.id, new_series.id]))
+        self.assertRedirects(response, url_redirect)
 
         self.assertNotIn(self.first_user, new_series.view_users.all())
         self.assertIn(self.first_user, new_series.perms_users_artifacts_add.all())
@@ -390,7 +453,7 @@ class ProjectSeriesTest(TestCase):
 
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('project_series', args=[self.project.id, new_series.id]))
+        self.assertRedirects(response, url_redirect)
 
         self.assertNotIn(self.first_user, new_series.view_users.all())
         self.assertNotIn(self.first_user, new_series.perms_users_artifacts_add.all())
@@ -401,7 +464,7 @@ class ProjectSeriesTest(TestCase):
 
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('project_series', args=[self.project.id, new_series.id]))
+        self.assertRedirects(response, url_redirect)
 
         self.assertNotIn(self.first_user, new_series.view_users.all())
         self.assertNotIn(self.first_user, new_series.perms_users_artifacts_add.all())
@@ -422,7 +485,7 @@ class ProjectSeriesTest(TestCase):
                                  'Select a valid choice. %s is not one of the available choices.' % self.first_user.id)
 
     def test_project_series_group_permissions_rendering(self):
-        """ Test the rendering of the grouop permissions. """
+        """Test the rendering of the grouop permissions."""
 
         from .tests import generate_random_string
 
@@ -532,6 +595,7 @@ class ProjectSeriesTest(TestCase):
 
         # From now on, we will modify the permissions
         url = reverse('project_series_edit', args=[self.project.id, new_series.id])
+        url_redirect = reverse('project_series', args=[self.project.id, new_series.id])
 
         # Removing view permissions
         data['view_groups'] = []
@@ -540,7 +604,7 @@ class ProjectSeriesTest(TestCase):
 
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('project_series', args=[self.project.id, new_series.id]))
+        self.assertRedirects(response, url_redirect)
 
         self.assertNotIn(test_group, new_series.view_groups.all())
         self.assertIn(test_group, new_series.perms_groups_artifacts_add.all())
@@ -551,7 +615,7 @@ class ProjectSeriesTest(TestCase):
 
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('project_series', args=[self.project.id, new_series.id]))
+        self.assertRedirects(response, url_redirect)
 
         self.assertNotIn(test_group, new_series.view_groups.all())
         self.assertNotIn(test_group, new_series.perms_groups_artifacts_add.all())
@@ -562,7 +626,7 @@ class ProjectSeriesTest(TestCase):
 
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('project_series', args=[self.project.id, new_series.id]))
+        self.assertRedirects(response, url_redirect)
 
         self.assertNotIn(test_group, new_series.view_groups.all())
         self.assertNotIn(test_group, new_series.perms_groups_artifacts_add.all())
