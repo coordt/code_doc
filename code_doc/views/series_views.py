@@ -95,11 +95,13 @@ class SeriesAddView(SeriesEditViewBase, CreateView):
 
         initial = super(SeriesAddView, self).get_initial()
 
-        # We show only the current user
-        initial['active_users'] = [User.objects.get(username=self.request.user)]
+        # Only the current user
+        for perm in ('view_users', 'perms_users_artifacts_add', 'perms_users_artifacts_del'):
+            initial[perm] = [User.objects.get(username=self.request.user)]
 
-        # We show no group
-        initial['active_groups'] = []
+        # No group
+        for perm in ('view_groups', 'perms_groups_artifacts_add', 'perms_groups_artifacts_del'):
+            initial[perm] = []
 
         return initial
 
@@ -150,19 +152,15 @@ class SeriesUpdateView(SeriesEditViewBase, UpdateView):
         initial = super(SeriesUpdateView, self).get_initial()
         series_object = self.object
 
-        # We show all users that have at least one of the permissions
-        full_query_users = series_object.view_users.all().union(
-            series_object.perms_users_artifacts_add.all(),
-            series_object.perms_users_artifacts_del.all(),
-            )
-        initial['active_users'] = [user for user in full_query_users]
+        # User permissions
+        initial['view_users'] = [user for user in series_object.view_users.all()]
+        initial['perms_users_artifacts_add'] = [user for user in series_object.perms_users_artifacts_add.all()]
+        initial['perms_users_artifacts_del'] = [user for user in series_object.perms_users_artifacts_del.all()]
 
-        # We show all groups that have at least one of the permissions
-        full_query_groups = series_object.view_groups.all().union(
-            series_object.perms_groups_artifacts_add.all(),
-            series_object.perms_groups_artifacts_del.all(),
-            )
-        initial['active_groups'] = [group for group in full_query_groups]
+        # Group permissions
+        initial['view_groups'] = [user for user in series_object.view_groups.all()]
+        initial['perms_groups_artifacts_add'] = [user for user in series_object.perms_groups_artifacts_add.all()]
+        initial['perms_groups_artifacts_del'] = [user for user in series_object.perms_groups_artifacts_del.all()]
 
         return initial
 

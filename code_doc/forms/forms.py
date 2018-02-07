@@ -73,12 +73,24 @@ class SeriesEditionForm(ModelForm):
 
     def __init__(self, *args, **kwargs):
 
-        initials = kwargs.get('initial', None)
-        if initials:
-            active_users = initials.pop('active_users', None)
-            active_groups = initials.pop('active_groups', None)
-
         super(SeriesEditionForm, self).__init__(*args, **kwargs)
+
+        initials = kwargs.get('initial', None)
+        active_users = []
+        for perm in ('view_users', 'perms_users_artifacts_add', 'perms_users_artifacts_del'):
+            try:
+                active_users += initials.get(perm, None)
+            except TypeError:
+                pass
+        active_users = list(set(active_users))
+
+        active_groups = []
+        for perm in ('view_groups', 'perms_groups_artifacts_add', 'perms_groups_artifacts_del'):
+            try:
+                active_groups += initials.get(perm, None)
+            except TypeError:
+                pass
+        active_groups = list(set(active_groups))
 
         # User permissions
         if active_users is not None:
@@ -86,9 +98,8 @@ class SeriesEditionForm(ModelForm):
                 self.fields[perm].queryset = self.fields[perm].queryset.filter(username__in=active_users)
                 self.fields[perm].choices = [(_.pk, '----') for _ in self.fields[perm].queryset]
 
-                # If creation, the active user has all permissions checked and not-editable
+                # If creation, permissions are not editable
                 if kwargs['instance'] is None:
-                    self.fields[perm].initial = active_users
                     self.fields[perm].disabled = True
 
         # Group permissions
@@ -287,9 +298,7 @@ class ModalAddUserForm(Form):
         username = self.data['username'].strip()
 
         # Try to find corresponding user
-        try:
-            User.objects.get(username=username)
-        except User.DoesNotExist:
+        if not User.objects.filter(username=username).exists():
             raise ValidationError('Username %(value)s is not registered',
                                   params={'value': self.data['username']})
 
@@ -313,10 +322,8 @@ class ModalAddGroupForm(Form):
 
         groupname = self.data['groupname'].strip()
 
-        # Try to find corresponding user
-        try:
-            Group.objects.get(name=groupname)
-        except Group.DoesNotExist:
+        # Try to find corresponding group
+        if not Group.objects.filter(name=groupname).exists():
             raise ValidationError('Group %(value)s is not registered',
                                   params={'value': self.data['groupname']})
 
