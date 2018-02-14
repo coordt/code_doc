@@ -2,6 +2,7 @@
 from django.forms import Form, ModelForm, CharField, Textarea, DateInput, CheckboxSelectMultiple, TextInput, EmailInput
 from django.contrib.auth.models import User, Group
 from django.core.exceptions import ValidationError
+from django.utils.safestring import mark_safe
 
 from ..models.projects import Project, ProjectSeries
 from ..models.authors import Author
@@ -96,7 +97,7 @@ class SeriesEditionForm(ModelForm):
         if active_users is not None:
             for perm in ('view_users', 'perms_users_artifacts_add', 'perms_users_artifacts_del'):
                 self.fields[perm].queryset = self.fields[perm].queryset.filter(username__in=active_users)
-                self.fields[perm].choices = [(_.pk, '----') for _ in self.fields[perm].queryset]
+                self.fields[perm].choices = [(_.pk, mark_safe('&nbsp;')) for _ in self.fields[perm].queryset]
 
                 # If creation, permissions are not editable
                 if kwargs['instance'] is None:
@@ -106,7 +107,7 @@ class SeriesEditionForm(ModelForm):
         if active_groups is not None:
             for perm in ('view_groups', 'perms_groups_artifacts_add', 'perms_groups_artifacts_del'):
                 self.fields[perm].queryset = self.fields[perm].queryset.filter(name__in=active_groups)
-                self.fields[perm].choices = [(_.pk, '----') for _ in self.fields[perm].queryset]
+                self.fields[perm].choices = [(_.pk, mark_safe('&nbsp;')) for _ in self.fields[perm].queryset]
 
     @staticmethod
     def set_context_for_template(context, project_id):
