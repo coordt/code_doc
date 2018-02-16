@@ -345,7 +345,7 @@ class ProjectSeriesTest(TestCase):
         perms = response.context['user_permissions']
 
         self.assertEqual(len(perms), 1)
-        for _, user, checks in perms:
+        for user, checks in perms:
             self.assertEqual(user.username, self.first_user.username)
             for check in checks:
                 self.assertTrue(check.data['selected'])
@@ -373,7 +373,7 @@ class ProjectSeriesTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
         perms = response.context['user_permissions']
-        rendered_users = zip(*perms)[1]
+        rendered_users = zip(*perms)[0]
 
         # Database
         view_users = new_series.view_users.all()
@@ -387,7 +387,7 @@ class ProjectSeriesTest(TestCase):
             else:
                 self.assertNotIn(user, rendered_users)
 
-        for _, user, checks in perms:
+        for user, checks in perms:
             for check in checks:
 
                 # May be there is a better way to do this...
@@ -415,16 +415,25 @@ class ProjectSeriesTest(TestCase):
         response_get = self.client.get(url)
         self.assertEqual(response_get.status_code, 200)
 
-        data = {}
-        data['csrf_token'] = response_get.context['csrf_token']
-        data['series'] = 'New series'
-        data['release_date'] = [unicode(datetime.datetime.now().strftime("%Y-%m-%d"))]
+        # hidden field check
+        self.assertEqual(response_get.context['form']['project'].value(),
+                         self.project.id)
+
+        release_date = [unicode(datetime.datetime.now().strftime("%Y-%m-%d"))]
+
+        data = {
+            'csrf_token': response_get.context['csrf_token'],
+            'series': 'New series',
+            'project': response_get.context['project'].id,
+            'release_date': release_date
+        }
 
         response = self.client.post(url, data)
+        self.assertEqual(response.status_code, 302)
         new_series = ProjectSeries.objects.all()[0]
 
-        self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('project_series', args=[self.project.id, new_series.id]))
+        series_url = new_series.get_absolute_url()
+        self.assertRedirects(response, series_url)
 
         # First user has all rights because he created the series
         self.assertIn(self.first_user, new_series.view_users.all())
@@ -433,12 +442,29 @@ class ProjectSeriesTest(TestCase):
 
         # From now on, we will modify the permissions
         url = reverse('project_series_edit', args=[self.project.id, new_series.id])
-        url_redirect = reverse('project_series', args=[self.project.id, new_series.id])
+        url_redirect = series_url
 
-        # Removing view permissions
-        data['view_users'] = []
-        data['perms_users_artifacts_add'] = [self.first_user.id]
-        data['perms_users_artifacts_del'] = [self.first_user.id]
+        response_get = self.client.get(url)
+        self.assertEqual(response_get.status_code, 200)
+
+        # checking back that the user appears when updating the form
+        form = response_get.context['form']
+        self.assertEqual([self.first_user.id], form['view_users'].value())
+        self.assertEqual([self.first_user.id], form['perms_users_artifacts_add'].value())
+        self.assertEqual([self.first_user.id], form['perms_users_artifacts_del'].value())
+        self.assertEqual(response_get.context['form']['project'].value(),
+                         self.project.id)
+
+        # Removing view permissions for all users
+        data = {
+            'csrf_token': response_get.context['csrf_token'],
+            'series': response_get.context['series'].id,
+            'project': response_get.context['project'].id,
+            'release_date': release_date,
+            'view_users': [],
+            'perms_users_artifacts_add': [self.first_user.id],
+            'perms_users_artifacts_del': [self.first_user.id],
+        }
 
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, 302)
@@ -448,8 +474,27 @@ class ProjectSeriesTest(TestCase):
         self.assertIn(self.first_user, new_series.perms_users_artifacts_add.all())
         self.assertIn(self.first_user, new_series.perms_users_artifacts_del.all())
 
+        response_get = self.client.get(url)
+        self.assertEqual(response_get.status_code, 200)
+
+        # checking the coherence of the update view
+        form = response_get.context['form']
+        self.assertEqual([], form['view_users'].value())
+        self.assertEqual([self.first_user.id], form['perms_users_artifacts_add'].value())
+        self.assertEqual([self.first_user.id], form['perms_users_artifacts_del'].value())
+        self.assertEqual(response_get.context['form']['project'].value(),
+                         self.project.id)
+
         # Remove perms_users_artifacts_add
-        data['perms_users_artifacts_add'] = []
+        data = {
+            'csrf_token': response_get.context['csrf_token'],
+            'series': response_get.context['series'].id,
+            'project': response_get.context['project'].id,
+            'release_date': release_date,
+            'view_users': [],
+            'perms_users_artifacts_add': [],
+            'perms_users_artifacts_del': [self.first_user.id],
+        }
 
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, 302)
@@ -458,9 +503,29 @@ class ProjectSeriesTest(TestCase):
         self.assertNotIn(self.first_user, new_series.view_users.all())
         self.assertNotIn(self.first_user, new_series.perms_users_artifacts_add.all())
         self.assertIn(self.first_user, new_series.perms_users_artifacts_del.all())
+        self.assertEqual(response_get.context['form']['project'].value(),
+                         self.project.id)
 
-        # Remove perms_users_artifacts_add
-        data['perms_users_artifacts_del'] = []
+        # checking the content of the returned form for editing (again)
+        response_get = self.client.get(url)
+        self.assertEqual(response_get.status_code, 200)
+
+        # checking the coherence of the update view
+        form = response_get.context['form']
+        self.assertEqual([], form['view_users'].value())
+        self.assertEqual([], form['perms_users_artifacts_add'].value())
+        self.assertEqual([self.first_user.id], form['perms_users_artifacts_del'].value())
+
+        # Remove perms_users_artifacts_del
+        data = {
+            'csrf_token': response_get.context['csrf_token'],
+            'series': response_get.context['series'].id,
+            'project': response_get.context['project'].id,
+            'release_date': release_date,
+            'view_users': [],
+            'perms_users_artifacts_add': [],
+            'perms_users_artifacts_del': [],
+        }
 
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, 302)
@@ -469,12 +534,30 @@ class ProjectSeriesTest(TestCase):
         self.assertNotIn(self.first_user, new_series.view_users.all())
         self.assertNotIn(self.first_user, new_series.perms_users_artifacts_add.all())
         self.assertNotIn(self.first_user, new_series.perms_users_artifacts_del.all())
+        self.assertEqual(response_get.context['form']['project'].value(),
+                         self.project.id)
+
+        response_get = self.client.get(url)
+        self.assertEqual(response_get.status_code, 200)
+
+        # checking the coherence of the update view
+        form = response_get.context['form']
+        self.assertEqual([], form['view_users'].value())
+        self.assertEqual([], form['perms_users_artifacts_add'].value())
+        self.assertEqual([], form['perms_users_artifacts_del'].value())
 
         # Let's try to give first_user back all his permissions
-        # It won't work because he is not among the available choices anymore (one needs to add him through the modal)
-        data['view_users'] = [self.first_user.id]
-        data['perms_users_artifacts_add'] = [self.first_user.id]
-        data['perms_users_artifacts_del'] = [self.first_user.id]
+        # It won't work because the user is not among the available choices anymore
+        # (one needs to add him through the modal)
+        data = {
+            'csrf_token': response_get.context['csrf_token'],
+            'series': response_get.context['series'].id,
+            'project': response_get.context['project'].id,
+            'release_date': release_date,
+            'view_users': [self.first_user.id],
+            'perms_users_artifacts_add': [self.first_user.id],
+            'perms_users_artifacts_del': [self.first_user.id],
+        }
 
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, 200)
@@ -483,6 +566,124 @@ class ProjectSeriesTest(TestCase):
         for m2m_field in ('view_users', 'perms_users_artifacts_add', 'perms_users_artifacts_del'):
             self.assertFormError(response, 'form', m2m_field,
                                  'Select a valid choice. %s is not one of the available choices.' % self.first_user.id)
+
+        self.assertNotIn(self.first_user, new_series.view_users.all())
+        self.assertNotIn(self.first_user, new_series.perms_users_artifacts_add.all())
+        self.assertNotIn(self.first_user, new_series.perms_users_artifacts_del.all())
+
+        # now does the checks with several users
+        list_users = []  # self.first_user not part of it
+        for i in range(10):
+            user = User.objects.create_user(username='userXXX%d' % i,
+                                            password='test_series_user',
+                                            email="b%d@b.com" % i)
+            list_users.append(user)
+
+        # what we want now is to check that mixing things up with the permissions and several users
+        # does consistent work on saving
+        import random
+        all_users_to_check = random.sample(list_users, 7)
+
+        user_permissions = {}
+        for index, user in enumerate(all_users_to_check):
+            perm = ['view_users', 'perms_users_artifacts_add', 'perms_users_artifacts_del'][index % 3]  # to make sure we have one of each
+            getattr(new_series, perm).add(user)
+            user_permissions[user] = perm
+
+        # now rendering the form
+        # we should see all users
+        response_get = self.client.get(url)
+        self.assertEqual(response_get.status_code, 200)
+
+        form = response_get.context['form']
+
+        for perm in ('view_users', 'perms_users_artifacts_add', 'perms_users_artifacts_del'):
+            list_users = [user for user, permission in user_permissions.items() if permission == perm]
+
+            self.assertEqual([_.id for _ in sorted(list_users, key=lambda x: x.username)],
+                             form[perm].value())
+
+        for user in list_users + [self.first_user]:
+            if user in all_users_to_check:
+                self.assertContains(response_get, user.username, 1)
+            else:
+                if user is self.first_user:
+                    self.assertContains(response_get, user.username, 1)  # login button only
+                else:
+                    self.assertContains(response_get, user.username, 0)
+
+        # we should see the correct permissions for all of the users
+        sorted_users = sorted(all_users_to_check, key=lambda x: x.username)
+        for user in all_users_to_check:
+            index = sorted_users.index(user)
+
+            for perm in ['view_users', 'perms_users_artifacts_add', 'perms_users_artifacts_del']:
+                if getattr(new_series, perm).filter(id=user.id).count() == 1:
+                    checked = 'checked'
+                else:
+                    checked = ''
+                self.assertContains(
+                    response_get,
+                    '<input type="checkbox" name="{permission}" value="{userid}" {checked} id="id_{permission}_{index}" />'.format(
+                        permission=perm,
+                        index=index,
+                        userid=user.id,
+                        checked=checked
+                    ),
+                    count=1,
+                    html=True
+                )
+
+        # now we are rotating some permissions and checking that things are correct at save time
+        users_artifact_add = [_ for _ in all_users_to_check if user_permissions[_] == 'perms_users_artifacts_add']
+        users_view = [_ for _ in all_users_to_check if user_permissions[_] == 'view_users']
+        user1, user2 = random.choice(users_artifact_add), random.choice(users_view)
+
+        form = response_get.context['form']
+        data = {
+            'csrf_token': response_get.context['csrf_token'],
+            'series': response_get.context['series'].id,
+            'project': response_get.context['project'].id,
+            'release_date': release_date,
+            'view_users': form['view_users'].value() + [user1.id],
+            'perms_users_artifacts_add': form['perms_users_artifacts_add'].value() + [user2.id],
+            'perms_users_artifacts_del': form['perms_users_artifacts_del'].value(),
+
+        }
+        # cannot handle the ids directly
+        if 0:
+            for user in all_users_to_check:
+                index = sorted_users.index(user)
+                for perm in ['view_users', 'perms_users_artifacts_add', 'perms_users_artifacts_del']:
+                    data['id_{perm}_{index}'.format(perm=perm, index=index)] = True
+
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, url_redirect)
+
+        response_get = self.client.get(url)
+        print response_get
+
+        # all previous users should be here
+        for user in list_users + [self.first_user]:
+            if user in all_users_to_check:
+                self.assertContains(response_get, user.username, 1)
+            else:
+                if user is self.first_user:
+                    self.assertContains(response_get, user.username, 1)  # login button only
+                else:
+                    self.assertContains(response_get, user.username, 0)
+
+        #
+        self.assertNotIn(self.first_user, new_series.view_users.all())
+        self.assertNotIn(self.first_user, new_series.perms_users_artifacts_add.all())
+        self.assertNotIn(self.first_user, new_series.perms_users_artifacts_del.all())
+        self.assertIn(user1, new_series.view_users.all())
+        self.assertIn(user2, new_series.view_users.all())
+        self.assertIn(user1, new_series.perms_users_artifacts_add.all())
+        self.assertIn(user2, new_series.perms_users_artifacts_add.all())
+        self.assertNotIn(user1, new_series.perms_users_artifacts_del.all())
+        self.assertNotIn(user2, new_series.perms_users_artifacts_del.all())
 
     def test_project_series_group_permissions_rendering(self):
         """Test the rendering of the grouop permissions."""
@@ -529,7 +730,7 @@ class ProjectSeriesTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
         perms = response.context['group_permissions']
-        rendered_groups = zip(*perms)[1]
+        rendered_groups = zip(*perms)[0]
 
         # Database
         view_groups = new_series.view_groups.all()
@@ -543,7 +744,7 @@ class ProjectSeriesTest(TestCase):
             else:
                 self.assertNotIn(group, rendered_groups)
 
-        for _, group, checks in perms:
+        for group, checks in perms:
             for check in checks:
 
                 # May be there is a better way to do this...
@@ -571,10 +772,14 @@ class ProjectSeriesTest(TestCase):
         response_get = self.client.get(url)
         self.assertEqual(response_get.status_code, 200)
 
-        data = {}
-        data['csrf_token'] = response_get.context['csrf_token']
-        data['series'] = 'New series'
-        data['release_date'] = [unicode(datetime.datetime.now().strftime("%Y-%m-%d"))]
+        release_date = [unicode(datetime.datetime.now().strftime("%Y-%m-%d"))]
+
+        data = {
+            'csrf_token': response_get.context['csrf_token'],
+            'series': 'New series',
+            'project': response_get.context['project'].id,
+            'release_date': release_date,
+        }
 
         response = self.client.post(url, data)
         new_series = ProjectSeries.objects.all()[0]
@@ -598,9 +803,17 @@ class ProjectSeriesTest(TestCase):
         url_redirect = reverse('project_series', args=[self.project.id, new_series.id])
 
         # Removing view permissions
-        data['view_groups'] = []
-        data['perms_groups_artifacts_add'] = [test_group.id]
-        data['perms_groups_artifacts_del'] = [test_group.id]
+        response_get = self.client.get(url)
+        self.assertEqual(response_get.status_code, 200)
+        data = {
+            'csrf_token': response_get.context['csrf_token'],
+            'series': 'New series',
+            'project': response_get.context['project'].id,
+            'release_date': release_date,
+            'view_groups': [],
+            'perms_groups_artifacts_add': [test_group.id],
+            'perms_groups_artifacts_del': [test_group.id],
+        }
 
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, 302)
@@ -611,7 +824,17 @@ class ProjectSeriesTest(TestCase):
         self.assertIn(test_group, new_series.perms_groups_artifacts_del.all())
 
         # Remove perms_groups_artifacts_add
-        data['perms_groups_artifacts_add'] = []
+        response_get = self.client.get(url)
+        self.assertEqual(response_get.status_code, 200)
+        data = {
+            'csrf_token': response_get.context['csrf_token'],
+            'series': 'New series',
+            'project': response_get.context['project'].id,
+            'release_date': release_date,
+            'view_groups': [],
+            'perms_groups_artifacts_add': [],
+            'perms_groups_artifacts_del': [test_group.id],
+        }
 
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, 302)
@@ -622,7 +845,17 @@ class ProjectSeriesTest(TestCase):
         self.assertIn(test_group, new_series.perms_groups_artifacts_del.all())
 
         # Remove perms_groups_artifacts_add
-        data['perms_groups_artifacts_del'] = []
+        response_get = self.client.get(url)
+        self.assertEqual(response_get.status_code, 200)
+        data = {
+            'csrf_token': response_get.context['csrf_token'],
+            'series': 'New series',
+            'project': response_get.context['project'].id,
+            'release_date': release_date,
+            'view_groups': [],
+            'perms_groups_artifacts_add': [],
+            'perms_groups_artifacts_del': [],
+        }
 
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, 302)
@@ -634,10 +867,17 @@ class ProjectSeriesTest(TestCase):
 
         # Let's try to give the group back all his permissions
         # It won't work because it is not among the available choices anymore (one needs to add it through the modal)
-        data['view_groups'] = [test_group.id]
-        data['perms_groups_artifacts_add'] = [test_group.id]
-        data['perms_groups_artifacts_del'] = [test_group.id]
-
+        response_get = self.client.get(url)
+        self.assertEqual(response_get.status_code, 200)
+        data = {
+            'csrf_token': response_get.context['csrf_token'],
+            'series': 'New series',
+            'project': response_get.context['project'].id,
+            'release_date': release_date,
+            'view_groups': [test_group.id],
+            'perms_groups_artifacts_add': [test_group.id],
+            'perms_groups_artifacts_del': [test_group.id],
+        }
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, 200)
 

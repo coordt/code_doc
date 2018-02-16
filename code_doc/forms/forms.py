@@ -2,7 +2,7 @@
 from django.forms import Form, ModelForm, CharField, Textarea, DateInput, CheckboxSelectMultiple, TextInput, EmailInput
 from django.contrib.auth.models import User, Group
 from django.core.exceptions import ValidationError
-from django.utils.safestring import mark_safe
+from django.forms.widgets import HiddenInput
 
 from ..models.projects import Project, ProjectSeries
 from ..models.authors import Author
@@ -10,6 +10,7 @@ from ..models.artifacts import Artifact
 
 import os
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -33,6 +34,7 @@ class SeriesEditionForm(ModelForm):
     class Meta:
         model = ProjectSeries
         fields = (
+            'project',
             'series', 'release_date', 'description_mk',
             'is_public',
             'view_users', 'view_groups',
@@ -54,6 +56,7 @@ class SeriesEditionForm(ModelForm):
                 'any revision is considered on its own revision. Leave blank to avoid the limit.'
         }
         widgets = {
+            'project': HiddenInput(),
             'series': Textarea(attrs={'cols': 60,
                                       'rows': 2,
                                       'style': "resize:none; width: 100%;"}),
@@ -76,41 +79,76 @@ class SeriesEditionForm(ModelForm):
 
         super(SeriesEditionForm, self).__init__(*args, **kwargs)
 
-        initials = kwargs.get('initial', None)
-        active_users = []
-        for perm in ('view_users', 'perms_users_artifacts_add', 'perms_users_artifacts_del'):
-            try:
-                active_users += initials.get(perm, None)
-            except TypeError:
-                pass
-        active_users = list(set(active_users))
-
-        active_groups = []
-        for perm in ('view_groups', 'perms_groups_artifacts_add', 'perms_groups_artifacts_del'):
-            try:
-                active_groups += initials.get(perm, None)
-            except TypeError:
-                pass
-        active_groups = list(set(active_groups))
-
-        # User permissions
-        if active_users is not None:
+        active_users = set()
+        active_groups = set()
+        if kwargs['instance'] is not None:
+            instance = kwargs['instance']
             for perm in ('view_users', 'perms_users_artifacts_add', 'perms_users_artifacts_del'):
-                self.fields[perm].queryset = self.fields[perm].queryset.filter(username__in=active_users)
-                self.fields[perm].choices = [(_.pk, mark_safe('&nbsp;')) for _ in self.fields[perm].queryset]
+                active_users |= set((_ for _ in getattr(instance, perm).values_list('id', flat=True)))
 
-                # If creation, permissions are not editable
-                if kwargs['instance'] is None:
-                    self.fields[perm].disabled = True
-
-        # Group permissions
-        if active_groups is not None:
             for perm in ('view_groups', 'perms_groups_artifacts_add', 'perms_groups_artifacts_del'):
-                self.fields[perm].queryset = self.fields[perm].queryset.filter(name__in=active_groups)
-                self.fields[perm].choices = [(_.pk, mark_safe('&nbsp;')) for _ in self.fields[perm].queryset]
+                active_groups |= set((_ for _ in getattr(instance, perm).values_list('id', flat=True)))
+
+        else:
+            for perm in ('view_users', 'perms_users_artifacts_add', 'perms_users_artifacts_del'):
+                active_users |= set([_.id for _ in kwargs['initial'][perm]])
+            for perm in ('view_groups', 'perms_groups_artifacts_add', 'perms_groups_artifacts_del'):
+                active_groups |= set([_.id for _ in kwargs['initial'][perm]])
+
+        # we narrow the queryset in all cases to the ones that appear in those sets
+        # otherwise the form shows all possible entries, which clutters the view
+        # the initial parameter is useful for setting the initial selection, but not for the queryset
+        for perm in ('view_users', 'perms_users_artifacts_add', 'perms_users_artifacts_del'):
+            self.fields[perm].queryset = self.fields[perm].queryset.filter(id__in=list(active_users)).order_by('username')
+        for perm in ('view_groups', 'perms_groups_artifacts_add', 'perms_groups_artifacts_del'):
+            self.fields[perm].queryset = self.fields[perm].queryset.filter(id__in=list(active_groups)).order_by('name')
+
+        # If creation, permissions are not editable
+        if kwargs['instance'] is None:
+            for perm in ('view_users', 'perms_users_artifacts_add', 'perms_users_artifacts_del'):
+                self.fields[perm].disabled = True
+
+        if 0:
+
+            for perm in ('view_users', 'perms_users_artifacts_add', 'perms_users_artifacts_del'):
+                print self.fields[perm].queryset.all()
+
+                import ipdb
+                ipdb.set_trace()
+
+                for check1 in self.fields[perm]:
+                    print check1
+
+            # narrowing the shown rows to the ones having at least a permission
+            initials = kwargs.get('initial', None)
+            active_users = []
+            for perm in ('view_users', 'perms_users_artifacts_add', 'perms_users_artifacts_del'):
+                if perm in initials:
+                    active_users += initials[perm]
+            active_users = list(set(active_users))
+
+            active_groups = []
+            for perm in ('view_groups', 'perms_groups_artifacts_add', 'perms_groups_artifacts_del'):
+                if perm in initials:
+                    active_groups += initials[perm]
+            active_groups = list(set(active_groups))
+
+            # User permissions
+            if active_users is not None:
+                for perm in ('view_users', 'perms_users_artifacts_add', 'perms_users_artifacts_del'):
+                    self.fields[perm].queryset = self.fields[perm].queryset.filter(username__in=active_users)
+
+                    # If creation, permissions are not editable
+                    if kwargs['instance'] is None:
+                        self.fields[perm].disabled = True
+
+            # Group permissions
+            if active_groups is not None:
+                for perm in ('view_groups', 'perms_groups_artifacts_add', 'perms_groups_artifacts_del'):
+                    self.fields[perm].queryset = self.fields[perm].queryset.filter(name__in=active_groups)
 
     @staticmethod
-    def set_context_for_template(context, project_id):
+    def __set_context_for_template(context, project_id):
         """Sets extra data that is used in the template for displaying the form"""
         try:
             current_project = Project.objects.get(pk=project_id)
@@ -131,21 +169,19 @@ class SeriesEditionForm(ModelForm):
         # filter out users that are not in the queryset
         context['active_users'] = form['view_users'].field.queryset
 
-        context['user_permissions'] = zip(xrange(len(context['active_users'])),
-                                          context['active_users'],
+        context['user_permissions'] = zip(context['active_users'],
                                           form['view_users'],
                                           form['perms_users_artifacts_add'],
                                           form['perms_users_artifacts_del'])
-        context['user_permissions'] = [(perms[0], perms[1], tuple(perms[2:])) for perms in context['user_permissions']]
+        context['user_permissions'] = [(perms[0], tuple(perms[1:])) for perms in context['user_permissions']]
 
         # filter out groups that are not in the queryset
         context['active_groups'] = form['view_groups'].field.queryset
-        context['group_permissions'] = zip(xrange(len(context['active_groups'])),
-                                           context['active_groups'],
+        context['group_permissions'] = zip(context['active_groups'],
                                            form['view_groups'],
                                            form['perms_groups_artifacts_add'],
                                            form['perms_groups_artifacts_del'])
-        context['group_permissions'] = [(perms[0], perms[1], tuple(perms[2:])) for perms in context['group_permissions']]
+        context['group_permissions'] = [(perms[0], tuple(perms[1:])) for perms in context['group_permissions']]
 
 
 class ArtifactEditionForm(ModelForm):
@@ -309,9 +345,9 @@ class ModalAddUserForm(Form):
 class ModalAddGroupForm(Form):
 
     groupname = CharField(label='group_selection',
-                         required=True,
-                         initial='',
-                         widget=TextInput(attrs={'id': "group_selection"}))
+                          required=True,
+                          initial='',
+                          widget=TextInput(attrs={'id': "group_selection"}))
 
     def __init__(self, project, series, *args, **kwargs):
         super(ModalAddGroupForm, self).__init__(*args, **kwargs)
