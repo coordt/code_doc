@@ -196,27 +196,29 @@ class ProjectSeries(models.Model):
         return self.is_public or \
             self.project.has_user_project_administrate_permission(userobj) or \
             self.has_user_series_edit_permission(userobj) or \
+            self.has_user_series_artifact_add_permission(userobj) or \
             manage_permission_on_object(userobj, self.view_users, self.view_groups, False)
 
     def has_user_series_edit_permission(self, userobj):
-        """Returns true if the user has edit permission on this series, False otherwise"""
-        return self.is_public or \
-            self.has_user_series_artifact_add_permission(userobj) or \
-            self.project.has_user_project_administrate_permission(userobj) or \
-            manage_permission_on_object(userobj, self.view_users, self.view_groups, False)
+        """Returns true if the user has edit permission on this series, False otherwise
+
+        The edit permission if not granted if the user has the artifact add role. However, since the
+        redirection to the artifact add is the session edition form, the associated view should
+        also check for this permission.
+        """
+        return self.project.has_user_project_administrate_permission(userobj)
 
     def has_user_series_artifact_add_permission(self, userobj):
         """Returns True if the user can add an artifact to the serie"""
-        return self.is_public or \
+        return \
             self.project.has_user_project_administrate_permission(userobj) or \
-            self.has_user_series_artifact_delete_permission(userobj) or \
             manage_permission_on_object(userobj,
                                         self.perms_users_artifacts_add,
                                         self.perms_groups_artifacts_add, False)
 
     def has_user_series_artifact_delete_permission(self, userobj):
         """Returns True if the user can remove an artifact from the serie"""
-        return self.is_public or \
+        return \
             self.project.has_user_project_administrate_permission(userobj) or \
             manage_permission_on_object(userobj,
                                         self.perms_users_artifacts_del,

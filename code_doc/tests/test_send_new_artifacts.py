@@ -153,6 +153,7 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
                                       files,
                                       avoid_redirections=False)
 
+        self.assertEqual(ret.code, 200)  # a get follows the post, so we have 200 instead of 302
         self.assertEqual(self.series.artifacts.count(), 1)
         artifact = self.series.artifacts.first()
 

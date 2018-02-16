@@ -23,7 +23,6 @@ import StringIO
 import types
 import logging
 
-
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 logger = logging
 
@@ -59,10 +58,11 @@ class PostMultipartWithSession(object):
 
             if(self.avoid_redirections and redir):
                 raise urllib2.HTTPError(
-                        req.get_full_url(),
-                        401,
-                        "redirections disabled",
-                        headers, None)
+                    req.get_full_url(),
+                    401,
+                    "redirections disabled",
+                    headers,
+                    None)
 
             return urllib2.HTTPRedirectHandler.http_error_302(self, req, fp, code, msg, headers)
 
@@ -421,10 +421,10 @@ def main():
     # sending
     logger.debug("[transfer] Sending artifact")
     response = instance.post_multipart(
-            post_url,
-            fields,
-            files,
-            avoid_redirections=False)
+        post_url,
+        fields,
+        files,
+        avoid_redirections=False)
 
     if(response.code != 200):
         logger.error("[transfer] an error was returned by the server during the transfer of the file, return code is %d", response.code)
