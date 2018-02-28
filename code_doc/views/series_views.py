@@ -5,6 +5,7 @@ from django.http import Http404, HttpResponse
 from django.views.generic.base import RedirectView
 from django.views.generic.edit import CreateView, UpdateView
 from django.views.generic.detail import DetailView
+from django.contrib.auth.models import User
 
 from django.core.urlresolvers import reverse
 
@@ -84,21 +85,39 @@ class SeriesAddView(SeriesEditViewBase, CreateView):
 
     # user should have the appropriate privileges on the object in order to be able to add anything
     permissions_on_object = ('code_doc.project_series_add',)
+    form_class = SeriesEditionForm
 
     def get_permission_object_from_request(self, request, *args, **kwargs):
         # specific case since we are adding to the project
         return self.get_project_from_request(request, *args, **kwargs)
 
+    def get_initial(self, *args, **kwargs):
+
+        initial = super(SeriesAddView, self).get_initial()
+
+        # Only the current user
+        for perm in ('view_users', 'perms_users_artifacts_add', 'perms_users_artifacts_del'):
+            initial[perm] = [User.objects.get(username=self.request.user)]
+
+        # No group
+        for perm in ('view_groups', 'perms_groups_artifacts_add', 'perms_groups_artifacts_del'):
+            initial[perm] = []
+
+        return initial
+
     def form_valid(self, form):
         # in this case we need to set the project of the object otherwise the association
         # of the created object does not work.
+
         try:
             current_project = Project.objects.get(pk=self.kwargs['project_id'])
         except Project.DoesNotExist:
             raise Http404
 
         form.instance.project = current_project
-        return super(SeriesAddView, self).form_valid(form)
+        response = super(SeriesAddView, self).form_valid(form)
+
+        return response
 
 
 class SeriesUpdateView(SeriesEditViewBase, UpdateView):
@@ -113,6 +132,7 @@ class SeriesUpdateView(SeriesEditViewBase, UpdateView):
 
     # we should have the following privileges on the series in order to be able to edit anything
     permissions_on_object = ('code_doc.series_edit',)
+    form_class = SeriesEditionForm
 
     def get_context_data(self, **kwargs):
         """Method used for populating the template context"""
@@ -122,12 +142,27 @@ class SeriesUpdateView(SeriesEditViewBase, UpdateView):
 
         assert(Project.objects.get(pk=self.kwargs['project_id']).id == series_object.project.id)
 
-        # We need this to distinguish between Adding and Editing a Series
+        # We need this to distinguish between adding and editing a series
         context['series'] = series_object
-        context['users_with_view_permission'] = [perms for perms in context['user_permissions']
-                                                 if perms[1].has_perm('code_doc.series_view', series_object)]
 
         return context
+
+    def get_initial(self, *args, **kwargs):
+
+        initial = super(SeriesUpdateView, self).get_initial()
+        series_object = self.object
+
+        # User permissions
+        initial['view_users'] = [user for user in series_object.view_users.all()]
+        initial['perms_users_artifacts_add'] = [user for user in series_object.perms_users_artifacts_add.all()]
+        initial['perms_users_artifacts_del'] = [user for user in series_object.perms_users_artifacts_del.all()]
+
+        # Group permissions
+        initial['view_groups'] = [user for user in series_object.view_groups.all()]
+        initial['perms_groups_artifacts_add'] = [user for user in series_object.perms_groups_artifacts_add.all()]
+        initial['perms_groups_artifacts_del'] = [user for user in series_object.perms_groups_artifacts_del.all()]
+
+        return initial
 
 
 class SeriesDetailsView(SerieAccessViewBase, DetailView):
@@ -153,7 +188,7 @@ class SeriesDetailsView(SerieAccessViewBase, DetailView):
 
         assert(Project.objects.get(pk=self.kwargs['project_id']).id == series_object.project.id)
 
-        # We need this to distinguish between Adding and Editing a Series
+        # We need this to distinguish between adding and editing a series
         context['series'] = series_object
         context['project'] = series_object.project
         context['project_id'] = series_object.project.id
