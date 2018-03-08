@@ -59,6 +59,7 @@ class SeriesEditViewBase(SerieAccessViewBase):
     """Manages the edition views of the project series"""
 
     template_name = "code_doc/series/series_add_or_edit.html"
+    permissions_on_object = ('code_doc.series_edit',)
 
     # for the form that is displayed
     form_class = SeriesEditionForm
@@ -131,6 +132,7 @@ class SeriesUpdateView(SeriesEditViewBase, UpdateView):
     pk_url_kwarg = 'series_id'
 
     # we should have the following privileges on the series in order to be able to edit anything
+    # warning: this is an AND on all permissions, not an OR, so series_edit should be true for series_artifact_add
     permissions_on_object = ('code_doc.series_edit',)
     form_class = SeriesEditionForm
 
@@ -215,10 +217,10 @@ class APIGetSeriesArtifacts(SeriesDetailsView, DetailView):
 
     def render_to_response(self, context, **response_kwargs):
         artifacts = context['artifacts']
-        l = {}
+        ldict = {}
         for art in artifacts:
-            l[art.id] = {'file': art.artifactfile.name,
-                         'md5': art.md5hash}
-        data = json.dumps({'artifacts': l})
+            ldict[art.id] = {'file': art.artifactfile.name,
+                             'md5': art.md5hash}
+        data = json.dumps({'artifacts': ldict})
         response_kwargs['content_type'] = 'application/json'
         return HttpResponse(data, **response_kwargs)
