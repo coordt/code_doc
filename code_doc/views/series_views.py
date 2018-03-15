@@ -64,10 +64,42 @@ class SeriesEditViewBase(SerieAccessViewBase):
     # for the form that is displayed
     form_class = SeriesEditionForm
 
+    context_object_name = 'series'
+
     def get_context_data(self, **kwargs):
-        """Method used for populating the template context"""
         context = super(SeriesEditViewBase, self).get_context_data(**kwargs)
-        self.form_class.set_context_for_template(context, self.kwargs['project_id'])
+
+        try:
+            current_project = Project.objects.get(id=self.kwargs['project_id'])
+        except Project.DoesNotExist:
+            # this should not occur here
+            raise
+
+        context['project'] = current_project
+
+        form = context['form']
+        context['automatic_fields'] = (form[i] for i in ('project', 'series', 'release_date',
+                                                         'description_mk', 'is_public',
+                                                         'nb_revisions_to_keep'))
+
+        context['permission_headers'] = ['View and download', 'Adding artifacts', 'Removing artifacts']
+
+        # filter out users that are not in the queryset
+        context['active_users'] = form['view_users'].field.queryset
+
+        context['user_permissions'] = zip(context['active_users'],
+                                          form['view_users'],
+                                          form['perms_users_artifacts_add'],
+                                          form['perms_users_artifacts_del'])
+        context['user_permissions'] = [(perms[0], tuple(perms[1:])) for perms in context['user_permissions']]
+
+        # filter out groups that are not in the queryset
+        context['active_groups'] = form['view_groups'].field.queryset
+        context['group_permissions'] = zip(context['active_groups'],
+                                           form['view_groups'],
+                                           form['perms_groups_artifacts_add'],
+                                           form['perms_groups_artifacts_del'])
+        context['group_permissions'] = [(perms[0], tuple(perms[1:])) for perms in context['group_permissions']]
 
         return context
 
@@ -86,7 +118,6 @@ class SeriesAddView(SeriesEditViewBase, CreateView):
 
     # user should have the appropriate privileges on the object in order to be able to add anything
     permissions_on_object = ('code_doc.project_series_add',)
-    form_class = SeriesEditionForm
 
     def get_permission_object_from_request(self, request, *args, **kwargs):
         # specific case since we are adding to the project
@@ -104,6 +135,9 @@ class SeriesAddView(SeriesEditViewBase, CreateView):
         for perm in ('view_groups', 'perms_groups_artifacts_add', 'perms_groups_artifacts_del'):
             initial[perm] = []
 
+        if 'project' not in initial:
+            initial['project'] = self.get_project_from_request(self.request, *self.args, **self.kwargs)
+
         return initial
 
     def form_valid(self, form):
@@ -116,9 +150,7 @@ class SeriesAddView(SeriesEditViewBase, CreateView):
             raise Http404
 
         form.instance.project = current_project
-        response = super(SeriesAddView, self).form_valid(form)
-
-        return response
+        return super(SeriesAddView, self).form_valid(form)
 
 
 class SeriesUpdateView(SeriesEditViewBase, UpdateView):
@@ -134,37 +166,6 @@ class SeriesUpdateView(SeriesEditViewBase, UpdateView):
     # we should have the following privileges on the series in order to be able to edit anything
     # warning: this is an AND on all permissions, not an OR, so series_edit should be true for series_artifact_add
     permissions_on_object = ('code_doc.series_edit',)
-    form_class = SeriesEditionForm
-
-    def get_context_data(self, **kwargs):
-        """Method used for populating the template context"""
-
-        context = super(SeriesUpdateView, self).get_context_data(**kwargs)
-        series_object = self.object
-
-        assert(Project.objects.get(pk=self.kwargs['project_id']).id == series_object.project.id)
-
-        # We need this to distinguish between adding and editing a series
-        context['series'] = series_object
-
-        return context
-
-    def get_initial(self, *args, **kwargs):
-
-        initial = super(SeriesUpdateView, self).get_initial()
-        series_object = self.object
-
-        # User permissions
-        initial['view_users'] = [user for user in series_object.view_users.all()]
-        initial['perms_users_artifacts_add'] = [user for user in series_object.perms_users_artifacts_add.all()]
-        initial['perms_users_artifacts_del'] = [user for user in series_object.perms_users_artifacts_del.all()]
-
-        # Group permissions
-        initial['view_groups'] = [user for user in series_object.view_groups.all()]
-        initial['perms_groups_artifacts_add'] = [user for user in series_object.perms_groups_artifacts_add.all()]
-        initial['perms_groups_artifacts_del'] = [user for user in series_object.perms_groups_artifacts_del.all()]
-
-        return initial
 
 
 class SeriesDetailsView(SerieAccessViewBase, DetailView):
@@ -193,7 +194,6 @@ class SeriesDetailsView(SerieAccessViewBase, DetailView):
         # We need this to distinguish between adding and editing a series
         context['series'] = series_object
         context['project'] = series_object.project
-        context['project_id'] = series_object.project.id
         context['artifacts'] = series_object.artifacts.all()
         context['revisions'] = list(set([art.revision for art in context['artifacts']]))
         return context
