@@ -1,11 +1,8 @@
 from __future__ import unicode_literals
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.core.exceptions import PermissionDenied
-
-
-from ..models.projects import Project, ProjectSeries
-
 
 import logging
 

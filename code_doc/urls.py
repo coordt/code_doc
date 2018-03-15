@@ -45,6 +45,14 @@ urlpatterns = [
     url(r'^series/(?P<project_id>\d+)/add/$',
         series_views.SeriesAddView.as_view(),
         name='project_series_add'),
+    # adding user to a particular project series
+    url(r'^project/(?P<project_id>\d+)/(?P<series_id>\w+)/add_user',
+        global_views.ModalAddUserView.as_view(),
+        name='project_series_add_user'),
+    # adding grouop to a particular project series
+    url(r'^project/(?P<project_id>\d+)/(?P<series_id>\w+)/add_group',
+        global_views.ModalAddGroupView.as_view(),
+        name='project_series_add_group'),
 
     # Revisions
     # See the contents of a revision
@@ -76,6 +84,15 @@ urlpatterns = [
         project_views.GetProjectRevisionIds.as_view(),
         name='api_get_ids'),
 
+    # get all usernames
+    url(r'^api/get_usernames/',
+        global_views.JSONResponseUsernamesView.as_view(),
+        name='api_usernames'),
+
+    # get all group names
+    url(r'^api/get_groupnames/',
+        global_views.JSONResponseGroupnamesView.as_view(),
+        name='api_groupnames'),
 
     # maintainers
     url(r'^maintainer/(?P<maintainer_id>\d+)/$',

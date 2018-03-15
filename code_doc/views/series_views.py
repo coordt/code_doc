@@ -5,6 +5,7 @@ from django.http import Http404, HttpResponse
 from django.views.generic.base import RedirectView
 from django.views.generic.edit import CreateView, UpdateView
 from django.views.generic.detail import DetailView
+from django.contrib.auth.models import User
 
 from django.core.urlresolvers import reverse
 
@@ -58,14 +59,47 @@ class SeriesEditViewBase(SerieAccessViewBase):
     """Manages the edition views of the project series"""
 
     template_name = "code_doc/series/series_add_or_edit.html"
+    permissions_on_object = ('code_doc.series_edit',)
 
     # for the form that is displayed
     form_class = SeriesEditionForm
 
+    context_object_name = 'series'
+
     def get_context_data(self, **kwargs):
-        """Method used for populating the template context"""
         context = super(SeriesEditViewBase, self).get_context_data(**kwargs)
-        self.form_class.set_context_for_template(context, self.kwargs['project_id'])
+
+        try:
+            current_project = Project.objects.get(id=self.kwargs['project_id'])
+        except Project.DoesNotExist:
+            # this should not occur here
+            raise
+
+        context['project'] = current_project
+
+        form = context['form']
+        context['automatic_fields'] = (form[i] for i in ('project', 'series', 'release_date',
+                                                         'description_mk', 'is_public',
+                                                         'nb_revisions_to_keep'))
+
+        context['permission_headers'] = ['View and download', 'Adding artifacts', 'Removing artifacts']
+
+        # filter out users that are not in the queryset
+        context['active_users'] = form['view_users'].field.queryset
+
+        context['user_permissions'] = zip(context['active_users'],
+                                          form['view_users'],
+                                          form['perms_users_artifacts_add'],
+                                          form['perms_users_artifacts_del'])
+        context['user_permissions'] = [(perms[0], tuple(perms[1:])) for perms in context['user_permissions']]
+
+        # filter out groups that are not in the queryset
+        context['active_groups'] = form['view_groups'].field.queryset
+        context['group_permissions'] = zip(context['active_groups'],
+                                           form['view_groups'],
+                                           form['perms_groups_artifacts_add'],
+                                           form['perms_groups_artifacts_del'])
+        context['group_permissions'] = [(perms[0], tuple(perms[1:])) for perms in context['group_permissions']]
 
         return context
 
@@ -89,9 +123,27 @@ class SeriesAddView(SeriesEditViewBase, CreateView):
         # specific case since we are adding to the project
         return self.get_project_from_request(request, *args, **kwargs)
 
+    def get_initial(self, *args, **kwargs):
+
+        initial = super(SeriesAddView, self).get_initial()
+
+        # Only the current user
+        for perm in ('view_users', 'perms_users_artifacts_add', 'perms_users_artifacts_del'):
+            initial[perm] = [User.objects.get(username=self.request.user)]
+
+        # No group
+        for perm in ('view_groups', 'perms_groups_artifacts_add', 'perms_groups_artifacts_del'):
+            initial[perm] = []
+
+        if 'project' not in initial:
+            initial['project'] = self.get_project_from_request(self.request, *self.args, **self.kwargs)
+
+        return initial
+
     def form_valid(self, form):
         # in this case we need to set the project of the object otherwise the association
         # of the created object does not work.
+
         try:
             current_project = Project.objects.get(pk=self.kwargs['project_id'])
         except Project.DoesNotExist:
@@ -112,19 +164,8 @@ class SeriesUpdateView(SeriesEditViewBase, UpdateView):
     pk_url_kwarg = 'series_id'
 
     # we should have the following privileges on the series in order to be able to edit anything
+    # warning: this is an AND on all permissions, not an OR, so series_edit should be true for series_artifact_add
     permissions_on_object = ('code_doc.series_edit',)
-
-    def get_context_data(self, **kwargs):
-        """Method used for populating the template context"""
-        context = super(SeriesUpdateView, self).get_context_data(**kwargs)
-        series_object = self.object
-
-        assert(Project.objects.get(pk=self.kwargs['project_id']).id == series_object.project.id)
-
-        # We need this to distinguish between Adding and Editing a Series
-        context['series'] = series_object
-
-        return context
 
 
 class SeriesDetailsView(SerieAccessViewBase, DetailView):
@@ -150,10 +191,9 @@ class SeriesDetailsView(SerieAccessViewBase, DetailView):
 
         assert(Project.objects.get(pk=self.kwargs['project_id']).id == series_object.project.id)
 
-        # We need this to distinguish between Adding and Editing a Series
+        # We need this to distinguish between adding and editing a series
         context['series'] = series_object
         context['project'] = series_object.project
-        context['project_id'] = series_object.project.id
         context['artifacts'] = series_object.artifacts.all()
         context['revisions'] = list(set([art.revision for art in context['artifacts']]))
         return context
@@ -177,10 +217,10 @@ class APIGetSeriesArtifacts(SeriesDetailsView, DetailView):
 
     def render_to_response(self, context, **response_kwargs):
         artifacts = context['artifacts']
-        l = {}
+        ldict = {}
         for art in artifacts:
-            l[art.id] = {'file': art.artifactfile.name,
-                         'md5': art.md5hash}
-        data = json.dumps({'artifacts': l})
+            ldict[art.id] = {'file': art.artifactfile.name,
+                             'md5': art.md5hash}
+        data = json.dumps({'artifacts': ldict})
         response_kwargs['content_type'] = 'application/json'
         return HttpResponse(data, **response_kwargs)

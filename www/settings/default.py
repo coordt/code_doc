@@ -40,7 +40,6 @@ ADMINS = (('Raffi Enficiaud', 'raffi.enficiaud@tuebingen.mpg.de'),)
 # the ppl receiving notifications for broken links if BrokenLinkEmailsMiddleware is active
 MANAGERS = (('Raffi Enficiaud', 'raffi.enficiaud@tuebingen.mpg.de'),)
 
-
 LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/"
 
@@ -54,7 +53,6 @@ DEFAULT_FROM_EMAIL = 'webmaster@code.is.localnet'
 # Subject-line prefix for email messages send with django.core.mail.mail_admins
 # or ...mail_managers.  Make sure to include the trailing space.
 EMAIL_SUBJECT_PREFIX = '[CodeDoc] '
-
 
 # Host for sending email.
 EMAIL_HOST = 'localhost'
@@ -87,7 +85,6 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
-
 
 TEMPLATES = [
     {
@@ -191,7 +188,6 @@ LOGGING = {
 
 ROOT_URLCONF = 'www.urls'
 WSGI_APPLICATION = 'www.wsgi.application'
-
 
 # Database
 # https://docs.djangoproject.com/en/1.6/ref/settings/#databases

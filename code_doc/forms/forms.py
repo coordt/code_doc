@@ -1,18 +1,21 @@
 # -*- coding: utf-8 -*-
-from django.forms import Form, ModelForm, FileField, CharField, Textarea, DateInput, CheckboxSelectMultiple, TextInput, EmailInput, Select
+from django.forms import Form, ModelForm, CharField, Textarea, DateInput, CheckboxSelectMultiple, TextInput, EmailInput
 from django.contrib.auth.models import User, Group
 from django.core.exceptions import ValidationError
+from django.forms.widgets import HiddenInput
 
-from ..models.projects import Project, ProjectSeries
+from ..models.projects import ProjectSeries
 from ..models.authors import Author
 from ..models.artifacts import Artifact
 
 import os
 import logging
+
 logger = logging.getLogger(__name__)
 
 
 class AuthorForm(ModelForm):
+
     class Meta:
         model = Author
         fields = '__all__'
@@ -26,11 +29,12 @@ class AuthorForm(ModelForm):
 
 
 class SeriesEditionForm(ModelForm):
-    """Form definition that is used when adding and editing a project serie"""
+    """Form definition that is used when adding and editing a project series."""
 
     class Meta:
         model = ProjectSeries
         fields = (
+            'project',
             'series', 'release_date', 'description_mk',
             'is_public',
             'view_users', 'view_groups',
@@ -52,6 +56,7 @@ class SeriesEditionForm(ModelForm):
                 'any revision is considered on its own revision. Leave blank to avoid the limit.'
         }
         widgets = {
+            'project': HiddenInput(),
             'series': Textarea(attrs={'cols': 60,
                                       'rows': 2,
                                       'style': "resize:none; width: 100%;"}),
@@ -70,43 +75,38 @@ class SeriesEditionForm(ModelForm):
             'perms_groups_artifacts_del': CheckboxSelectMultiple,
         }
 
-    @staticmethod
-    def set_context_for_template(context, project_id):
-        """Sets extra data that is used in the template for displaying the form"""
-        try:
-            current_project = Project.objects.get(pk=project_id)
-        except Project.DoesNotExist:
-            # this should not occur here
-            raise
-        form = context['form']
+    def __init__(self, *args, **kwargs):
 
-        context['project'] = current_project
-        context['project_id'] = current_project.id
+        super(SeriesEditionForm, self).__init__(*args, **kwargs)
 
-        context['automatic_fields'] = (form[i] for i in ('series', 'release_date',
-                                                         'description_mk', 'is_public',
-                                                         'nb_revisions_to_keep'))
+        active_users = set()
+        active_groups = set()
+        if kwargs['instance'] is not None:
+            instance = kwargs['instance']
+            for perm in ('view_users', 'perms_users_artifacts_add', 'perms_users_artifacts_del'):
+                active_users |= set((_ for _ in getattr(instance, perm).values_list('id', flat=True)))
 
-        context['permission_headers'] = ['View and download', 'Adding artifacts', 'Removing artifacts']
+            for perm in ('view_groups', 'perms_groups_artifacts_add', 'perms_groups_artifacts_del'):
+                active_groups |= set((_ for _ in getattr(instance, perm).values_list('id', flat=True)))
 
-        # filter out users that do not have access to the project?
-        context['active_users'] = User.objects.all()
+        else:
+            for perm in ('view_users', 'perms_users_artifacts_add', 'perms_users_artifacts_del'):
+                active_users |= set([_.id for _ in kwargs['initial'][perm]])
+            for perm in ('view_groups', 'perms_groups_artifacts_add', 'perms_groups_artifacts_del'):
+                active_groups |= set([_.id for _ in kwargs['initial'][perm]])
 
-        context['user_permissions'] = zip(xrange(len(context['active_users'])),
-                                          context['active_users'],
-                                          form['view_users'],
-                                          form['perms_users_artifacts_add'],
-                                          form['perms_users_artifacts_del'])
-        # group the permissions in a tuple so that we can parse them easily
-        context['user_permissions'] = [(perms[0], perms[1], tuple(perms[2:])) for perms in context['user_permissions']]
+        # we narrow the queryset in all cases to the ones that appear in those sets
+        # otherwise the form shows all possible entries, which clutters the view
+        # the initial parameter is useful for setting the initial selection, but not for the queryset
+        for perm in ('view_users', 'perms_users_artifacts_add', 'perms_users_artifacts_del'):
+            self.fields[perm].queryset = self.fields[perm].queryset.filter(id__in=list(active_users)).order_by('username')
+        for perm in ('view_groups', 'perms_groups_artifacts_add', 'perms_groups_artifacts_del'):
+            self.fields[perm].queryset = self.fields[perm].queryset.filter(id__in=list(active_groups)).order_by('name')
 
-        context['active_groups'] = Group.objects.all()
-        context['group_permissions'] = zip(xrange(len(context['active_groups'])),
-                                           context['active_groups'],
-                                           form['view_groups'],
-                                           form['perms_groups_artifacts_add'],
-                                           form['perms_groups_artifacts_del'])
-        context['group_permissions'] = [(perms[0], perms[1], tuple(perms[2:])) for perms in context['group_permissions']]
+        # If creation, permissions are not editable
+        if kwargs['instance'] is None:
+            for perm in ('view_users', 'perms_users_artifacts_add', 'perms_users_artifacts_del'):
+                self.fields[perm].disabled = True
 
 
 class ArtifactEditionForm(ModelForm):
@@ -240,3 +240,53 @@ class ArtifactEditionForm(ModelForm):
                                       params={'value': doc_entry})
 
         return self.cleaned_data
+
+
+class ModalAddUserForm(Form):
+
+    username = CharField(label='user_selection',
+                         required=True,
+                         initial='',
+                         widget=TextInput(attrs={'id': "user_selection"}))
+
+    def __init__(self, project, series, *args, **kwargs):
+        super(ModalAddUserForm, self).__init__(*args, **kwargs)
+
+        self.project = project
+        self.series = series
+
+    def clean_username(self):
+
+        username = self.data['username'].strip()
+
+        # Try to find corresponding user
+        if not User.objects.filter(username=username).exists():
+            raise ValidationError('Username %(value)s is not registered',
+                                  params={'value': self.data['username']})
+
+        return username
+
+
+class ModalAddGroupForm(Form):
+
+    groupname = CharField(label='group_selection',
+                          required=True,
+                          initial='',
+                          widget=TextInput(attrs={'id': "group_selection"}))
+
+    def __init__(self, project, series, *args, **kwargs):
+        super(ModalAddGroupForm, self).__init__(*args, **kwargs)
+
+        self.project = project
+        self.series = series
+
+    def clean_groupname(self):
+
+        groupname = self.data['groupname'].strip()
+
+        # Try to find corresponding group
+        if not Group.objects.filter(name=groupname).exists():
+            raise ValidationError('Group %(value)s is not registered',
+                                  params={'value': self.data['groupname']})
+
+        return groupname

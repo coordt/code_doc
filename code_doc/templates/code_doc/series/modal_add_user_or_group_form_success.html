@@ -1,0 +1,13 @@
+{# inline #}
+{% comment %}
+OK This is pretty ugly but this is the best option I have found.
+The problem is that although the 'hide', 'hide.bs.modal', 'hidden.bs.modal' events are
+triggered when the the Cancel button is used, they are not when the submitted form is valid.
+{% endcomment %}
+
+<script>
+$(document).ready(function() {
+    $('#modal_add').modal('hide');
+    location.reload(true);
+  });
+</script>

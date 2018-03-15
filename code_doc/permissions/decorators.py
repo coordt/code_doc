@@ -25,6 +25,7 @@ def _user_passes_test_with_object_getter(
     redirecting to the log-in page if necessary. The test should be a callable
     that takes the user object and returns True if the user passes.
     """
+
     def decorator(view_func):
 
         @wraps(view_func, assigned=available_attrs(view_func))
@@ -70,26 +71,28 @@ def _user_passes_test_with_object_getter(
                 path = request.get_full_path()
             from django.contrib.auth.views import redirect_to_login
             return redirect_to_login(path, resolved_login_url, redirect_field_name)
+
         return _wrapped_view
 
     return decorator
 
 
 def permission_required_on_object(
-      perm,
-      object_getter,
-      login_url=None,
-      handle_access_error=None,
-      raise_exception=False):
+        perm,
+        object_getter,
+        login_url=None,
+        handle_access_error=None,
+        raise_exception=False):
     """
     Decorator for views that checks whether a user has a particular permission
     enabled, redirecting to the log-in page if necessary.
     If the raise_exception parameter is given the PermissionDenied exception
     is raised.
     """
+
     def check_perms(user, obj):
         if not isinstance(perm, (list, tuple)):
-            perms = (perm, )
+            perms = (perm,)
         else:
             perms = perm
 
@@ -110,8 +113,8 @@ def permission_required_on_object(
         return False
 
     return _user_passes_test_with_object_getter(
-                check_perms,
-                object_getter,
-                login_url,
-                handle_access_error=handle_access_error,
-                raise_exception=raise_exception)
+        check_perms,
+        object_getter,
+        login_url,
+        handle_access_error=handle_access_error,
+        raise_exception=raise_exception)

@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 def get_artifact_location(instance, filename):
     """An helper function to specify the storage location of an uploaded file"""
+
     def is_int(elem):
         try:
             return True, int(elem)

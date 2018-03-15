@@ -74,7 +74,6 @@ class ArtifactAddView(ArtifactEditFormView, CreateView):
     def form_valid(self, form):
 
         # after the form validation occured
-
         current_series = self.get_serie_from_url(self.request)
         current_project = current_series.project
         assert(str(current_project.id) == self.kwargs['project_id'])
@@ -123,7 +122,7 @@ class ArtifactAddView(ArtifactEditFormView, CreateView):
                 form.instance.save()
 
                 form.instance.project_series.add(current_series)
-                # form.instance.save()
+                # form.instance.save() # done in the next line
 
                 return super(ArtifactAddView, self).form_valid(form)
 
@@ -131,7 +130,7 @@ class ArtifactAddView(ArtifactEditFormView, CreateView):
             logging.error("[fileupload] error during the save %s", e)
             return HttpResponse('Conflict %s' % form.instance.md5hash.upper(), status=409)
 
-        return HttpResponse('Error saving the artifact' % form.instance.md5hash.upper(), status=404)
+        return HttpResponse('Error saving the artifact %s' % form.instance.md5hash.upper(), status=404)
 
 
 class ArtifactRemoveView(ArtifactAccessViewBase, DeleteView):

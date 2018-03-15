@@ -22,8 +22,7 @@
     {% endif %}</li>
   </ul>
 
-  <h3>Artifacts</h3>
-
+  <h3>Artifacts {% button_add_artifact_with_permission user series %}</h3>
   {% if artifacts %}
 
 	  <table class="table table-hover">
@@ -83,15 +82,11 @@
 
 	        </tr>
 	      {%endfor%}
-	      <tr>
-	        <td>{% button_add_artifact_with_permission user series %}</td>
-	      </tr>
 	    </tbody>
 	  </table>
 
   {% else %}
       <p>No artifacts for this revision {{ series.series }}.</p>
-      <p>{% button_add_artifact_with_permission user series %}</p>
   {% endif %}
 
 
