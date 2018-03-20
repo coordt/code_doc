@@ -4,16 +4,18 @@ from .models.models import Copyright, CopyrightHolder, Topic
 from .models.artifacts import Artifact
 from .models.authors import Author
 from .models.projects import Project, ProjectSeries, ProjectRepository
+from .models.revisions import Revision, Branch
 
 import logging
 logger = logging.getLogger(__name__)
-
 
 # Register your models here.
 admin.site.register(Author)
 admin.site.register(Artifact)
 admin.site.register(Copyright)
 admin.site.register(CopyrightHolder)
+admin.site.register(Revision)
+admin.site.register(Branch)
 
 
 class ProjectAdmin(admin.ModelAdmin):
@@ -38,11 +40,13 @@ class ProjectSeriesAdmin(admin.ModelAdmin):
     list_display = ('series', 'release_date', 'is_public', 'description_mk')
     list_filter = ['series', 'release_date']
 
+
 admin.site.register(ProjectSeries, ProjectSeriesAdmin)
 admin.site.register(ProjectRepository)
 
 
 class TopicAdmin(admin.ModelAdmin):
     pass
+
 
 admin.site.register(Topic, TopicAdmin)
