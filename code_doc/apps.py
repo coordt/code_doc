@@ -7,6 +7,5 @@ class CodeDocAppConfig(AppConfig):
     verbose_name = 'Code Doc'
 
     def ready(self):
-        import code_doc.signals.signal_handlers
-        import code_doc.signals.project_handlers
-
+        from .signals import signal_handlers  # NOQA
+        from .signals import project_handlers  # NOQA

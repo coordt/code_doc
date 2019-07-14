@@ -4,9 +4,9 @@ from django.contrib.auth.models import User, Group
 from django.core.exceptions import ValidationError
 from django.forms.widgets import HiddenInput
 
-from ..models.projects import ProjectSeries
-from ..models.authors import Author
-from ..models.artifacts import Artifact
+from .models.projects import ProjectSeries
+from .models.authors import Author
+from .models.artifacts import Artifact
 
 import os
 import logging
@@ -48,8 +48,10 @@ class SeriesEditionForm(ModelForm):
             'nb_revisions_to_keep': 'Revisions limit'
         }
         help_texts = {
-            'is_public': 'If checked, the series will be visible from everyone. If not you have to specify the users/groups to which'
-            'you are granting access',
+            'is_public': (
+                'If checked, the series will be visible from everyone. If not '
+                'you have to specify the users/groups to which'
+                'you are granting access'),
             'description_mk': 'Description/content/scope of the series in MarkDown format',
             'nb_revisions_to_keep':
                 'Indicates the maximum number of revisions that this series will keep. An artifact without '
@@ -99,9 +101,11 @@ class SeriesEditionForm(ModelForm):
         # otherwise the form shows all possible entries, which clutters the view
         # the initial parameter is useful for setting the initial selection, but not for the queryset
         for perm in ('view_users', 'perms_users_artifacts_add', 'perms_users_artifacts_del'):
-            self.fields[perm].queryset = self.fields[perm].queryset.filter(id__in=list(active_users)).order_by('username')
+            qs = self.fields[perm].queryset.filter(id__in=list(active_users)).order_by('username')
+            self.fields[perm].queryset = qs
         for perm in ('view_groups', 'perms_groups_artifacts_add', 'perms_groups_artifacts_del'):
-            self.fields[perm].queryset = self.fields[perm].queryset.filter(id__in=list(active_groups)).order_by('name')
+            qs = self.fields[perm].queryset.filter(id__in=list(active_groups)).order_by('name')
+            self.fields[perm].queryset = qs
 
         # If creation, permissions are not editable
         if kwargs['instance'] is None:
@@ -146,10 +150,13 @@ class ArtifactEditionForm(ModelForm):
             'documentation_entry_file': 'Doc entry'
         }
         help_texts = {
-            'is_documentation': 'If checked, the artifact is an archive containing a documentation, that will be deflated'
-            'on the server. ',
+            'is_documentation': (
+                'If checked, the artifact is an archive containing a documentation, '
+                'that will be deflated on the server. '),
             'description': 'optional (short) description of the artifact content',
-            'documentation_entry_file': 'If the file is contains a documentation, this should be the entry point of the document',
+            'documentation_entry_file': (
+                'If the file is contains a documentation, this should be the entry '
+                'point of the document'),
         }
         widgets = {
             'description': Textarea(attrs={'cols': 60,
@@ -212,8 +219,9 @@ class ArtifactEditionForm(ModelForm):
         if is_doc:
 
             if not self.cleaned_data['documentation_entry_file']:
-                logger.error("The field 'documentation entry' should be filled for an artifact of type documentation")
-                raise ValidationError("The field 'documentation entry' should be filled for an artifact of type documentation")
+                msg = "The field 'documentation entry' should be filled for an artifact of type documentation"
+                logger.error(msg)
+                raise ValidationError(msg)
 
             # we check if we can open the file with tar
             import tarfile
