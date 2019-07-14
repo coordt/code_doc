@@ -3,8 +3,8 @@ from django.contrib.auth import authenticate
 
 
 class Command(BaseCommand):
-    args = '<username password>'
-    help = 'Try to authenticate a user via Crowd (testing crowd backend with current settings)'
+    args = "<username password>"
+    help = "Try to authenticate a user via Crowd (testing crowd backend with current settings)"
 
     def __init__(self):
         super(Command, self).__init__()
@@ -21,8 +21,8 @@ class Command(BaseCommand):
         user = authenticate(username=userName, password=userPwd)
         if user is not None:
             if user.is_active:
-                print "You provided a correct username and password for '%s' !" % userName
+                print(f"You provided a correct username and password for '{userName}'!")
             else:
-                print "Account '%s' has been disabled!" % userName
+                print("Account '{userName}' has been disabled!")
         else:
-            print "Your username and password were incorrect."
+            print("Your username and password were incorrect.")

@@ -1,4 +1,3 @@
-
 from django.contrib.auth.models import User, Group
 from django.conf import settings
 
@@ -12,7 +11,11 @@ import logging
 
 crowd_logger = logging.getLogger(__name__)
 crowd_logger_handler = logging.StreamHandler()
-crowd_logger_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(filename)s(%(lineno)d) %(funcName)s: %(message)s"))
+crowd_logger_handler.setFormatter(
+    logging.Formatter(
+        "%(asctime)s %(levelname)s %(filename)s(%(lineno)d) %(funcName)s: %(message)s"
+    )
+)
 crowd_logger.addHandler(crowd_logger_handler)
 crowd_logger.setLevel(logging.DEBUG)
 crowd_logger.setLevel(logging.DEBUG)
@@ -54,7 +57,7 @@ class CrowdRestBackend(object):
     def check_client_and_app_authentication(self):
         "Create a client to access Crowd."
         try:
-            if (self.crowdClient is None):
+            if self.crowdClient is None:
                 self.crowdClient = CrowdRestClient()
         except:
             crowd_logger.exception("Create Crowd client failed")
@@ -73,8 +76,7 @@ class CrowdRestBackend(object):
             saveUser = True
 
         if getattr(settings, "AUTH_CROWD_ALWAYS_UPDATE_GROUPS", True):
-            self.sync_groups(user,
-                             is_created=created)
+            self.sync_groups(user, is_created=created)
             saveUser = True
 
         if saveUser:
@@ -82,10 +84,7 @@ class CrowdRestBackend(object):
 
         return user
 
-    def authenticate(self,
-                     request,
-                     username=None,
-                     password=None):
+    def authenticate(self, request, username=None, password=None):
         "Try to authenticate given user and return a User instance on success."
         user = None
         try:
@@ -110,14 +109,14 @@ class CrowdRestBackend(object):
         if "active" in usrData:
             user.is_active = usrData["active"]
 
-    def sync_groups(self,
-                    user,
-                    is_created=False):
+    def sync_groups(self, user, is_created=False):
 
         data = self.crowdClient.get_user_groups(user.username)
 
         group_names = set([x["name"] for x in data["groups"]])
-        update_admin_staff_always = getattr(settings, "AUTH_CROWD_ALWAYS_UPDATE_SUPERUSER_STAFF_STATUS", False)
+        update_admin_staff_always = getattr(
+            settings, "AUTH_CROWD_ALWAYS_UPDATE_SUPERUSER_STAFF_STATUS", False
+        )
 
         if update_admin_staff_always or is_created:
             if getattr(settings, "AUTH_CROWD_SUPERUSER_GROUP", None) in group_names:
@@ -159,16 +158,21 @@ class VerifiedHTTPSConnection(httplib.HTTPSConnection):
             self.sock = sock
             self._tunnel()
         # wrap the socket using verification with the root certificates of given file
-        self.sock = ssl.wrap_socket(sock,
-                                    self.key_file,
-                                    self.cert_file,
-                                    cert_reqs=ssl.CERT_REQUIRED,
-                                    ca_certs=getattr(settings, "AUTH_CROWD_SERVER_TRUSTED_ROOT_CERTS_FILE", None))
+        self.sock = ssl.wrap_socket(
+            sock,
+            self.key_file,
+            self.cert_file,
+            cert_reqs=ssl.CERT_REQUIRED,
+            ca_certs=getattr(
+                settings, "AUTH_CROWD_SERVER_TRUSTED_ROOT_CERTS_FILE", None
+            ),
+        )
 
 
 class VerifiedHTTPSHandler(urllib2.HTTPSHandler):
     """Wraps https connections with ssl certificate verification
     """
+
     def __init__(self, connection_class=VerifiedHTTPSConnection):
         self.specialized_conn_class = connection_class
         urllib2.HTTPSHandler.__init__(self)
@@ -176,12 +180,12 @@ class VerifiedHTTPSHandler(urllib2.HTTPSHandler):
     def https_open(self, req):
         return self.do_open(self.specialized_conn_class, req)
 
+
 # END OF
 #########################################################################
 
 
 class CrowdRestClient(object):
-
     def __init__(self):
         try:
             self._opener = None
@@ -200,16 +204,18 @@ class CrowdRestClient(object):
 
             # Add the username and password.
             # If we knew the realm, we could use it instead of None.
-            password_mgr.add_password(None,
-                                      self._url,
-                                      settings.AUTH_CROWD_APPLICATION_USER,
-                                      settings.AUTH_CROWD_APPLICATION_PASSWORD)
+            password_mgr.add_password(
+                None,
+                self._url,
+                settings.AUTH_CROWD_APPLICATION_USER,
+                settings.AUTH_CROWD_APPLICATION_PASSWORD,
+            )
 
             authHandler = urllib2.HTTPBasicAuthHandler(password_mgr)
             handlers += [authHandler]
 
             certs = getattr(settings, "AUTH_CROWD_SERVER_TRUSTED_ROOT_CERTS_FILE", None)
-            if self._url.startswith('https') and certs:
+            if self._url.startswith("https") and certs:
                 crowd_logger.debug("Validating certificate with " + certs)
                 verifyHandler = VerifiedHTTPSHandler()
                 handlers += [verifyHandler]
@@ -239,7 +245,9 @@ class CrowdRestClient(object):
     def authenticate(self, username, password, maxRetry=3):
         "Authenticate given user via Crowd."
         if not self._opener:
-            crowd_logger.debug("Crowd not available !? Failed to authenticate '%s'" % username)
+            crowd_logger.debug(
+                "Crowd not available !? Failed to authenticate '%s'" % username
+            )
             raise AuthFailed(username)
 
         try:
@@ -252,9 +260,11 @@ class CrowdRestClient(object):
             req.add_header("Accept", "application/json")
             fp = self._opener.open(req)
             usrData = json.load(fp)
-            crowd_logger.debug("Authenticated '%s' successfully." % usrData["display-name"])
+            crowd_logger.debug(
+                "Authenticated '%s' successfully." % usrData["display-name"]
+            )
             return
-        except urllib2.URLError, e:
+        except urllib2.URLError as e:
             errData = json.load(e)
             if e.code == 400:
                 if errData["reason"] == "USER_NOT_FOUND":
