@@ -1,5 +1,11 @@
 from django.db import IntegrityError
-from django.db.models.signals import pre_save, post_save, pre_delete, post_delete, m2m_changed
+from django.db.models.signals import (
+    pre_save,
+    post_save,
+    pre_delete,
+    post_delete,
+    m2m_changed,
+)
 from django.dispatch import receiver
 
 from django.conf import settings
@@ -26,15 +32,14 @@ def linkToAuthor(sender, **kwargs):
        If not, then a new Author is created and the User's
        information is copied over to the Author.
     """
+
     def user_is_linkable_to_author(user):
         """A user must provide enough information in order to be linkable to an Author."""
-        return not (user.last_name == "" or
-                    user.first_name == "" or
-                    user.email == "")
+        return not (user.last_name == "" or user.first_name == "" or user.email == "")
 
-    user_instance = kwargs['instance']
+    user_instance = kwargs["instance"]
 
-    if not hasattr(user_instance, 'author'):
+    if not hasattr(user_instance, "author"):
         if user_is_linkable_to_author(user_instance):
 
             # @note(Stephan):
@@ -47,16 +52,14 @@ def linkToAuthor(sender, **kwargs):
                     lastname=user_instance.last_name,
                     firstname=user_instance.first_name,
                     email=user_instance.email,
-                    django_user=user_instance)
+                    django_user=user_instance,
+                )
             user_instance.author = linked_author
             user_instance.save()
 
 
 @receiver(m2m_changed, sender=Artifact.project_series.through)
-def callback_check_revision_references(sender,
-                                       action,
-                                       reverse,
-                                       instance, **kwargs):
+def callback_check_revision_references(sender, action, reverse, instance, **kwargs):
     """If an artifact is removed from a series, we have to check if the
        revision it belonged to still contains artifacts.
 
@@ -64,16 +67,16 @@ def callback_check_revision_references(sender,
        to this series
     """
 
-    logger.debug('[signal artifact-serie] m2m_changed / artifact %s', instance)
+    logger.debug("[signal artifact-serie] m2m_changed / artifact %s", instance)
 
     if reverse:
 
-        changed_artifacts_pks = kwargs['pk_set']
+        changed_artifacts_pks = kwargs["pk_set"]
         project_series = instance
 
         # We modified the reverse relationship which means we
         # modified series.artifact.
-        if action == 'pre_add':
+        if action == "pre_add":
             # checking integrity for all added artifacts
             proj = project_series.project
             for pk in changed_artifacts_pks:
@@ -81,20 +84,23 @@ def callback_check_revision_references(sender,
                 if artifact.project != proj:
                     raise IntegrityError
 
-        elif action == 'post_remove':
+        elif action == "post_remove":
             # Removing artifacts: we have to check if the
             # revision is still referenced.
             for pk in changed_artifacts_pks:
                 artifact = Artifact.objects.get(pk=pk)
                 artifact_revision = artifact.revision
 
-                if artifact_revision and len(artifact_revision.get_all_referencing_series()) == 0:
+                if (
+                    artifact_revision
+                    and len(artifact_revision.get_all_referencing_series()) == 0
+                ):
                     artifact_revision.delete()
 
                 if artifact.project_series.count() == 0:
                     artifact.delete()
 
-        elif action == 'post_add':
+        elif action == "post_add":
             for pk in changed_artifacts_pks:
                 artifact = Artifact.objects.get(pk=pk)
                 limits_artifact_numbers(artifact)
@@ -104,20 +110,20 @@ def callback_check_revision_references(sender,
         # modified artifact.project_series.
         artifact = instance
 
-        if action == 'pre_add':
+        if action == "pre_add":
             # We want to add a Series to an Artifact, we need to check that
             # this Series belongs to the same Project that the Artifact does
             proj = artifact.project
-            added_series_pks = kwargs['pk_set']
+            added_series_pks = kwargs["pk_set"]
             for pk in added_series_pks:
                 series = ProjectSeries.objects.get(pk=pk)
                 if series.project != proj:
                     raise IntegrityError
 
-        elif action == 'post_add':
+        elif action == "post_add":
             limits_artifact_numbers(artifact)
 
-        elif action == 'post_remove':
+        elif action == "post_remove":
             # clean up revision if it does not contain any artifact
             # only in case of the deletion of an artifact
             revision = artifact.revision
@@ -208,26 +214,36 @@ def limits_artifact_numbers(artifact):
         for serie in artifact.project_series.all():
 
             # these two numbers serve the same purpose
-            if serie.nb_revisions_to_keep is not None or proj_nb_revisions_to_keep is not None:
+            if (
+                serie.nb_revisions_to_keep is not None
+                or proj_nb_revisions_to_keep is not None
+            ):
 
-                nb_revisions_limit = serie.nb_revisions_to_keep \
-                    if serie.nb_revisions_to_keep is not None \
+                nb_revisions_limit = (
+                    serie.nb_revisions_to_keep
+                    if serie.nb_revisions_to_keep is not None
                     else proj_nb_revisions_to_keep
+                )
 
                 if nb_revisions_limit > 0:
                     # get all revisions of this serie
                     all_artifacts = Artifact.objects.filter(project_series=serie)
 
                     # we do not delete our own revision
-                    all_serie_revision = Revision.objects\
-                        .filter(artifacts__in=all_artifacts)\
-                        .distinct()\
-                        .order_by('commit_time')
+                    all_serie_revision = (
+                        Revision.objects.filter(artifacts__in=all_artifacts)
+                        .distinct()
+                        .order_by("commit_time")
+                    )
 
                     nb_current_revisions = all_serie_revision.count()
-                    if(nb_current_revisions > nb_revisions_limit):
-                        for rev_to_remove in all_serie_revision[:(nb_current_revisions - nb_revisions_limit)]:
-                            artifacts_to_prune = serie.artifacts.filter(revision=rev_to_remove).all()
+                    if nb_current_revisions > nb_revisions_limit:
+                        for rev_to_remove in all_serie_revision[
+                            : (nb_current_revisions - nb_revisions_limit)
+                        ]:
+                            artifacts_to_prune = serie.artifacts.filter(
+                                revision=rev_to_remove
+                            ).all()
                             # logger.debug('[signals.limits_artifact_numbers] artifacts %s removed, all %s',
                             #             artifacts_to_prune.all(),
                             #             all_artifacts.all())
@@ -244,17 +260,25 @@ def limits_artifact_numbers(artifact):
         for serie in artifact.project_series.all():
 
             # these two numbers serve the same purpose
-            if serie.nb_revisions_to_keep is not None or proj_nb_revisions_to_keep is not None:
-                all_artifacts = Artifact.objects.filter(project_series=serie)\
-                    .order_by('upload_date')
+            if (
+                serie.nb_revisions_to_keep is not None
+                or proj_nb_revisions_to_keep is not None
+            ):
+                all_artifacts = Artifact.objects.filter(project_series=serie).order_by(
+                    "upload_date"
+                )
 
                 nb_current_artifacts = all_artifacts.count()
-                nb_artifacts_limit = serie.nb_revisions_to_keep \
-                    if serie.nb_revisions_to_keep is not None \
+                nb_artifacts_limit = (
+                    serie.nb_revisions_to_keep
+                    if serie.nb_revisions_to_keep is not None
                     else proj_nb_revisions_to_keep
+                )
 
-                if(nb_current_artifacts > nb_artifacts_limit):
-                    artifacts_to_prune = all_artifacts[:(nb_current_artifacts - nb_artifacts_limit)]
+                if nb_current_artifacts > nb_artifacts_limit:
+                    artifacts_to_prune = all_artifacts[
+                        : (nb_current_artifacts - nb_artifacts_limit)
+                    ]
                     # logger.debug('[signals.limits_artifact_numbers] artifacts %s removed, all %s',
                     #             artifacts_to_prune.all(),
                     #             all_artifacts.all())
@@ -272,8 +296,9 @@ def limits_artifact_numbers(artifact):
 # Artifacts
 def is_deflated(instance):
     """Returns true if the artifact instance should or have been deflated"""
-    return instance.is_documentation and \
-        os.path.splitext(instance.artifactfile.name)[1] in ['.tar', '.bz2', '.gz']
+    return instance.is_documentation and os.path.splitext(instance.artifactfile.name)[
+        1
+    ] in [".tar", ".bz2", ".gz"]
 
 
 # Removing deflate folder
@@ -281,25 +306,24 @@ def delete_deflate_folder(instance):
     """ Checks if the deflate folder exists, and deletes it. """
 
     deflate_directory = get_deflation_directory(instance)
-    if(os.path.exists(deflate_directory)):
+    if os.path.exists(deflate_directory):
 
         def on_error(instance, function, path, excinfo):
-            logger.warning('[project artifact] error removing %s for instance %s',
-                           path, instance)
+            logger.warning(
+                "[project artifact] error removing %s for instance %s", path, instance
+            )
             return
 
-        shutil.rmtree(deflate_directory, False, functools.partial(on_error, instance=instance))
+        shutil.rmtree(
+            deflate_directory, False, functools.partial(on_error, instance=instance)
+        )
 
 
 @receiver(pre_save, sender=Artifact)
-def callback_artifact_field_checks(sender,
-                                   instance,
-                                   raw,
-                                   update_fields,
-                                   **kwargs):
+def callback_artifact_field_checks(sender, instance, raw, update_fields, **kwargs):
     """Callback received before an artifact is saved"""
 
-    logger.debug('[project artifact] pre_save artifact %s', instance)
+    logger.debug("[project artifact] pre_save artifact %s", instance)
 
     # we do not perform operation in case of database populating action
     if raw:
@@ -308,14 +332,19 @@ def callback_artifact_field_checks(sender,
     # inspects the instance in case of documentation
     if instance.is_documentation:
         if not instance.documentation_entry_file:
-            raise IntegrityError("Artifact has incorrect 'documentation_entry_file' field")
+            raise IntegrityError(
+                "Artifact has incorrect 'documentation_entry_file' field"
+            )
 
         if instance.artifactfile.closed:
             if not tarfile.is_tarfile(instance.artifactfile.path):
-                raise IntegrityError('Artifact cannot be documentation: not valid tar file')
+                raise IntegrityError(
+                    "Artifact cannot be documentation: not valid tar file"
+                )
         else:
             # in this case, the file may not be yet on disk??
             import tempfile
+
             with tempfile.TemporaryFile() as f:
 
                 for chunk in instance.artifactfile.chunks():
@@ -324,25 +353,19 @@ def callback_artifact_field_checks(sender,
                 f.seek(0)
                 try:
                     # same logic as tarfile.is_tarfile(tmpfile) but we have fileoj
-                    _ = tarfile.TarFile.open(fileobj=f)
+                    tarfile.TarFile.open(fileobj=f)
                 except tarfile.TarError:
-                    raise IntegrityError('Artifact cannot be documentation: not valid tar file')
-
-        pass
-
-    pass
+                    raise IntegrityError(
+                        "Artifact cannot be documentation: not valid tar file"
+                    )
 
 
 @receiver(post_save, sender=Artifact)
-def callback_artifact_deflation_on_save(sender,
-                                        instance,
-                                        created,
-                                        raw,
-                                        **kwargs):
+def callback_artifact_deflation_on_save(sender, instance, created, raw, **kwargs):
     """Callback received after an artifact has been saved in the database. In case of a documentation
     artifact, and in case the artifact is a zip/archive, we deflate it"""
 
-    logger.debug('[project artifact] post_save artifact %s', instance)
+    logger.debug("[project artifact] post_save artifact %s", instance)
 
     # we do not perform operation in case of database populating action
     if raw:
@@ -390,13 +413,22 @@ def callback_artifact_delete(sender, instance, using, **kwargs):
     storage, path = instance.artifactfile.storage, instance.artifactfile.path
     try:
         storage.delete(path)
-    except WindowsError, e:
-        logger.warning('[project artifact] error removing %s for instance %s', path, instance)
+    except (WindowsError,) as e:
+        logger.warning(
+            "[project artifact] error removing %s for instance %s", path, instance
+        )
 
     parent_directory = os.path.dirname(path)
     if os.path.exists(parent_directory) and not os.listdir(parent_directory):
-        logger.debug('[signal][artifact][post_delete] removing empty directory %s', parent_directory)
+        logger.debug(
+            "[signal][artifact][post_delete] removing empty directory %s",
+            parent_directory,
+        )
         try:
             os.rmdir(parent_directory)
-        except Exception, e:
-            logger.error('[signal][artifact][post_delete] failed to remote %s: %s', parent_directory, e)
+        except (Exception,) as e:
+            logger.error(
+                "[signal][artifact][post_delete] failed to remote %s: %s",
+                parent_directory,
+                e,
+            )

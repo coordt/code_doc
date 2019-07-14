@@ -8,14 +8,12 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
-    dependencies = [
-        ('code_doc', '0025_auto_20170220_2320'),
-    ]
+    dependencies = [("code_doc", "0025_auto_20170220_2320")]
 
     operations = [
         migrations.AlterField(
-            model_name='copyrightholder',
-            name='year',
+            model_name="copyrightholder",
+            name="year",
             field=models.IntegerField(default=code_doc.models.models._current_year),
-        ),
+        )
     ]

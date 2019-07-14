@@ -3,11 +3,12 @@ from django.conf.urls.static import static
 from django.conf import settings
 
 from django.contrib import admin
+
 admin.autodiscover()
 
 urlpatterns = [
-    url(r'^admin/', include(admin.site.urls)),
-    url(r'^', include('code_doc.urls')),
+    url(r"^admin/", include(admin.site.urls)),
+    url(r"^", include("code_doc.urls")),
 ]
 
 if settings.DEBUG:

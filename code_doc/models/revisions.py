@@ -13,12 +13,14 @@ class Revision(models.Model):
        state of the Project's code."""
 
     revision = models.CharField(max_length=200)  # can be anything
-    project = models.ForeignKey(Project, related_name='revisions')
-    commit_time = models.DateTimeField('Time of creation',
-                                       auto_now_add=True,
-                                       help_text='Automatic field that is set when this revision is created')
+    project = models.ForeignKey(Project, related_name="revisions")
+    commit_time = models.DateTimeField(
+        "Time of creation",
+        auto_now_add=True,
+        help_text="Automatic field that is set when this revision is created",
+    )
 
-    def __unicode__(self):
+    def __str__(self):
         return "[%s] %s" % (self.project.name, self.revision)
 
     def get_all_referencing_series(self):
@@ -28,13 +30,15 @@ class Revision(models.Model):
         return list(set(list_of_series))
 
     def get_absolute_url(self):
-        return reverse('project_revision', kwargs={'project_id': self.project.pk,
-                                                   'revision_id': self.id})
+        return reverse(
+            "project_revision",
+            kwargs={"project_id": self.project.pk, "revision_id": self.id},
+        )
 
     class Meta:
         verbose_name_plural = "Project revision"
-        get_latest_by = 'commit_time'
-        unique_together = (('project', 'revision'))
+        get_latest_by = "commit_time"
+        unique_together = ("project", "revision")
         permissions = (
             ("revision_view", "User/group has access to this revision and its content"),
         )
@@ -49,8 +53,9 @@ class Revision(models.Model):
                 series_access = True
                 break
 
-        return series_access or \
-            self.project.has_user_project_administrate_permission(userobj)
+        return series_access or self.project.has_user_project_administrate_permission(
+            userobj
+        )
 
 
 class Branch(models.Model):
@@ -58,10 +63,13 @@ class Branch(models.Model):
        created from.
 
        It stores how many Revisions we allow this Branch to have."""
+
     name = models.CharField(max_length=100)
-    nb_revisions_to_keep = models.IntegerField("default number of revisions to keep. Overrides the "
-                                               "projects and series default",
-                                               default=None,
-                                               blank=True,
-                                               null=True)
-    revisions = models.ManyToManyField(Revision, related_name='branches')
+    nb_revisions_to_keep = models.IntegerField(
+        "default number of revisions to keep. Overrides the "
+        "projects and series default",
+        default=None,
+        blank=True,
+        null=True,
+    )
+    revisions = models.ManyToManyField(Revision, related_name="branches")

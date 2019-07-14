@@ -6,10 +6,6 @@ from django.db import models, migrations
 
 class Migration(migrations.Migration):
 
-    dependencies = [
-        ('code_doc', '0006_auto_20150420_1353'),
-    ]
+    dependencies = [("code_doc", "0006_auto_20150420_1353")]
 
-    operations = [
-        migrations.RenameModel('ProjectVersion', 'ProjectSeries')
-    ]
+    operations = [migrations.RenameModel("ProjectVersion", "ProjectSeries")]

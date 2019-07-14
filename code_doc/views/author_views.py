@@ -1,4 +1,3 @@
-
 from django.shortcuts import render
 from django.http import Http404
 
@@ -13,7 +12,7 @@ import logging
 
 from ..models.projects import Project
 from ..models.authors import Author
-from ..forms.forms import AuthorForm
+from ..forms import AuthorForm
 from .permission_helpers import PermissionOnObjectViewMixin
 
 # logger for this file
@@ -22,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 class AuthorListView(ListView):
     """A generic view of the authors in a list"""
+
     paginate_by = 10
     template_name = "code_doc/authors/author_list.html"
     context_object_name = "authors"
@@ -35,14 +35,20 @@ def detail_author(request, author_id):
         raise Http404
 
     project_list = Project.objects.filter(authors=author)
-    coauthor_list = Author.objects.filter(project__in=project_list).distinct().exclude(pk=author_id)
+    coauthor_list = (
+        Author.objects.filter(project__in=project_list).distinct().exclude(pk=author_id)
+    )
 
-    return render(request,
-                  'code_doc/authors/author_details.html',
-                  {'project_list': project_list,
-                   'author': author,
-                   'user': request.user,
-                   'coauthor_list': coauthor_list})
+    return render(
+        request,
+        "code_doc/authors/author_details.html",
+        {
+            "project_list": project_list,
+            "author": author,
+            "user": request.user,
+            "coauthor_list": coauthor_list,
+        },
+    )
 
 
 class AuthorUpdateView(PermissionOnObjectViewMixin, UpdateView):
@@ -55,20 +61,21 @@ class AuthorUpdateView(PermissionOnObjectViewMixin, UpdateView):
     form_class = AuthorForm
     model = Author
 
-    permissions_on_object = ('code_doc.author_edit',)
-    permissions_object_getter = 'get_author_from_request'
+    permissions_on_object = ("code_doc.author_edit",)
+    permissions_object_getter = "get_author_from_request"
 
     template_name = "code_doc/authors/author_edit.html"
 
-    pk_url_kwarg = 'author_id'
+    pk_url_kwarg = "author_id"
 
     def get_author_from_request(self, request, *args, **kwargs):
         # TODO check if needed
         try:
-            return Author.objects.get(pk=kwargs['author_id'])
+            return Author.objects.get(pk=kwargs["author_id"])
         except Author.DoesNotExist:
-            logger.warning('[AuthorUpdateView] non existent Author with id %s',
-                           kwargs['author_id'])
+            logger.warning(
+                "[AuthorUpdateView] non existent Author with id %s", kwargs["author_id"]
+            )
             return None
 
 
@@ -83,10 +90,11 @@ class MaintainerProfileView(View):
             raise Http404
 
         projects = Project.objects.filter(administrators=maintainer)
-        return render(request,
-                      'code_doc/maintainer_details.html',
-                      {'projects': projects,
-                       'maintainer': maintainer})
+        return render(
+            request,
+            "code_doc/maintainer_details.html",
+            {"projects": projects, "maintainer": maintainer},
+        )
 
     @method_decorator(login_required)
     def post(self, request):

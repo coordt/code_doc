@@ -1,9 +1,8 @@
-
-from functools import wraps, partial
+from functools import wraps
 import logging
 
 from django.conf import settings
-from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
+from django.core.exceptions import PermissionDenied
 from django.utils.decorators import available_attrs
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.utils.encoding import force_str
@@ -14,12 +13,13 @@ logger = logging.getLogger(__name__)
 
 
 def _user_passes_test_with_object_getter(
-         test_func,
-         object_getter,
-         login_url=None,
-         handle_access_error=None,
-         raise_exception=False,
-         redirect_field_name=REDIRECT_FIELD_NAME):
+    test_func,
+    object_getter,
+    login_url=None,
+    handle_access_error=None,
+    raise_exception=False,
+    redirect_field_name=REDIRECT_FIELD_NAME,
+):
     """
     Decorator for views that checks that the user passes the given test,
     redirecting to the log-in page if necessary. The test should be a callable
@@ -27,34 +27,39 @@ def _user_passes_test_with_object_getter(
     """
 
     def decorator(view_func):
-
         @wraps(view_func, assigned=available_attrs(view_func))
         def _wrapped_view(request, *args, **kwargs):
 
             obj = object_getter(request, *args, **kwargs)
 
             if obj is None and handle_access_error is not None:
-                logger.debug('[permissions][decorator] object not found and handling access error')
+                logger.debug(
+                    "[permissions][decorator] object not found and handling access error"
+                )
                 return handle_access_error(obj)
 
             if obj is None and raise_exception:
-                logger.debug('[permissions][decorator] object not found but PermissionDenied raised')
+                logger.debug(
+                    "[permissions][decorator] object not found but PermissionDenied raised"
+                )
                 raise PermissionDenied
 
             if obj is not None:
-                logger.debug('[permissions][decorator] checking permissions')
+                logger.debug("[permissions][decorator] checking permissions")
                 if test_func(request.user, obj):
-                    logger.debug('[permissions][decorator] checking permissions -- passed')
+                    logger.debug(
+                        "[permissions][decorator] checking permissions -- passed"
+                    )
                     return view_func(request, *args, **kwargs)
 
-            logger.debug('[permissions][decorator] checking permissions -- failed')
+            logger.debug("[permissions][decorator] checking permissions -- failed")
 
             # if the user is already authenticated, there is no need to
             # redirect him to the login page
-            if(request.user.is_authenticated() and handle_access_error is not None):
+            if request.user.is_authenticated() and handle_access_error is not None:
                 return handle_access_error(obj)
 
-            if(request.user.is_authenticated()):  # and raise_exception:
+            if request.user.is_authenticated():  # and raise_exception:
                 raise PermissionDenied
 
             path = request.build_absolute_uri()
@@ -66,10 +71,12 @@ def _user_passes_test_with_object_getter(
             # use the path as the "next" url.
             login_scheme, login_netloc = urlparse(resolved_login_url)[:2]
             current_scheme, current_netloc = urlparse(path)[:2]
-            if ((not login_scheme or login_scheme == current_scheme) and
-                (not login_netloc or login_netloc == current_netloc)):
+            if (not login_scheme or login_scheme == current_scheme) and (
+                not login_netloc or login_netloc == current_netloc
+            ):
                 path = request.get_full_path()
             from django.contrib.auth.views import redirect_to_login
+
             return redirect_to_login(path, resolved_login_url, redirect_field_name)
 
         return _wrapped_view
@@ -78,11 +85,8 @@ def _user_passes_test_with_object_getter(
 
 
 def permission_required_on_object(
-        perm,
-        object_getter,
-        login_url=None,
-        handle_access_error=None,
-        raise_exception=False):
+    perm, object_getter, login_url=None, handle_access_error=None, raise_exception=False
+):
     """
     Decorator for views that checks whether a user has a particular permission
     enabled, redirecting to the log-in page if necessary.
@@ -98,10 +102,14 @@ def permission_required_on_object(
 
         # First check if the user has the permission (even anon users)
         if user.has_perms(perms, obj):
-            logger.debug('[permissions][check] User %s ** has ** permissions %s', user, perms)
+            logger.debug(
+                "[permissions][check] User %s ** has ** permissions %s", user, perms
+            )
             return True
 
-        logger.debug('[permissions][check] User %s ** has not ** permissions %s', user, perms)
+        logger.debug(
+            "[permissions][check] User %s ** has not ** permissions %s", user, perms
+        )
 
         # In case the 403 handler should be called raise the exception
 
@@ -117,4 +125,5 @@ def permission_required_on_object(
         object_getter,
         login_url,
         handle_access_error=handle_access_error,
-        raise_exception=raise_exception)
+        raise_exception=raise_exception,
+    )

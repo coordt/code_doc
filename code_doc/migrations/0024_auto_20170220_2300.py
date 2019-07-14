@@ -7,6 +7,7 @@ import django.db.models.deletion
 
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -19,39 +20,41 @@ def move_repository_url(apps, schema_editor):
 
     for project in Project.objects.all():
         if project.code_source_url.strip():
-            repository = ProjectRepository.objects.create(project=project,
-                                                          code_source_url=project.code_source_url.strip())
+            repository = ProjectRepository.objects.create(
+                project=project, code_source_url=project.code_source_url.strip()
+            )
 
 
 class Migration(migrations.Migration):
 
-    dependencies = [
-        ('code_doc', '0023_auto_20160408_1829'),
-    ]
+    dependencies = [("code_doc", "0023_auto_20160408_1829")]
 
     operations = [
         migrations.CreateModel(
-            name='ProjectRepository',
+            name="ProjectRepository",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('code_source_url', models.CharField(max_length=500)),
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("code_source_url", models.CharField(max_length=500)),
             ],
         ),
-
         migrations.AddField(
-            model_name='projectrepository',
-            name='project',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='repositories', to='code_doc.Project'),
+            model_name="projectrepository",
+            name="project",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="repositories",
+                to="code_doc.Project",
+            ),
         ),
-
         # Operations for moving the repository URL prior to deleting it
-        migrations.RunPython(
-            move_repository_url,
-        ),
-
-        migrations.RemoveField(
-            model_name='project',
-            name='code_source_url',
-        ),
-
+        migrations.RunPython(move_repository_url),
+        migrations.RemoveField(model_name="project", name="code_source_url"),
     ]

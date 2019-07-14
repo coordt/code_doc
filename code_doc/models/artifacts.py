@@ -1,6 +1,7 @@
 from django.db import models
 from django.core.urlresolvers import reverse
 from django.conf import settings
+from django.utils.translation import ugettext_lazy as _
 
 import os
 import logging
@@ -13,7 +14,9 @@ logger = logging.getLogger(__name__)
 
 
 def get_artifact_location(instance, filename):
-    """An helper function to specify the storage location of an uploaded file"""
+    """
+    An helper function to specify the storage location of an uploaded file
+    """
 
     def is_int(elem):
         try:
@@ -21,9 +24,9 @@ def get_artifact_location(instance, filename):
         except ValueError:
             return False, 0
 
-    media_relative_dir = os.path.join("artifacts",
-                                      instance.project.name,
-                                      instance.md5hash)
+    media_relative_dir = os.path.join(
+        "artifacts", instance.project.name, instance.md5hash
+    )
     root_dir = os.path.join(settings.MEDIA_ROOT, media_relative_dir)
 
     if not os.path.exists(root_dir):
@@ -33,97 +36,111 @@ def get_artifact_location(instance, filename):
 
 
 def get_deflation_directory(instance, without_media_root=False):
-    """Returns the location where the artifact is getting deflated"""
-
+    """
+    Returns the location where the artifact is getting deflated
+    """
+    defl_dir = os.path.join(os.path.split(instance.artifactfile.name)[0], "deflate")
     if without_media_root:
-        deflate_directory = os.path.join(os.path.split(instance.artifactfile.name)[0], 'deflate')
+        deflate_directory = defl_dir
     else:
-        deflate_directory = os.path.join(settings.MEDIA_ROOT,
-                                         os.path.split(instance.artifactfile.name)[0],
-                                         'deflate')
+        deflate_directory = os.path.join(settings.MEDIA_ROOT, defl_dir)
     return deflate_directory
 
 
 class Artifact(models.Model):
-    """An artifact is a downloadable file"""
-    project = models.ForeignKey(
-        Project,
-        related_name='artifacts')
+    """
+    An artifact is a downloadable file
+    """
 
-    project_series = models.ManyToManyField(
-        ProjectSeries,
-        related_name='artifacts')
+    project = models.ForeignKey(Project, related_name="artifacts")
+
+    project_series = models.ManyToManyField(ProjectSeries, related_name="artifacts")
 
     revision = models.ForeignKey(
-        Revision,
-        related_name='artifacts',
-        null=True,
-        blank=True)
+        Revision, related_name="artifacts", null=True, blank=True
+    )
 
     md5hash = models.CharField(max_length=1024)  # md5 hash
 
     description = models.TextField(
-        'description of the artifact',
-        max_length=1024,
-        blank=True,
-        null=True)
+        _("description of the artifact"), max_length=1024, blank=True, null=True
+    )
 
     artifactfile = models.FileField(
         upload_to=get_artifact_location,
-        help_text='the artifact file that will be stored on the server',
-        max_length=1024)
+        help_text=_("the artifact file that will be stored on the server"),
+        max_length=1024,
+    )
     # the 1024 is important in production, otherwise the filenames get scrubbed
 
     is_documentation = models.BooleanField(
         default=False,
-        help_text="Check if the artifact contains a documentation that should be processed by the server")
+        help_text=_(
+            "Check if the artifact contains a documentation that should be "
+            "processed by the server"
+        ),
+    )
 
     documentation_entry_file = models.CharField(
         max_length=255,
         null=True,
         blank=True,
-        help_text="the documentation entry file if the artifact is documentation type, relative to the root of the deflated package")
+        help_text=_(
+            "the documentation entry file if the artifact is documentation type, "
+            "relative to the root of the deflated package"
+        ),
+    )
 
     upload_date = models.DateTimeField(
-        'Upload date',
+        _("Upload date"),
         null=True,
         blank=True,
-        help_text='Automatic field that indicates the file upload time')
+        help_text=_("Automatic field that indicates the file upload time"),
+    )
 
-    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL,
-                                    blank=True,
-                                    null=True,
-                                    help_text='User/agent uploading the file')
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        null=True,
+        help_text=_("User/agent uploading the file"),
+    )
 
     def get_absolute_url(self):
-        return reverse('project_series',
-                       kwargs={'project_id': self.revision.project.pk,
-                               'series_id': self.project_series.all()[0].pk})
+        kwargs = {
+            "project_id": self.revision.project.pk,
+            "series_id": self.project_series.all()[0].pk,
+        }
+        return reverse("project_series", kwargs=kwargs)
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s | %s | %s" % (self.revision, self.artifactfile.name, self.md5hash)
 
     class Meta:
         # we allow only one version per project
         # (we can however have the same file in several Series)
         unique_together = (("project", "md5hash"),)
-        pass
 
     def filename(self):
         return os.path.basename(self.artifactfile.name)
 
     def full_path_name(self):
-        """Returns the full path of the artifact on the disk
+        """
+        Returns the full path of the artifact on the disk
 
         .. warning::
         This should not work for other type of archival process
-        that the one on the local file system"""
-        return os.path.abspath(os.path.join(settings.MEDIA_ROOT, self.artifactfile.name))
+        that the one on the local file system
+        """
+        return os.path.abspath(
+            os.path.join(settings.MEDIA_ROOT, self.artifactfile.name)
+        )
 
     def get_documentation_url(self):
         """Returns the entry point of the documentation, relative to the media_root"""
         deflate_directory = get_deflation_directory(self, without_media_root=True)
-        return urllib.pathname2url(os.path.join(deflate_directory, self.documentation_entry_file))
+        return urllib.pathname2url(
+            os.path.join(deflate_directory, self.documentation_entry_file)
+        )
 
     @staticmethod
     def get_revision(artifact):
@@ -150,6 +167,7 @@ class Artifact(models.Model):
         # Compute md5 hash if not given
         if not self.md5hash:
             import hashlib
+
             m = hashlib.md5()
             for chunk in self.artifactfile.chunks():
                 m.update(chunk)

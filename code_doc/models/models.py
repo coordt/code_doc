@@ -13,38 +13,43 @@ def _current_year():
 
 class CopyrightHolder(models.Model):
     """The entity that holds the copyright over a product"""
+
     name = models.CharField(max_length=50)
     year = models.IntegerField(default=_current_year)
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s (%d)" % (self.name, self.year)
 
 
 class Copyright(models.Model):
     """The copyright type (BSD + version, MIT + version etc)"""
+
     name = models.CharField(max_length=50)
     content = models.TextField(max_length=2500)
     url = models.CharField(max_length=50)
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s @ %s" % (self.name, self.url)
 
 
 class Topic(models.Model):
     """A topic associated to a project"""
+
     name = models.CharField(max_length=20)
-    description_mk = models.TextField('Description in Markdown format',
-                                      max_length=200, blank=True, null=True)
+    description_mk = models.TextField(
+        "Description in Markdown format", max_length=200, blank=True, null=True
+    )
 
     def get_absolute_url(self):
-        return reverse('topic', kwargs={'topic_id': self.pk})
+        return reverse("topic", kwargs={"topic_id": self.pk})
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s" % (self.name)
 
 
-def manage_permission_on_object(userobj, user_permissions, group_permissions,
-                                default=None):
+def manage_permission_on_object(
+    userobj, user_permissions, group_permissions, default=None
+):
     """If (in order)
 
     * userobj is a superuser, then true
@@ -69,4 +74,7 @@ def manage_permission_on_object(userobj, user_permissions, group_permissions,
     if user_permissions.filter(id=userobj.id).count() > 0:
         return True
 
-    return group_permissions.filter(id__in=[g.id for g in userobj.groups.all()]).count() > 0
+    return (
+        group_permissions.filter(id__in=[g.id for g in userobj.groups.all()]).count()
+        > 0
+    )

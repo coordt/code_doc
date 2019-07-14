@@ -8,21 +8,21 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
-    dependencies = [
-        ('code_doc', '0022_auto_20150903_2206'),
-    ]
+    dependencies = [("code_doc", "0022_auto_20150903_2206")]
 
     operations = [
         migrations.AlterField(
-            model_name='artifact',
-            name='artifactfile',
-            field=models.FileField(help_text=b'the artifact file that will be stored on the server',
-                                   max_length=1024,
-                                   upload_to=code_doc.models.artifacts.get_artifact_location),
+            model_name="artifact",
+            name="artifactfile",
+            field=models.FileField(
+                help_text=b"the artifact file that will be stored on the server",
+                max_length=1024,
+                upload_to=code_doc.models.artifacts.get_artifact_location,
+            ),
         ),
         migrations.AlterField(
-            model_name='copyrightholder',
-            name='year',
+            model_name="copyrightholder",
+            name="year",
             field=models.IntegerField(default=2016),
         ),
     ]

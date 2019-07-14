@@ -7,6 +7,7 @@ from .models.projects import Project, ProjectSeries, ProjectRepository
 from .models.revisions import Revision, Branch
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 # Register your models here.
@@ -19,8 +20,8 @@ admin.site.register(Branch)
 
 
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ('name', 'home_page_url', 'description_mk')
-    list_filter = ['name']
+    list_display = ("name", "home_page_url", "description_mk")
+    list_filter = ["name"]
 
     def get_queryset(self, request):
         """Filters the project to which the current user has access to"""
@@ -28,8 +29,11 @@ class ProjectAdmin(admin.ModelAdmin):
         if request.user.is_superuser:
             return qs
         filtered_qs = qs.filter(administrators__id__contains=request.user.id)
-        logger.debug('[admin|project] User %s has the right to edit the following projects %s',
-                     request.user, [i.name for i in filtered_qs.all()])
+        logger.debug(
+            "[admin|project] User %s has the right to edit the following projects %s",
+            request.user,
+            [i.name for i in filtered_qs.all()],
+        )
         return filtered_qs
 
 
@@ -37,8 +41,8 @@ admin.site.register(Project, ProjectAdmin)
 
 
 class ProjectSeriesAdmin(admin.ModelAdmin):
-    list_display = ('series', 'release_date', 'is_public', 'description_mk')
-    list_filter = ['series', 'release_date']
+    list_display = ("series", "release_date", "is_public", "description_mk")
+    list_filter = ["series", "release_date"]
 
 
 admin.site.register(ProjectSeries, ProjectSeriesAdmin)

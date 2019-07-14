@@ -11,7 +11,6 @@ The main class is :class:`PostMultipartWithSession` and the entry point when use
 is the :func:`main`.
 """
 
-import httplib
 import mimetypes
 import mimetools
 import urllib2
@@ -23,7 +22,7 @@ import StringIO
 import types
 import logging
 
-logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+logging.basicConfig(format="%(asctime)s %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p")
 logger = logging
 
 
@@ -43,28 +42,18 @@ class PostMultipartWithSession(object):
             self.avoid_redirections = False
 
         def http_error_302(self, req, fp, code, msg, headers):
-
-            if 0:
-                print "\tRedirection intercepted", self.instance_name
-                print "\tURL request", req.get_full_url()
-                print "\tHeaders", headers.items()
-                print "\tCode", code
-                print "\tMessage", msg
-                # print "\tFP", fp.read()
-
             redir = "Location" in headers
             if redir:
                 self.redirection_map[req.get_full_url()] = headers["Location"]
 
-            if(self.avoid_redirections and redir):
+            if self.avoid_redirections and redir:
                 raise urllib2.HTTPError(
-                    req.get_full_url(),
-                    401,
-                    "redirections disabled",
-                    headers,
-                    None)
+                    req.get_full_url(), 401, "redirections disabled", headers, None
+                )
 
-            return urllib2.HTTPRedirectHandler.http_error_302(self, req, fp, code, msg, headers)
+            return urllib2.HTTPRedirectHandler.http_error_302(
+                self, req, fp, code, msg, headers
+            )
 
         http_error_301 = http_error_303 = http_error_307 = http_error_302
 
@@ -76,10 +65,13 @@ class PostMultipartWithSession(object):
         """
 
         self.cookies = cookielib.CookieJar()
-        self.redirection_intercepter = PostMultipartWithSession.MyHTTPRedirectHandler("redir")
+        self.redirection_intercepter = PostMultipartWithSession.MyHTTPRedirectHandler(
+            "redir"
+        )
 
-        self.opener = urllib2.build_opener(self.redirection_intercepter,
-                                           urllib2.HTTPCookieProcessor(self.cookies))
+        self.opener = urllib2.build_opener(
+            self.redirection_intercepter, urllib2.HTTPCookieProcessor(self.cookies)
+        )
 
         urllib2.install_opener(self.opener)
         self.host = host
@@ -87,14 +79,16 @@ class PostMultipartWithSession(object):
     def get_redirection(self, initial_page):
         """Returns the redirection from one page to another if it exists, None otherwise"""
 
-        value = self.redirection_intercepter.redirection_map.get(self.host + initial_page, None)
+        value = self.redirection_intercepter.redirection_map.get(
+            self.host + initial_page, None
+        )
         if value is None:
             return value
 
         if value.find(self.host) == 0:
-            value = value[len(self.host):]
+            value = value[len(self.host) :]
 
-        pos = value.find('?')
+        pos = value.find("?")
         if pos > 0:
             value = value[:pos]
 
@@ -111,23 +105,28 @@ class PostMultipartWithSession(object):
         # csrf token needed for the login forms
         token = self._get_csrf_token(content)
 
-        login_data = dict(username=username,
-                          password=password,
-                          csrfmiddlewaretoken=token)
+        login_data = dict(
+            username=username, password=password, csrfmiddlewaretoken=token
+        )
 
         request = urllib2.Request(response.geturl(), data=urllib.urlencode(login_data))
 
         # the referer is needed by NGinx in order to not be considered as a
         # robot/spambot/malicious software
-        request.add_header('Referer', self.host + login_page)
+        request.add_header("Referer", self.host + login_page)
 
         try:
             response = self.opener.open(request)
-        except urllib2.HTTPError, e:
-            logger.error("""[login] an error occurred during login:\n
+        except urllib2.HTTPError as e:
+            logger.error(
+                """[login] an error occurred during login:\n
                             \tError code: %d\n
                             \tError reason: %s\n
-                            \tError details %s""", e.code, e.reason, e.fp.read())
+                            \tError details %s""",
+                e.code,
+                e.reason,
+                e.fp.read(),
+            )
 
             raise
 
@@ -136,16 +135,16 @@ class PostMultipartWithSession(object):
     def _get_csrf_token(self, content):
         """Returns the csrf token put (hidden) into a form"""
         token = None
-        pos = content.find('csrfmiddlewaretoken')
+        pos = content.find("csrfmiddlewaretoken")
         if pos > -1:
             for c in self.cookies:
-                if c.name == 'csrftoken':
+                if c.name == "csrftoken":
                     token = c.value
                     break
             else:
-                logger.info('[csrf] cookie not found from the content')
-                pos = content.find('value', pos)
-                m = re.match('value=\'([\w\d]+?)\'', content[pos:])
+                logger.info("[csrf] cookie not found from the content")
+                pos = content.find("value", pos)
+                m = re.match(r"value=\'([\w\d]+?)\'", content[pos:])
                 if m is not None:
                     token = m.group(1)
 
@@ -165,33 +164,41 @@ class PostMultipartWithSession(object):
 
         buf = StringIO.StringIO()
         for (key, value) in fields.items():
-            buf.write('--%s\r\n' % mime_boundary)
+            buf.write("--%s\r\n" % mime_boundary)
             buf.write('Content-Disposition: form-data; name="%s"' % key)
-            buf.write('\r\n\r\n' + value + '\r\n')
+            buf.write("\r\n\r\n" + value + "\r\n")
         for (key, filename_to_add_or_file_descriptor) in files:
 
-            if(type(filename_to_add_or_file_descriptor) is types.StringType or
-               type(filename_to_add_or_file_descriptor) is types.UnicodeType):
-                fd = open(filename_to_add_or_file_descriptor, 'rb')
+            if isinstance(
+                filename_to_add_or_file_descriptor, types.StringType
+            ) or isinstance(filename_to_add_or_file_descriptor, types.UnicodeType):
+                fd = open(filename_to_add_or_file_descriptor, "rb")
                 filename = os.path.basename(filename_to_add_or_file_descriptor)
-                contenttype = mimetypes.guess_type(filename_to_add_or_file_descriptor)[0] or \
-                    'application/octet-stream'
+                contenttype = (
+                    mimetypes.guess_type(filename_to_add_or_file_descriptor)[0]
+                    or "application/octet-stream"
+                )
             else:
                 fd = filename_to_add_or_file_descriptor
                 filename = filename_to_add_or_file_descriptor.name
-                contenttype = 'application/octet-stream'  # we cannot be more precise here
-            buf.write('--%s\r\n' % mime_boundary)
-            buf.write('Content-Disposition: form-data; name="%s"; filename="%s"\r\n' % (key, filename))
-            buf.write('Content-Type: %s\r\n' % contenttype)
+                contenttype = (
+                    "application/octet-stream"
+                )  # we cannot be more precise here
+            buf.write("--%s\r\n" % mime_boundary)
+            buf.write(
+                'Content-Disposition: form-data; name="%s"; filename="%s"\r\n'
+                % (key, filename)
+            )
+            buf.write("Content-Type: %s\r\n" % contenttype)
             fd.seek(0)
             string_file = fd.read()
 
-            buf.write('\r\n' + string_file + '\r\n')
+            buf.write("\r\n" + string_file + "\r\n")
 
-        buf.write('--' + mime_boundary + '--\r\n\r\n')
+        buf.write("--" + mime_boundary + "--\r\n\r\n")
 
         body = buf.getvalue()
-        content_type = 'multipart/form-data; boundary=%s' % mime_boundary
+        content_type = "multipart/form-data; boundary=%s" % mime_boundary
         return content_type, body
 
     def get(self, page, avoid_redirections=False):
@@ -202,12 +209,14 @@ class PostMultipartWithSession(object):
         request = urllib2.Request(server_url)
         try:
             response = self.opener.open(request)
-        except urllib2.HTTPError, e:
+        except urllib2.HTTPError as e:
             return e
 
         return response
 
-    def post_multipart(self, page_url, form_fields, form_files, avoid_redirections=True):
+    def post_multipart(
+        self, page_url, form_fields, form_files, avoid_redirections=True
+    ):
         """ Post form_fields and form_files to an http://host/page_url as multipart/form-data.
 
           :param form_fields: is a sequence of (name, value) elements for regular form form_fields.
@@ -224,7 +233,7 @@ class PostMultipartWithSession(object):
         self.redirection_intercepter.avoid_redirections = avoid_redirections
         try:
             response = self.opener.open(request)
-        except urllib2.HTTPError, e:
+        except urllib2.HTTPError as e:
             return e
 
         content = response.read()
@@ -232,34 +241,40 @@ class PostMultipartWithSession(object):
 
         fields_with_token = dict(form_fields.items())
         if token is not None:
-            fields_with_token['csrfmiddlewaretoken'] = token
+            fields_with_token["csrfmiddlewaretoken"] = token
 
-        content_type, body = self._encode_multipart_formdata(fields_with_token, form_files)
+        content_type, body = self._encode_multipart_formdata(
+            fields_with_token, form_files
+        )
 
-        headers = {'Content-Type': content_type, 'Content-Length': str(len(body))}
+        headers = {"Content-Type": content_type, "Content-Length": str(len(body))}
 
         # the url should be non-unicode object otherwise the library makes the assumption that data
         # is also unicode, which is not.
 
-        if type(server_url) is types.UnicodeType:
-            request_url = server_url.encode('ascii')
+        if isinstance(server_url, types.UnicodeType):
+            request_url = server_url.encode("ascii")
         else:
             request_url = server_url
 
         request = urllib2.Request(request_url, data=body, headers=headers)
         # again (as for login) the referer is needed by NGinx
-        request.add_header('Referer', self.host + page_url)
+        request.add_header("Referer", self.host + page_url)
 
         try:
             response = self.opener.open(request)
             return response
-        except urllib2.HTTPError, e:
-            logger.error("""[post] an error occurred during posting of the form to %s:\n
+        except urllib2.HTTPError as e:
+            logger.error(
+                """[post] an error occurred during posting of the form to %s:\n
                             \tError code: %d\n
                             \tError reason: %s\n
                             \tError details %s""",
-                         self.host + page_url,
-                         e.code, e.reason, e.fp.read())
+                self.host + page_url,
+                e.code,
+                e.reason,
+                e.fp.read(),
+            )
             raise
 
 
@@ -267,7 +282,6 @@ def main():
     import argparse
     import hashlib
     import json
-    import datetime
 
     description = """code_doc upload script:
 
@@ -279,78 +293,102 @@ def main():
 
     epilog = ""
 
-    parser = argparse.ArgumentParser(prog='code_doc-archival',
-                                     description=description,
-                                     epilog=epilog)
+    parser = argparse.ArgumentParser(
+        prog="code_doc-archival", description=description, epilog=epilog
+    )
 
-    group = parser.add_argument_group('artifact')
+    group = parser.add_argument_group("artifact")
 
-    group.add_argument('-f', '--file',
-                       dest='inputfile',
-                       action='store',
-                       required=True,
-                       nargs=1,
-                       type=argparse.FileType('rb'),
-                       help="""The file that should be sent to the server.""")
+    group.add_argument(
+        "-f",
+        "--file",
+        dest="inputfile",
+        action="store",
+        required=True,
+        nargs=1,
+        type=argparse.FileType("rb"),
+        help="""The file that should be sent to the server.""",
+    )
 
-    group.add_argument('--project',
-                       dest='project',
-                       required=True,
-                       help="""The name of the project concerned by this upload""")
+    group.add_argument(
+        "--project",
+        dest="project",
+        required=True,
+        help="""The name of the project concerned by this upload""",
+    )
 
-    group.add_argument('--artifact_series',
-                       dest='series',
-                       required=True,
-                       help="""The name of the series concerned by this upload""")
+    group.add_argument(
+        "--artifact_series",
+        dest="series",
+        required=True,
+        help="""The name of the series concerned by this upload""",
+    )
 
-    group.add_argument('--artifact_branch',
-                       dest='branch',
-                       required=True,
-                       help="""The name of the branch concerned by this upload. If the branch is specified,
-                       the artifact_revision should also be specified""")
+    group.add_argument(
+        "--artifact_branch",
+        dest="branch",
+        required=True,
+        help="""The name of the branch concerned by this upload. If the branch is specified,
+                       the artifact_revision should also be specified""",
+    )
 
-    group.add_argument('--artifact_revision',
-                       dest='revision',
-                       required=True,
-                       help="""The name or hash of the revision concerned by this upload. This value
-                       will be transformed to lower case.""")
+    group.add_argument(
+        "--artifact_revision",
+        dest="revision",
+        required=True,
+        help="""The name or hash of the revision concerned by this upload. This value
+                       will be transformed to lower case.""",
+    )
 
-    group.add_argument('--is_doc',
-                       dest='is_doc',
-                       action="store_true",
-                       help="""Indicates that the file is an archive containing a documentation that should be deflated on the
-                       server side. Additionally, the `doc_entry` parameter should be set.""")
+    group.add_argument(
+        "--is_doc",
+        dest="is_doc",
+        action="store_true",
+        help="""Indicates that the file is an archive containing a documentation that should be deflated on the
+                       server side. Additionally, the `doc_entry` parameter should be set.""",
+    )
 
-    group.add_argument('--doc_entry',
-                       dest='doc_entry',
-                       default=None,
-                       help="""Indicates the file that is used as the documentation main entry point.""")
+    group.add_argument(
+        "--doc_entry",
+        dest="doc_entry",
+        default=None,
+        help="""Indicates the file that is used as the documentation main entry point.""",
+    )
 
-    group.add_argument('--artifact_description',
-                       dest='description',
-                       action='store',
-                       help="""Describes the artifact.""")
+    group.add_argument(
+        "--artifact_description",
+        dest="description",
+        action="store",
+        help="""Describes the artifact.""",
+    )
 
-    group = parser.add_argument_group('server')
+    group = parser.add_argument_group("server")
 
-    group.add_argument('-s', '--code_doc_url',
-                       dest='url',
-                       metavar='URL',
-                       action='store',
-                       default='http://localhost:8000',
-                       help="""CodeDoc (Django) server to which the results will be send. The URL should contain
-                               the http scheme, the dns name and the port (default: "http://localhost:8000")""")
+    group.add_argument(
+        "-s",
+        "--code_doc_url",
+        dest="url",
+        metavar="URL",
+        action="store",
+        default="http://localhost:8000",
+        help="""CodeDoc (Django) server to which the results will be send. The URL should contain
+                               the http scheme, the dns name and the port (default: "http://localhost:8000")""",
+    )
 
-    group.add_argument('--username',
-                       dest='username',
-                       required=True,
-                       help="""The username used for updating the results (the user should exist on the Django instance is should be
-                              allowed to add results)""")
+    group.add_argument(
+        "--username",
+        dest="username",
+        required=True,
+        help="""The username used for updating the results (the user should exist on the Django instance is should be
+                              allowed to add results)""",
+    )
 
-    group.add_argument('--password',
-                       dest='password',
-                       required=True,
-                       help="""The password of the provided user on the Django instance""")
+    group.add_argument(
+        "--password",
+        dest="password",
+        required=True,
+        help="""The password of the provided user on the Django instance""",
+    )
 
     args = parser.parse_args()
 
@@ -361,92 +399,108 @@ def main():
         raise Exception("[configuration] cannot open the artifact file")
 
     if args.is_doc and args.doc_entry is None:
-        logger.error("[configuration] the entry point should be provided for documentation artifacts")
+        logger.error(
+            "[configuration] the entry point should be provided for documentation artifacts"
+        )
         raise Exception("[configuration] cannot open the artifact file")
 
     instance = PostMultipartWithSession(args.url)
 
     # logging with the provided credentials
     logger.debug("[log in] Logging to the server")
-    instance.login(login_page="/accounts/login/",
-                   username=args.username,
-                   password=args.password)
+    instance.login(
+        login_page="/accounts/login/", username=args.username, password=args.password
+    )
 
     # getting the location (id of the project and version) to which the upload should be done
     logger.debug("[meta] Retrieving the project and series IDs")
-    post_url = '/api/%s/%s/' % (args.project, args.series)
+    post_url = "/api/%s/%s/" % (args.project, args.series)
 
     try:
         response = instance.get(post_url)
-    except Exception, e:
-        logger.error("[login] an exception was raised while trying to login to the server %r", e)
+    except Exception as e:
+        logger.error(
+            "[login] an exception was raised while trying to login to the server %r", e
+        )
         raise
 
     try:
         res = response.read()
         dic_ids = json.loads(res)
-        project_id = int(dic_ids['project_id'])
-        series_id = int(dic_ids['series_id'])
-    except Exception, e:
-        logger.error("""[meta] an error occurred during the retrieval of the projects informations from %s:\n
+        project_id = int(dic_ids["project_id"])
+        series_id = int(dic_ids["series_id"])
+    except Exception as e:
+        logger.error(
+            """[meta] an error occurred during the retrieval of the projects informations from %s:\n
                           \tError details %s""",
-                     args.url + post_url,
-                     e)
+            args.url + post_url,
+            e,
+        )
         raise
 
     # sending the artifact
     # preparing the form
     fields = {}
-    fields['description'] = args.description if args.description is not None else 'uploaded by a robot'
-    fields['is_documentation'] = "True" if args.is_doc else "False"
-    fields['documentation_entry_file'] = args.doc_entry if args.doc_entry is not None else ''
+    fields["description"] = (
+        args.description if args.description is not None else "uploaded by a robot"
+    )
+    fields["is_documentation"] = "True" if args.is_doc else "False"
+    fields["documentation_entry_file"] = (
+        args.doc_entry if args.doc_entry is not None else ""
+    )
     # fields['upload_date'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    fields['branch'] = args.branch
-    if fields['branch']:
-        fields['branch'] = fields['branch'].strip()
+    fields["branch"] = args.branch
+    if fields["branch"]:
+        fields["branch"] = fields["branch"].strip()
 
-    fields['revision'] = args.revision
-    if fields['revision']:
-        fields['revision'] = fields['revision'].strip().lower()
+    fields["revision"] = args.revision
+    if fields["revision"]:
+        fields["revision"] = fields["revision"].strip().lower()
 
-    if fields['branch'] and not fields['revision']:
+    if fields["branch"] and not fields["revision"]:
         logger.error("[configuration] branch is specified while revision is not")
         raise Exception("[configuration] branch is specified while revision is not")
 
     files = []
-    files.append(('artifactfile', args.inputfile))
+    files.append(("artifactfile", args.inputfile))
 
-    post_url = '/artifacts/%d/%d/add' % (project_id, series_id)
+    post_url = "/artifacts/%d/%d/add" % (project_id, series_id)
 
     # sending
     logger.debug("[transfer] Sending artifact")
     response = instance.post_multipart(
-        post_url,
-        fields,
-        files,
-        avoid_redirections=False)
+        post_url, fields, files, avoid_redirections=False
+    )
 
-    if(response.code != 200):
-        logger.error("[transfer] an error was returned by the server during the transfer of the file, return code is %d", response.code)
-        raise Exception("[transfer] an error was returned by the server during the transfer of the file")
+    if response.code != 200:
+        msg = (
+            f"[transfer] an error was returned by the server during the "
+            "transfer of the file, return code is {response.code}"
+        )
+        logger.error(msg)
+        raise Exception(msg)
 
     # checking artifact properly stored
     logger.debug("[integrity] Checking artifact")
 
-    post_url = '/artifacts/api/%d/%d' % (project_id, series_id)
+    post_url = "/artifacts/api/%d/%d" % (project_id, series_id)
     response = instance.get(post_url)
-    if(response.code != 200):
-        logger.error("[transfer] an error was returned by the server while querying for artifacts, return code is %d", response.code)
-        raise Exception("[transfer] an error was returned by the server during the transfer of the file")
+    if response.code != 200:
+        msg = (
+            f"[transfer] an error was returned by the server while querying "
+            "for artifacts, return code is {response.code}"
+        )
+        logger.error(msg)
+        raise Exception(msg)
 
     args.inputfile.seek(0)
     hash_file = hashlib.md5(args.inputfile.read()).hexdigest().upper()
 
     dic_ids = json.loads(response.read())
-    artifacts = dic_ids['artifacts']
+    artifacts = dic_ids["artifacts"]
 
     for art_id, art in artifacts.items():
-        if(art['md5'].upper() == hash_file):
+        if art["md5"].upper() == hash_file:
             logger.info("[integrity] artifact successfully stored on the server")
             break
     else:
@@ -454,13 +508,13 @@ def main():
         raise Exception("[integrity] the artifact cannot be found on the server")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import sys
 
     try:
         main()
         sys.exit(0)
-    except Exception, e:
-        print e
-        logger.error("[ERROR] The artifact was not pushed to the server: %s", e)
+    except Exception as e:
+        print(e)
+        logger.error(f"[ERROR] The artifact was not pushed to the server: {e}")
         sys.exit(2)
