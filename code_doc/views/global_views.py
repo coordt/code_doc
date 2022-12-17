@@ -32,14 +32,16 @@ def index(request):
         Topic.objects.filter(project__in=projects_list).distinct().order_by("name")
     )
 
-    context = {"projects_list": projects_list, "topics_list": topics_list}
+    context = {
+        "projects_list": projects_list,
+        "topics_list": topics_list,
+        "size_row": 12 // nb_columns,
+    }
 
-    context["size_row"] = 12 // nb_columns
-
-    current_project_list = [i for i in projects_list]  # copy
+    current_project_list = list(projects_list)
     list_project_per_column = []
 
-    for i in range(nb_columns):
+    for _ in range(nb_columns):
         current_max_len = min(max_in_column, len(current_project_list))
         current_chunk = (
             current_project_list[:current_max_len] if current_max_len else []
@@ -69,10 +71,10 @@ def index(request):
     context["list_project_per_line"] = list_project_per_line
 
     # same for topics
-    current_topic_list = [i for i in topics_list]  # copy
+    current_topic_list = list(topics_list)
     list_topics_per_column = []
 
-    for i in range(nb_columns):
+    for _ in range(nb_columns):
         current_max_len = min(max_in_column, len(current_topic_list))
         current_chunk = current_topic_list[:current_max_len] if current_max_len else []
         current_topic_list = current_topic_list[current_max_len:]
@@ -121,7 +123,7 @@ def script(request):
     ).read()  # binary is important here
     # TODO add a test on this len(file_content)
     response = HttpResponse(file_content, content_type="application/text")
-    response["Content-Disposition"] = "attachment; filename=%s" % filename
+    response["Content-Disposition"] = f"attachment; filename={filename}"
     response["Content-Length"] = len(file_content)
     return response
 

@@ -35,27 +35,27 @@ def linkToAuthor(sender, **kwargs):
 
     def user_is_linkable_to_author(user):
         """A user must provide enough information in order to be linkable to an Author."""
-        return not (user.last_name == "" or user.first_name == "" or user.email == "")
+        return user.last_name != "" and user.first_name != "" and user.email != ""
 
     user_instance = kwargs["instance"]
 
-    if not hasattr(user_instance, "author"):
-        if user_is_linkable_to_author(user_instance):
-
-            # @note(Stephan):
-            # We cannot use get_or_create here since in the get we only care about
-            # the email (since it is the primary key of the Author).
-            if Author.objects.filter(email=user_instance.email).count() == 1:
-                linked_author = Author.objects.get(email=user_instance.email)
-            else:
-                linked_author = Author.objects.create(
-                    lastname=user_instance.last_name,
-                    firstname=user_instance.first_name,
-                    email=user_instance.email,
-                    django_user=user_instance,
-                )
-            user_instance.author = linked_author
-            user_instance.save()
+    if not hasattr(user_instance, "author") and user_is_linkable_to_author(
+        user_instance
+    ):
+        # @note(Stephan):
+        # We cannot use get_or_create here since in the get we only care about
+        # the email (since it is the primary key of the Author).
+        if Author.objects.filter(email=user_instance.email).count() == 1:
+            linked_author = Author.objects.get(email=user_instance.email)
+        else:
+            linked_author = Author.objects.create(
+                lastname=user_instance.last_name,
+                firstname=user_instance.first_name,
+                email=user_instance.email,
+                django_user=user_instance,
+            )
+        user_instance.author = linked_author
+        user_instance.save()
 
 
 @receiver(m2m_changed, sender=Artifact.project_series.through)
@@ -208,58 +208,8 @@ def limits_artifact_numbers(artifact):
     project = artifact.project
     proj_nb_revisions_to_keep = project.nb_revisions_to_keep
 
-    if artifact.revision is not None:
-        # we are in the mode where we limit the revisions
-
-        for serie in artifact.project_series.all():
-
-            # these two numbers serve the same purpose
-            if (
-                serie.nb_revisions_to_keep is not None
-                or proj_nb_revisions_to_keep is not None
-            ):
-
-                nb_revisions_limit = (
-                    serie.nb_revisions_to_keep
-                    if serie.nb_revisions_to_keep is not None
-                    else proj_nb_revisions_to_keep
-                )
-
-                if nb_revisions_limit > 0:
-                    # get all revisions of this serie
-                    all_artifacts = Artifact.objects.filter(project_series=serie)
-
-                    # we do not delete our own revision
-                    all_serie_revision = (
-                        Revision.objects.filter(artifacts__in=all_artifacts)
-                        .distinct()
-                        .order_by("commit_time")
-                    )
-
-                    nb_current_revisions = all_serie_revision.count()
-                    if nb_current_revisions > nb_revisions_limit:
-                        for rev_to_remove in all_serie_revision[
-                            : (nb_current_revisions - nb_revisions_limit)
-                        ]:
-                            artifacts_to_prune = serie.artifacts.filter(
-                                revision=rev_to_remove
-                            ).all()
-                            # logger.debug('[signals.limits_artifact_numbers] artifacts %s removed, all %s',
-                            #             artifacts_to_prune.all(),
-                            #             all_artifacts.all())
-
-                            for art in artifacts_to_prune:
-                                serie.artifacts.remove(art)
-
-                            # serie.artifacts.remove(*artifacts_to_prune)
-
-                    pass
-
-    else:
-        # we filter the number of artifacts without revision instead
-        for serie in artifact.project_series.all():
-
-            # these two numbers serve the same purpose
+    for serie in artifact.project_series.all():
+        if artifact.revision is None:
             if (
                 serie.nb_revisions_to_keep is not None
                 or proj_nb_revisions_to_keep is not None
@@ -287,10 +237,43 @@ def limits_artifact_numbers(artifact):
                     #    art.project_series.remove(serie)
                     serie.artifacts.remove(*artifacts_to_prune)
 
-            pass  # if
-        pass  # for
+        elif (
+            serie.nb_revisions_to_keep is not None
+            or proj_nb_revisions_to_keep is not None
+        ):
+            nb_revisions_limit = (
+                serie.nb_revisions_to_keep
+                if serie.nb_revisions_to_keep is not None
+                else proj_nb_revisions_to_keep
+            )
 
-    pass  # if artifact.revision
+            if nb_revisions_limit > 0:
+                # get all revisions of this serie
+                all_artifacts = Artifact.objects.filter(project_series=serie)
+
+                # we do not delete our own revision
+                all_serie_revision = (
+                    Revision.objects.filter(artifacts__in=all_artifacts)
+                    .distinct()
+                    .order_by("commit_time")
+                )
+
+                nb_current_revisions = all_serie_revision.count()
+                if nb_current_revisions > nb_revisions_limit:
+                    for rev_to_remove in all_serie_revision[
+                        : (nb_current_revisions - nb_revisions_limit)
+                    ]:
+                        artifacts_to_prune = serie.artifacts.filter(
+                            revision=rev_to_remove
+                        ).all()
+                        # logger.debug('[signals.limits_artifact_numbers] artifacts %s removed, all %s',
+                        #             artifacts_to_prune.all(),
+                        #             all_artifacts.all())
+
+                        for art in artifacts_to_prune:
+                            serie.artifacts.remove(art)
+
+                        # serie.artifacts.remove(*artifacts_to_prune)
 
 
 # Artifacts
@@ -383,12 +366,8 @@ def callback_artifact_deflation_on_save(sender, instance, created, raw, **kwargs
             tar = tarfile.open(fileobj=instance.artifactfile)
             tar.extractall(deflate_directory)
             instance.artifactfile.close()
-    else:
-        # Remove if existing
-        if os.path.exists(deflate_directory):
-            delete_deflate_folder(instance)
-
-    pass
+    elif os.path.exists(deflate_directory):
+        delete_deflate_folder(instance)
 
 
 @receiver(pre_delete, sender=Artifact)
@@ -402,9 +381,6 @@ def callback_artifact_documentation_delete(sender, instance, using, **kwargs):
     if is_deflated(instance):
         delete_deflate_folder(instance)
 
-    # removing the file on post delete
-    pass
-
 
 @receiver(post_delete, sender=Artifact)
 def callback_artifact_delete(sender, instance, using, **kwargs):
@@ -413,7 +389,7 @@ def callback_artifact_delete(sender, instance, using, **kwargs):
     storage, path = instance.artifactfile.storage, instance.artifactfile.path
     try:
         storage.delete(path)
-    except (WindowsError,) as e:
+    except WindowsError as e:
         logger.warning(
             "[project artifact] error removing %s for instance %s", path, instance
         )
@@ -426,7 +402,7 @@ def callback_artifact_delete(sender, instance, using, **kwargs):
         )
         try:
             os.rmdir(parent_directory)
-        except (Exception,) as e:
+        except Exception as e:
             logger.error(
                 "[signal][artifact][post_delete] failed to remote %s: %s",
                 parent_directory,

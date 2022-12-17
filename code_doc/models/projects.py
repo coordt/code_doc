@@ -51,7 +51,7 @@ class Project(models.Model):
     )
 
     def __str__(self):
-        return "%s" % (self.name)
+        return f"{self.name}"
 
     def get_absolute_url(self):
         return reverse("project", kwargs={"project_id": self.pk})
@@ -91,7 +91,7 @@ class Project(models.Model):
     def get_number_of_files(self):
         """Returns the number of files archived for a project"""
         artifact_counts = [rev.artifacts.count() for rev in self.series.all()]
-        return sum(artifact_counts) if len(artifact_counts) > 0 else 0
+        return sum(artifact_counts) if artifact_counts else 0
 
     def get_number_of_series(self):
         """Returns the number of series for a project"""
@@ -123,7 +123,7 @@ class ProjectRepository(models.Model):
         return reverse("project", kwargs={"project_id": self.project.id})
 
     def __str__(self):
-        return "[%s] %s" % (self.project.name, self.code_source_url)
+        return f"[{self.project.name}] {self.code_source_url}"
 
 
 class ProjectSeries(models.Model):
@@ -185,7 +185,7 @@ class ProjectSeries(models.Model):
         )
 
     def __str__(self):
-        return "[%s @ %s] [%s]" % (self.project.name, self.series, self.release_date)
+        return f"[{self.project.name} @ {self.series}] [{self.release_date}]"
 
     def get_absolute_url(self):
         return reverse(

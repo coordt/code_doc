@@ -26,7 +26,7 @@ def author_image(author_id, size=None):
 
 def _hash_string_to_color_hex(str_author, brightness_limit):
     hashed = hashlib.md5(str_author.encode("utf-8")).hexdigest()[:6]
-    r = int(hashed[0:2], 16)
+    r = int(hashed[:2], 16)
     g = int(hashed[2:4], 16)
     b = int(hashed[4:6], 16)
 
@@ -34,5 +34,4 @@ def _hash_string_to_color_hex(str_author, brightness_limit):
     g = min(g, brightness_limit)
     b = min(b, brightness_limit)
 
-    result = "#%02x%02x%02x" % (r, g, b)
-    return result
+    return "#%02x%02x%02x" % (r, g, b)

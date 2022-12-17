@@ -146,7 +146,7 @@ class PostMultipartWithSession(object):
                 pos = content.find("value", pos)
                 m = re.match(r"value=\'([\w\d]+?)\'", content[pos:])
                 if m is not None:
-                    token = m.group(1)
+                    token = m[1]
 
         return token
 
@@ -165,13 +165,14 @@ class PostMultipartWithSession(object):
         buf = StringIO.StringIO()
         for (key, value) in fields.items():
             buf.write("--%s\r\n" % mime_boundary)
-            buf.write('Content-Disposition: form-data; name="%s"' % key)
+            buf.write(f'Content-Disposition: form-data; name="{key}"')
             buf.write("\r\n\r\n" + value + "\r\n")
         for (key, filename_to_add_or_file_descriptor) in files:
 
             if isinstance(
-                filename_to_add_or_file_descriptor, types.StringType
-            ) or isinstance(filename_to_add_or_file_descriptor, types.UnicodeType):
+                filename_to_add_or_file_descriptor,
+                (types.StringType, types.UnicodeType),
+            ):
                 fd = open(filename_to_add_or_file_descriptor, "rb")
                 filename = os.path.basename(filename_to_add_or_file_descriptor)
                 contenttype = (
@@ -195,16 +196,16 @@ class PostMultipartWithSession(object):
 
             buf.write("\r\n" + string_file + "\r\n")
 
-        buf.write("--" + mime_boundary + "--\r\n\r\n")
+        buf.write(f"--{mime_boundary}" + "--\r\n\r\n")
 
         body = buf.getvalue()
-        content_type = "multipart/form-data; boundary=%s" % mime_boundary
+        content_type = f"multipart/form-data; boundary={mime_boundary}"
         return content_type, body
 
     def get(self, page, avoid_redirections=False):
 
         self.redirection_intercepter.avoid_redirections = avoid_redirections
-        server_url = "%s%s" % (self.host, page)
+        server_url = f"{self.host}{page}"
 
         request = urllib2.Request(server_url)
         try:
@@ -226,7 +227,7 @@ class PostMultipartWithSession(object):
                                      (login redirection for instance)
           :returns: the server's response page_url.
         """
-        server_url = "%s%s" % (self.host, page_url)
+        server_url = f"{self.host}{page_url}"
 
         # get for the cookie and opening a session
         request = urllib2.Request(server_url)
@@ -414,7 +415,7 @@ def main():
 
     # getting the location (id of the project and version) to which the upload should be done
     logger.debug("[meta] Retrieving the project and series IDs")
-    post_url = "/api/%s/%s/" % (args.project, args.series)
+    post_url = f"/api/{args.project}/{args.series}/"
 
     try:
         response = instance.get(post_url)
@@ -440,16 +441,16 @@ def main():
 
     # sending the artifact
     # preparing the form
-    fields = {}
-    fields["description"] = (
-        args.description if args.description is not None else "uploaded by a robot"
-    )
-    fields["is_documentation"] = "True" if args.is_doc else "False"
-    fields["documentation_entry_file"] = (
-        args.doc_entry if args.doc_entry is not None else ""
-    )
-    # fields['upload_date'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    fields["branch"] = args.branch
+    fields = {
+        "description": args.description
+        if args.description is not None
+        else "uploaded by a robot",
+        "is_documentation": "True" if args.is_doc else "False",
+        "documentation_entry_file": args.doc_entry
+        if args.doc_entry is not None
+        else "",
+        "branch": args.branch,
+    }
     if fields["branch"]:
         fields["branch"] = fields["branch"].strip()
 
@@ -461,9 +462,7 @@ def main():
         logger.error("[configuration] branch is specified while revision is not")
         raise Exception("[configuration] branch is specified while revision is not")
 
-    files = []
-    files.append(("artifactfile", args.inputfile))
-
+    files = [("artifactfile", args.inputfile)]
     post_url = "/artifacts/%d/%d/add" % (project_id, series_id)
 
     # sending
@@ -473,10 +472,7 @@ def main():
     )
 
     if response.code != 200:
-        msg = (
-            f"[transfer] an error was returned by the server during the "
-            "transfer of the file, return code is {response.code}"
-        )
+        msg = '[transfer] an error was returned by the server during the transfer of the file, return code is {response.code}'
         logger.error(msg)
         raise Exception(msg)
 
@@ -486,10 +482,7 @@ def main():
     post_url = "/artifacts/api/%d/%d" % (project_id, series_id)
     response = instance.get(post_url)
     if response.code != 200:
-        msg = (
-            f"[transfer] an error was returned by the server while querying "
-            "for artifacts, return code is {response.code}"
-        )
+        msg = '[transfer] an error was returned by the server while querying for artifacts, return code is {response.code}'
         logger.error(msg)
         raise Exception(msg)
 

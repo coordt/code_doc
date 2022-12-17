@@ -40,11 +40,11 @@ def get_deflation_directory(instance, without_media_root=False):
     Returns the location where the artifact is getting deflated
     """
     defl_dir = os.path.join(os.path.split(instance.artifactfile.name)[0], "deflate")
-    if without_media_root:
-        deflate_directory = defl_dir
-    else:
-        deflate_directory = os.path.join(settings.MEDIA_ROOT, defl_dir)
-    return deflate_directory
+    return (
+        defl_dir
+        if without_media_root
+        else os.path.join(settings.MEDIA_ROOT, defl_dir)
+    )
 
 
 class Artifact(models.Model):
@@ -113,7 +113,7 @@ class Artifact(models.Model):
         return reverse("project_series", kwargs=kwargs)
 
     def __str__(self):
-        return "%s | %s | %s" % (self.revision, self.artifactfile.name, self.md5hash)
+        return f"{self.revision} | {self.artifactfile.name} | {self.md5hash}"
 
     class Meta:
         # we allow only one version per project

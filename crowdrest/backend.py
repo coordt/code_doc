@@ -37,7 +37,7 @@ class InvalidUser(UserException):
         super(InvalidUser, self).__init__(username)
 
     def __str__(self):
-        return "User '%s' is not valid Crowd user" % self.username
+        return f"User '{self.username}' is not valid Crowd user"
 
 
 class AuthFailed(UserException):
@@ -45,7 +45,7 @@ class AuthFailed(UserException):
         super(AuthFailed, self).__init__(username)
 
     def __str__(self):
-        return "Failed to authenticate user '%s' in Crowd" % self.username
+        return f"Failed to authenticate user '{self.username}' in Crowd"
 
 
 class CrowdRestBackend(object):
@@ -88,11 +88,11 @@ class CrowdRestBackend(object):
         "Try to authenticate given user and return a User instance on success."
         user = None
         try:
-            crowd_logger.debug("Authenticate user '%s'..." % username)
+            crowd_logger.debug(f"Authenticate user '{username}'...")
             self.check_client_and_app_authentication()
             self.crowdClient.authenticate(username, password)
             user = self.create_or_update_user(username)
-            crowd_logger.debug("Authenticated user '%s' successfully." % user.username)
+            crowd_logger.debug(f"Authenticated user '{user.username}' successfully.")
         except:
             crowd_logger.exception("Authenticate failed")
         return user
@@ -113,21 +113,19 @@ class CrowdRestBackend(object):
 
         data = self.crowdClient.get_user_groups(user.username)
 
-        group_names = set([x["name"] for x in data["groups"]])
+        group_names = {x["name"] for x in data["groups"]}
         update_admin_staff_always = getattr(
             settings, "AUTH_CROWD_ALWAYS_UPDATE_SUPERUSER_STAFF_STATUS", False
         )
 
         if update_admin_staff_always or is_created:
-            if getattr(settings, "AUTH_CROWD_SUPERUSER_GROUP", None) in group_names:
-                user.is_superuser = True
-            else:
-                user.is_superuser = False
-            if getattr(settings, "AUTH_CROWD_STAFF_GROUP", None) in group_names:
-                user.is_staff = True
-            else:
-                user.is_staff = False
-
+            user.is_superuser = (
+                getattr(settings, "AUTH_CROWD_SUPERUSER_GROUP", None)
+                in group_names
+            )
+            user.is_staff = (
+                getattr(settings, "AUTH_CROWD_STAFF_GROUP", None) in group_names
+            )
         if getattr(settings, "AUTH_CROWD_CREATE_GROUPS", False):
             group_objs = [Group.objects.get_or_create(name=g)[0] for g in group_names]
         else:
@@ -216,7 +214,7 @@ class CrowdRestClient(object):
 
             certs = getattr(settings, "AUTH_CROWD_SERVER_TRUSTED_ROOT_CERTS_FILE", None)
             if self._url.startswith("https") and certs:
-                crowd_logger.debug("Validating certificate with " + certs)
+                crowd_logger.debug(f"Validating certificate with {certs}")
                 verifyHandler = VerifiedHTTPSHandler()
                 handlers += [verifyHandler]
 
@@ -228,11 +226,11 @@ class CrowdRestClient(object):
     def connect(self):
         "Connect to Crowd."
         try:
-            crowd_logger.debug("Connecting to %s..." % self._url)
+            crowd_logger.debug(f"Connecting to {self._url}...")
             self._createOpener()
 
             # use the opener to fetch a dummy URL
-            fp = self._opener.open(self._url + "/config/cookie.json")
+            fp = self._opener.open(f"{self._url}/config/cookie.json")
             i = fp.info()
             d = fp.read()
 
@@ -246,13 +244,13 @@ class CrowdRestClient(object):
         "Authenticate given user via Crowd."
         if not self._opener:
             crowd_logger.debug(
-                "Crowd not available !? Failed to authenticate '%s'" % username
+                f"Crowd not available !? Failed to authenticate '{username}'"
             )
             raise AuthFailed(username)
 
         try:
-            crowd_logger.debug("Authenticating '%s'..." % username)
-            url = self._url + "/authentication?username=" + username
+            crowd_logger.debug(f"Authenticating '{username}'...")
+            url = f"{self._url}/authentication?username={username}"
             creds = {"value": password}
             req = urllib2.Request(url)
             req.add_data(json.dumps(creds))
@@ -261,7 +259,7 @@ class CrowdRestClient(object):
             fp = self._opener.open(req)
             usrData = json.load(fp)
             crowd_logger.debug(
-                "Authenticated '%s' successfully." % usrData["display-name"]
+                f"""Authenticated '{usrData["display-name"]}' successfully."""
             )
             return
         except urllib2.URLError as e:
@@ -270,7 +268,7 @@ class CrowdRestClient(object):
                 if errData["reason"] == "USER_NOT_FOUND":
                     raise InvalidUser(username)
                 else:
-                    crowd_logger.exception("Unknown reason %s" % errData["reason"])
+                    crowd_logger.exception(f'Unknown reason {errData["reason"]}')
             elif e.code == 500:
                 crowd_logger.exception("Internal error on Crowd server")
                 if maxRetry > 0:
@@ -287,8 +285,8 @@ class CrowdRestClient(object):
     def get_user(self, username):
         "Query for given user and return dict of user fields from Crowd."
         try:
-            crowd_logger.debug("Fetching details of '%s'..." % username)
-            url = self._url + "/user.json?username=%s" % username
+            crowd_logger.debug(f"Fetching details of '{username}'...")
+            url = f"{self._url}/user.json?username={username}"
             u = self._opener.open(url)
             return json.loads(u.read())
         except urllib2.URLError:
@@ -298,8 +296,8 @@ class CrowdRestClient(object):
     def get_user_groups(self, username):
         "Query for groups of given user and return dict of group fields from Crowd."
         try:
-            crowd_logger.debug("Fetching groups of '%s'..." % username)
-            url = self._url + "/user/group/nested.json?username=%s" % username
+            crowd_logger.debug(f"Fetching groups of '{username}'...")
+            url = f"{self._url}/user/group/nested.json?username={username}"
             u = self._opener.open(url)
             return json.loads(u.read())
         except urllib2.URLError:

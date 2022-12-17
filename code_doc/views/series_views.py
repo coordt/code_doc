@@ -231,7 +231,7 @@ class SeriesDetailsView(SerieAccessViewBase, DetailView):
         context["series"] = series_object
         context["project"] = series_object.project
         context["artifacts"] = series_object.artifacts.all()
-        context["revisions"] = list(set([art.revision for art in context["artifacts"]]))
+        context["revisions"] = list({art.revision for art in context["artifacts"]})
         return context
 
 
@@ -256,9 +256,10 @@ class APIGetSeriesArtifacts(SeriesDetailsView, DetailView):
 
     def render_to_response(self, context, **response_kwargs):
         artifacts = context["artifacts"]
-        ldict = {}
-        for art in artifacts:
-            ldict[art.id] = {"file": art.artifactfile.name, "md5": art.md5hash}
+        ldict = {
+            art.id: {"file": art.artifactfile.name, "md5": art.md5hash}
+            for art in artifacts
+        }
         data = json.dumps({"artifacts": ldict})
         response_kwargs["content_type"] = "application/json"
         return HttpResponse(data, **response_kwargs)

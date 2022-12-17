@@ -111,18 +111,14 @@ class SeriesEditionForm(ModelForm):
                 "perms_users_artifacts_add",
                 "perms_users_artifacts_del",
             ):
-                active_users |= set(
-                    (_ for _ in getattr(instance, perm).values_list("id", flat=True))
-                )
+                active_users |= set(getattr(instance, perm).values_list("id", flat=True))
 
             for perm in (
                 "view_groups",
                 "perms_groups_artifacts_add",
                 "perms_groups_artifacts_del",
             ):
-                active_groups |= set(
-                    (_ for _ in getattr(instance, perm).values_list("id", flat=True))
-                )
+                active_groups |= set(getattr(instance, perm).values_list("id", flat=True))
 
         else:
             for perm in (
@@ -130,13 +126,13 @@ class SeriesEditionForm(ModelForm):
                 "perms_users_artifacts_add",
                 "perms_users_artifacts_del",
             ):
-                active_users |= set([_.id for _ in kwargs["initial"][perm]])
+                active_users |= {_.id for _ in kwargs["initial"][perm]}
             for perm in (
                 "view_groups",
                 "perms_groups_artifacts_add",
                 "perms_groups_artifacts_del",
             ):
-                active_groups |= set([_.id for _ in kwargs["initial"][perm]])
+                active_groups |= {_.id for _ in kwargs["initial"][perm]}
 
         # we narrow the queryset in all cases to the ones that appear in those sets
         # otherwise the form shows all possible entries, which clutters the view
@@ -332,9 +328,7 @@ class ArtifactEditionForm(ModelForm):
                 if os.path.relpath(e.name) == os.path.relpath(doc_entry):
                     break
             else:
-                logger.error(
-                    "Documentation entry '%s' not found in the tar" % (doc_entry)
-                )
+                logger.error(f"Documentation entry '{doc_entry}' not found in the tar")
                 raise ValidationError(
                     'The documentation entry "%(value)s" was not found in the archive',
                     params={"value": doc_entry},

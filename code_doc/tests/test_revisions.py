@@ -502,7 +502,7 @@ class RevisionTest(TestCase):
         artifacts = []
         for i in range(nb_revs):
             rev = Revision.objects.create(
-                revision="%s" % (i + 9000),
+                revision=f"{i + 9000}",
                 project=self.project,
                 commit_time=now + datetime.timedelta(seconds=-i),
             )
@@ -510,7 +510,7 @@ class RevisionTest(TestCase):
             art = Artifact.objects.create(
                 project=self.project,
                 revision=rev,
-                md5hash="%s" % i,
+                md5hash=f"{i}",
                 artifactfile=self.test_file,
             )
 
@@ -521,7 +521,7 @@ class RevisionTest(TestCase):
 
         try:
             for i in range(nb_revs):
-                self.assertIsNotNone(Revision.objects.get(revision="%s" % (i + 9000)))
+                self.assertIsNotNone(Revision.objects.get(revision=f"{i + 9000}"))
         except Revision.DoesNotExist:
             self.fail(
                 "[Revision.DoesNotExist] One of the Revisions returned no object from the get query"
@@ -552,7 +552,7 @@ class RevisionTest(TestCase):
 
         for i in range(nb_revs):
             rev = Revision.objects.create(
-                revision="%s" % (i + 9000),
+                revision=f"{i + 9000}",
                 project=self.project,
                 commit_time=now + datetime.timedelta(seconds=i),
             )
@@ -560,7 +560,7 @@ class RevisionTest(TestCase):
             art = Artifact.objects.create(
                 project=self.project,
                 revision=rev,
-                md5hash="%s" % i,
+                md5hash=f"{i}",
                 artifactfile=self.test_file,
             )
 
@@ -577,18 +577,16 @@ class RevisionTest(TestCase):
         # there should be a better way to manipulate this expression
         # self.assertEqual(Revision.objects.filter(artifacts__serie=self.new_series).all().distinct().count(), 2)
         self.assertSetEqual(
-            set([art.revision for art in self.new_series.artifacts.all()]),
-            set(
-                [
-                    Revision.objects.get(revision="9002"),
-                    Revision.objects.get(revision="9003"),
-                ]
-            ),
+            {art.revision for art in self.new_series.artifacts.all()},
+            {
+                Revision.objects.get(revision="9002"),
+                Revision.objects.get(revision="9003"),
+            },
         )
 
         try:
             for i in range(nb_revs)[2:]:
-                self.assertIsNotNone(Revision.objects.get(revision="%s" % (i + 9000)))
+                self.assertIsNotNone(Revision.objects.get(revision=f"{i + 9000}"))
         except Revision.DoesNotExist:
             self.fail(
                 "[Revision.DoesNotExist] One of the Revisions returned no object from the get query"
@@ -598,7 +596,7 @@ class RevisionTest(TestCase):
                 "[Revision.MultipleObjectsReturned] One of the Revisions returned more than one object from the get query"
             )
         except Exception as e:
-            self.fail("Unexpected Exception in get query %s" % e)
+            self.fail(f"Unexpected Exception in get query {e}")
             raise
 
         # those revisions are the oldest, and should have been removed
@@ -625,7 +623,7 @@ class RevisionTest(TestCase):
 
         for i in range(nb_revs):
             rev = Revision.objects.create(
-                revision="%s" % (i + 9000),
+                revision=f"{i + 9000}",
                 project=self.project,
                 commit_time=now + datetime.timedelta(seconds=i),
             )
@@ -633,7 +631,7 @@ class RevisionTest(TestCase):
             art = Artifact.objects.create(
                 project=self.project,
                 revision=rev,
-                md5hash="%s" % i,
+                md5hash=f"{i}",
                 artifactfile=self.test_file,
             )
 
@@ -643,7 +641,7 @@ class RevisionTest(TestCase):
                 art = Artifact.objects.create(
                     project=self.project,
                     revision=rev,
-                    md5hash="x%s" % i,
+                    md5hash=f"x{i}",
                     artifactfile=self.test_file,
                 )
 
@@ -661,7 +659,7 @@ class RevisionTest(TestCase):
 
         try:
             for i in range(nb_revs)[2:]:
-                self.assertIsNotNone(Revision.objects.get(revision="%s" % (i + 9000)))
+                self.assertIsNotNone(Revision.objects.get(revision=f"{i + 9000}"))
         except Revision.DoesNotExist:
             self.fail(
                 "[Revision.DoesNotExist] One of the Revisions returned no object from the get query"
@@ -671,7 +669,7 @@ class RevisionTest(TestCase):
                 "[Revision.MultipleObjectsReturned] One of the Revisions returned more than one object from the get query"
             )
         except Exception as e:
-            self.fail("Unexpected Exception in get query %s" % e)
+            self.fail(f"Unexpected Exception in get query {e}")
             raise
 
         # those revisions are the oldest, and should have been removed
@@ -683,13 +681,11 @@ class RevisionTest(TestCase):
         # there should be a better way to manipulate this expression
         # self.assertEqual(Revision.objects.filter(artifacts__serie=self.new_series).all().distinct().count(), 2)
         self.assertSetEqual(
-            set([art.revision for art in self.new_series.artifacts.all()]),
-            set(
-                [
-                    Revision.objects.get(revision="9002"),
-                    Revision.objects.get(revision="9003"),
-                ]
-            ),
+            {art.revision for art in self.new_series.artifacts.all()},
+            {
+                Revision.objects.get(revision="9002"),
+                Revision.objects.get(revision="9003"),
+            },
         )
 
     def test_remove_earliest_revision_no_branch_several_artifacts_several_series(self):
@@ -715,7 +711,7 @@ class RevisionTest(TestCase):
 
         for i in range(nb_revs):
             rev = Revision.objects.create(
-                revision="%s" % (i + 9000),
+                revision=f"{i + 9000}",
                 project=self.project,
                 commit_time=now + datetime.timedelta(seconds=i),
             )
@@ -723,7 +719,7 @@ class RevisionTest(TestCase):
             art = Artifact.objects.create(
                 project=self.project,
                 revision=rev,
-                md5hash="%s" % i,
+                md5hash=f"{i}",
                 artifactfile=self.test_file,
             )
 
@@ -733,7 +729,7 @@ class RevisionTest(TestCase):
                 art = Artifact.objects.create(
                     project=self.project,
                     revision=rev,
-                    md5hash="x%s" % i,
+                    md5hash=f"x{i}",
                     artifactfile=self.test_file,
                 )
 
@@ -764,16 +760,14 @@ class RevisionTest(TestCase):
         # there should be a better way to manipulate this expression
         # self.assertEqual(Revision.objects.filter(artifacts__serie=self.new_series).all().distinct().count(), 2)
         self.assertSetEqual(
-            set([art.revision for art in self.new_series.artifacts.all()]),
-            set(
-                [
-                    Revision.objects.get(revision="9002"),
-                    Revision.objects.get(revision="9003"),
-                ]
-            ),
+            {art.revision for art in self.new_series.artifacts.all()},
+            {
+                Revision.objects.get(revision="9002"),
+                Revision.objects.get(revision="9003"),
+            },
         )
         self.assertSetEqual(
-            set([art.revision for art in s2.artifacts.all()]), set(all_revisions)
+            {art.revision for art in s2.artifacts.all()}, set(all_revisions)
         )
 
     def create_several_artifacts(self):
@@ -788,7 +782,7 @@ class RevisionTest(TestCase):
         for i in range(self.nb_revs):
             art = Artifact.objects.create(
                 project=self.project,
-                md5hash="%s" % i,
+                md5hash=f"{i}",
                 artifactfile=self.test_file,
                 upload_date=now + datetime.timedelta(seconds=i),
             )
@@ -798,7 +792,7 @@ class RevisionTest(TestCase):
             if (i % 2) == 0:
                 art = Artifact.objects.create(
                     project=self.project,
-                    md5hash="x%s" % i,
+                    md5hash=f"x{i}",
                     artifactfile=self.test_file,
                     upload_date=now + datetime.timedelta(seconds=i + 100),
                 )
@@ -818,7 +812,7 @@ class RevisionTest(TestCase):
 
         for i in range(self.nb_revs):
             rev = Revision.objects.create(
-                revision="%s" % (i + 9000),
+                revision=f"{i + 9000}",
                 project=self.project,
                 commit_time=now + datetime.timedelta(seconds=i),
             )
@@ -856,15 +850,14 @@ class RevisionTest(TestCase):
                 self.assertIsNotNone(Artifact.objects.get(md5hash=all_artifacts[k][1]))
         except Artifact.DoesNotExist as e:
             self.fail(
-                "[Artifact.DoesNotExist] One of the Artifacts returned no object from the get query %s"
-                % e
+                f"[Artifact.DoesNotExist] One of the Artifacts returned no object from the get query {e}"
             )
         except Artifact.MultipleObjectsReturned:
             self.fail(
                 "[Revision.MultipleObjectsReturned] One of the Revisions returned more than one object from the get query"
             )
         except Exception as e:
-            self.fail("Unexpected Exception in get query %s" % e)
+            self.fail(f"Unexpected Exception in get query {e}")
             raise
 
         for k, art in enumerate(all_artifacts):
