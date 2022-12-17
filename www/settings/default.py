@@ -8,6 +8,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.6/ref/settings/
 """
 
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
 
@@ -24,7 +25,7 @@ MEDIA_URL = "/media/"
 # path used to upload temporary files
 USER_UPLOAD_TEMPORARY_STORAGE = os.path.join(BASE_DIR, "temporary")
 FILE_LOGGING_LOCATION = os.path.join(
-    USER_UPLOAD_TEMPORARY_STORAGE, "%s.log" % SITE_NAME
+    USER_UPLOAD_TEMPORARY_STORAGE, f"{SITE_NAME}.log"
 )
 
 # Quick-start development settings - unsuitable for production

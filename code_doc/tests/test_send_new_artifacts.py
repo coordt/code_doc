@@ -57,19 +57,16 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
         f.write(s)
         f.seek(0)
 
-        fields = {}
+        fields = {
+            "description": "revision from client based application",
+            "is_documentation": "False",
+            "documentation_entry_file": "",
+            "upload_date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "branch": "blah",
+            "revision": "blahblah",
+        }
 
-        fields["description"] = "revision from client based application"
-        fields["is_documentation"] = "False"
-        fields["documentation_entry_file"] = ""
-        fields["upload_date"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        fields["branch"] = "blah"
-        fields["revision"] = "blahblah"
-
-        files = []
-
-        # see remarks in test test_send_new_file
-        files.append(("artifactfile", f))
+        files = [("artifactfile", f)]
 
         instance = PostMultipartWithSession(host=self.live_server_url)
 
@@ -117,19 +114,16 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
         f.write(s)
         f.seek(0)
 
-        fields = {}
+        fields = {
+            "description": "revision from client based application",
+            "is_documentation": "False",
+            "documentation_entry_file": "",
+            "upload_date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "branch": "blah",
+            "revision": "blahblah",
+        }
 
-        fields["description"] = "revision from client based application"
-        fields["is_documentation"] = "False"
-        fields["documentation_entry_file"] = ""
-        fields["upload_date"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        fields["branch"] = "blah"
-        fields["revision"] = "blahblah"
-
-        files = []
-
-        # see remarks in test test_send_new_file
-        files.append(("artifactfile", f))
+        files = [("artifactfile", f)]
 
         instance = PostMultipartWithSession(host=self.live_server_url)
 
@@ -193,19 +187,16 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
         f.write(s)
         f.seek(0)
 
-        fields = {}
+        fields = {
+            "description": "revision from client based application",
+            "is_documentation": "False",
+            "documentation_entry_file": "",
+            "upload_date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "branch": "blah",
+            "revision": "blahblah",
+        }
 
-        fields["description"] = "revision from client based application"
-        fields["is_documentation"] = "False"
-        fields["documentation_entry_file"] = ""
-        fields["upload_date"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        fields["branch"] = "blah"
-        fields["revision"] = "blahblah"
-
-        files = []
-
-        # see remarks in test test_send_new_file
-        files.append(("artifactfile", f))
+        files = [("artifactfile", f)]
 
         instance = PostMultipartWithSession(host=self.live_server_url)
 
@@ -257,7 +248,7 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
         """Tests if the redirection is ok"""
         instance = PostMultipartWithSession(host=self.live_server_url)
 
-        post_url = "/s/%s/%s/" % (self.project.name, self.series.series)
+        post_url = f"/s/{self.project.name}/{self.series.series}/"
         _ = instance.get(post_url)
         redir = instance.get_redirection(post_url)
         self.assertEqual(
@@ -274,7 +265,7 @@ class ProjectLiveSendArtifactTest(LiveServerTestCase):
             password="test_series_user",
         )
 
-        post_url = "/api/%s/%s/" % (self.project.name, self.series.series)
+        post_url = f"/api/{self.project.name}/{self.series.series}/"
         response = instance.get(post_url)
 
         dic_ids = json.loads(response.read())

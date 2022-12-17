@@ -5,6 +5,8 @@ from __future__ import unicode_literals
 from django.db import migrations
 
 
+
+
 class Migration(migrations.Migration):
 
     dependencies = [("code_doc", "0024_auto_20170220_2300")]
@@ -26,7 +28,10 @@ class Migration(migrations.Migration):
                         "series_edit",
                         "User/group can edit the definition of this series",
                     ),
-                    ("series_artifact_add", "User/group is allowed to add an artifact"),
+                    (
+                        "series_artifact_add",
+                        "User/group is allowed to add an artifact",
+                    ),
                     (
                         "series_artifact_delete",
                         "User/group is allowed to delete an artifact",
@@ -37,6 +42,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterUniqueTogether(
             name="projectrepository",
-            unique_together=set([("project", "code_source_url")]),
+            unique_together={("project", "code_source_url")},
         ),
     ]

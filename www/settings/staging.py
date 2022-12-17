@@ -22,7 +22,7 @@ MEDIA_ROOT = os.path.join(CODEDOC_ROOT_LOCATION, "media") + "/"
 # path used to upload temporary files, maybe a proper /tmp dir for production?
 USER_UPLOAD_TEMPORARY_STORAGE = os.path.join(CODEDOC_ROOT_LOCATION, "temporary_upload")
 FILE_LOGGING_LOCATION = os.path.join(
-    CODEDOC_ROOT_LOCATION, "logs", "%s.log" % SITE_NAME
+    CODEDOC_ROOT_LOCATION, "logs", f"{SITE_NAME}.log"
 )
 
 if not os.path.exists(USER_UPLOAD_TEMPORARY_STORAGE):

@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_permission_handler_name(permission_name):
-    return "has_user_%s_permission" % permission_name
+    return f"has_user_{permission_name}_permission"
 
 
 class CodedocPermissionBackend(object):
@@ -33,11 +33,7 @@ class CodedocPermissionBackend(object):
         func = getattr(obj, get_permission_handler_name(perm.split(".")[1]))
         assert func is not None
 
-        if func(user):
-            return True
-
-        # returning False will continue the iteration over the permission backends
-        return False
+        return bool(func(user))
         # raise PermissionDenied
 
     def _populate_permissions(self, user, obj):
@@ -45,11 +41,11 @@ class CodedocPermissionBackend(object):
         if type(obj) not in self.objects_permission_handlers:
             return set()
 
-        return set(
+        return {
             codename
             for codename in self.objects_permission_handlers[type(obj)]
             if self._manage_has_permissions(user, codename, obj)
-        )
+        }
 
     def has_perm(self, user_obj, perm, obj=None):
         if obj is None:
@@ -67,10 +63,7 @@ class CodedocPermissionBackend(object):
 
     def get_all_permissions(self, user, obj):
 
-        if obj is None:
-            return set()
-
-        return self._populate_permissions(user, obj)
+        return set() if obj is None else self._populate_permissions(user, obj)
 
 
 def create_tables():
@@ -86,16 +79,14 @@ def create_tables():
         for m in config.get_models(include_auto_created=False)
         if issubclass(m, models.Model)
     ):
-        handler_dict = CodedocPermissionBackend.objects_permission_handlers
         if hasattr(cls, "_meta") and hasattr(cls._meta, "permissions"):
+            handler_dict = CodedocPermissionBackend.objects_permission_handlers
             for permission_name, _ in cls._meta.permissions:
                 handler_function = get_permission_handler_name(permission_name)
                 if hasattr(cls, handler_function):
                     if cls not in handler_dict:
                         handler_dict[cls] = []
-                    handler_dict[cls].append(
-                        _project_permission_prefix + "." + permission_name
-                    )
+                    handler_dict[cls].append(f"{_project_permission_prefix}.{permission_name}")
 
                 else:
                     logger.warning(

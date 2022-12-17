@@ -51,7 +51,7 @@ class Author(models.Model):
         permissions = (("author_edit", "Can edit the Author's details"),)
 
     def __str__(self):
-        return "%s %s (%s)" % (self.firstname, self.lastname, self.email)
+        return f"{self.firstname} {self.lastname} ({self.email})"
 
     def has_user_author_edit_permission(self, user):
         """In order for a Django User to be allowed to edit the details of an Author,

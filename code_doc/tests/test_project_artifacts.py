@@ -77,13 +77,7 @@ class ProjectSeriesArtifactTest(TestCase):
             # create a temporary tar object
             tar = tarfile.open(fileobj=f, mode="w:bz2")
 
-            if file_to_add is not None:
-                info = tarfile.TarInfo(name="myfile")
-                info.size = len(file_to_add.read())
-                file_to_add.seek(0)
-                tar.addfile(tarinfo=info, fileobj=file_to_add)
-                source_file = "myfile"
-            else:
+            if file_to_add is None:
                 source_file = getsourcefile(lambda _: None)
                 tar.add(
                     os.path.abspath(source_file), arcname=os.path.basename(source_file)
@@ -98,14 +92,19 @@ class ProjectSeriesArtifactTest(TestCase):
                 )
 
                 source_file = os.path.basename(source_file)
-            tar.close()
-        else:
-            if file_to_add is not None:
-                source_file = "myfile"
-                f.write(file_to_add.read())
             else:
-                source_file = getsourcefile(lambda _: None)
-                f.write(open(source_file, "rb").read())
+                info = tarfile.TarInfo(name="myfile")
+                info.size = len(file_to_add.read())
+                file_to_add.seek(0)
+                tar.addfile(tarinfo=info, fileobj=file_to_add)
+                source_file = "myfile"
+            tar.close()
+        elif file_to_add is not None:
+            source_file = "myfile"
+            f.write(file_to_add.read())
+        else:
+            source_file = getsourcefile(lambda _: None)
+            f.write(open(source_file, "rb").read())
 
         f.seek(0)
         return f, source_file
@@ -720,7 +719,7 @@ class ProjectSeriesArtifactTest(TestCase):
 
         # invalid tar
         f.seek(0)
-        test_file = SimpleUploadedFile("filename.tar.bz2", "toto" + f.read())
+        test_file = SimpleUploadedFile("filename.tar.bz2", f"toto{f.read()}")
         response = self.client.post(
             initial_path,
             {
@@ -778,7 +777,7 @@ class ProjectSeriesArtifactTest(TestCase):
                 "csrf_token": response_get.context["csrf_token"],
                 "artifactfile": test_file,
                 "is_documentation": True,
-                "documentation_entry_file": "basename/" + source_file + "2",
+                "documentation_entry_file": f"basename/{source_file}2",
                 "branch": "blah",
                 "revision": "blah1",
             },
@@ -802,7 +801,7 @@ class ProjectSeriesArtifactTest(TestCase):
 
         # Normal submission
         test_file = SimpleUploadedFile("new_filename.tar.bz2", f.read())
-        entry_file = "basename/" + source_file + "2"
+        entry_file = f"basename/{source_file}2"
         response = self.client.post(
             initial_path,
             {
@@ -853,7 +852,7 @@ class ProjectSeriesArtifactTest(TestCase):
 
         # Normal submission
         test_file = SimpleUploadedFile("new_filename.tar.bz2", f.read())
-        entry_file = source_file + "2"
+        entry_file = f"{source_file}2"
         response = self.client.post(
             initial_path,
             {
@@ -900,7 +899,7 @@ class ProjectSeriesArtifactTest(TestCase):
 
         f, source_file = self.create_artifact_file(is_documentation=True)
         test_file = SimpleUploadedFile("new_filename.tar.bz2", f.read())
-        entry_file = "basename/" + source_file + "2"
+        entry_file = f"basename/{source_file}2"
 
         new_artifact.documentation_entry_file = entry_file
         new_artifact.artifactfile = test_file
@@ -931,7 +930,7 @@ class ProjectSeriesArtifactTest(TestCase):
         # a file has been created
         self.assertTrue(
             os.path.exists(new_artifact.full_path_name()),
-            "Artifact not existent on disk %s" % new_artifact.full_path_name(),
+            f"Artifact not existent on disk {new_artifact.full_path_name()}",
         )
 
         # not a documentation artifact
@@ -942,7 +941,7 @@ class ProjectSeriesArtifactTest(TestCase):
         # file still here
         self.assertTrue(
             os.path.exists(new_artifact.full_path_name()),
-            "Artifact not existent on disk %s" % new_artifact.full_path_name(),
+            f"Artifact not existent on disk {new_artifact.full_path_name()}",
         )
 
         self.assertFalse(os.path.exists(get_deflation_directory(new_artifact)))

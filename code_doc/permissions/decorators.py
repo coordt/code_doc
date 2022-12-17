@@ -95,11 +95,7 @@ def permission_required_on_object(
     """
 
     def check_perms(user, obj):
-        if not isinstance(perm, (list, tuple)):
-            perms = (perm,)
-        else:
-            perms = perm
-
+        perms = perm if isinstance(perm, (list, tuple)) else (perm, )
         # First check if the user has the permission (even anon users)
         if user.has_perms(perms, obj):
             logger.debug(

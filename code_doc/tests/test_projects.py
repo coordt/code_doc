@@ -111,7 +111,7 @@ class ProjectTest(TestCase):
         repository = "https://somewhere.gitlab"
         ProjectRepository.objects.create(project=project2, code_source_url=repository)
         ProjectRepository.objects.create(
-            project=project2, code_source_url=repository + "2"
+            project=project2, code_source_url=f"{repository}2"
         )
 
         response = self.client.get(reverse(self.path, args=[self.project.id]))
@@ -171,7 +171,7 @@ class ProjectViewTest(TestCase):
             tar.addfile(dummy)
             tar.add(
                 os.path.abspath(source_file),
-                arcname="basename/" + os.path.basename(source_file) + "2",
+                arcname=f"basename/{os.path.basename(source_file)}2",
             )
 
             source_file = os.path.basename(source_file)
@@ -259,5 +259,5 @@ class ProjectRepositoryTest(TestCase):
         with transaction.atomic():
             with self.assertRaises(IntegrityError):
                 ProjectRepository.objects.create(
-                    project=project, code_source_url="    " + repository
+                    project=project, code_source_url=f"    {repository}"
                 )

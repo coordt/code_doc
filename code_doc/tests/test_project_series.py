@@ -407,8 +407,8 @@ class ProjectSeriesTest(TestCase):
         for i in range(num_xtra_users):
             User.objects.create_user(
                 username=generate_random_string(),
-                password="password_" + str(i),
-                email="user_%s@mail.com" % i,
+                password=f"password_{str(i)}",
+                email=f"user_{i}@mail.com",
             )
 
         response = self.client.login(
@@ -447,10 +447,9 @@ class ProjectSeriesTest(TestCase):
                     new_series.perms_users_artifacts_add.add(user)
                 else:
                     new_series.perms_users_artifacts_del.add(user)
-            else:
-                if i % 4 == 1:
-                    new_series.perms_users_artifacts_add.add(user)
-                    new_series.perms_users_artifacts_del.add(user)
+            elif i % 4 == 1:
+                new_series.perms_users_artifacts_add.add(user)
+                new_series.perms_users_artifacts_del.add(user)
 
         response = self.client.get(
             reverse("project_series_edit", args=[self.project.id, new_series.id])
@@ -479,14 +478,14 @@ class ProjectSeriesTest(TestCase):
                 name = check.data["name"]
                 status = check.data["selected"]
 
-                if name == "view_users":
-                    self.assertEqual(status, user in view_users)
-                elif name == "perms_users_artifacts_add":
+                if name == "perms_users_artifacts_add":
                     self.assertEqual(status, user in perm_art_add_users)
                 elif name == "perms_users_artifacts_del":
                     self.assertEqual(status, user in perm_art_del_users)
+                elif name == "view_users":
+                    self.assertEqual(status, user in view_users)
                 else:
-                    self.fail("Unknown permission name %s" % name)
+                    self.fail(f"Unknown permission name {name}")
 
     def test_project_series_handle_user_permissions(self):
         """Test creating and modifying the user permissions."""
@@ -674,8 +673,7 @@ class ProjectSeriesTest(TestCase):
                 response,
                 "form",
                 m2m_field,
-                "Select a valid choice. %s is not one of the available choices."
-                % self.first_user.id,
+                f"Select a valid choice. {self.first_user.id} is not one of the available choices.",
             )
 
         self.assertNotIn(self.first_user, new_series.view_users.all())
@@ -734,15 +732,16 @@ class ProjectSeriesTest(TestCase):
             )
 
         for user in list_users + [self.first_user]:
-            if user in all_users_to_check:
-                self.assertContains(response_get, user.username, 1)
+            if (
+                user not in all_users_to_check
+                and user is self.first_user
+                or user in all_users_to_check
+            ):
+                self.assertContains(
+                    response_get, user.username, 1
+                )  # login button only
             else:
-                if user is self.first_user:
-                    self.assertContains(
-                        response_get, user.username, 1
-                    )  # login button only
-                else:
-                    self.assertContains(response_get, user.username, 0)
+                self.assertContains(response_get, user.username, 0)
 
         # we should see the correct permissions for all of the users
         sorted_users = sorted(all_users_to_check, key=lambda x: x.username)
@@ -789,17 +788,6 @@ class ProjectSeriesTest(TestCase):
             + [user2.id],
             "perms_users_artifacts_del": form["perms_users_artifacts_del"].value(),
         }
-        # cannot handle the ids directly
-        if 0:
-            for user in all_users_to_check:
-                index = sorted_users.index(user)
-                for perm in [
-                    "view_users",
-                    "perms_users_artifacts_add",
-                    "perms_users_artifacts_del",
-                ]:
-                    data["id_{perm}_{index}".format(perm=perm, index=index)] = True
-
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, 302)
         self.assertRedirects(response, url_redirect)
@@ -809,15 +797,16 @@ class ProjectSeriesTest(TestCase):
 
         # all previous users should be here
         for user in list_users + [self.first_user]:
-            if user in all_users_to_check:
-                self.assertContains(response_get, user.username, 1)
+            if (
+                user not in all_users_to_check
+                and user is self.first_user
+                or user in all_users_to_check
+            ):
+                self.assertContains(
+                    response_get, user.username, 1
+                )  # login button only
             else:
-                if user is self.first_user:
-                    self.assertContains(
-                        response_get, user.username, 1
-                    )  # login button only
-                else:
-                    self.assertContains(response_get, user.username, 0)
+                self.assertContains(response_get, user.username, 0)
 
         #
         self.assertNotIn(self.first_user, new_series.view_users.all())
@@ -837,7 +826,7 @@ class ProjectSeriesTest(TestCase):
 
         # Number of groups to create
         num_xtra_groups = 20
-        for i in range(num_xtra_groups):
+        for _ in range(num_xtra_groups):
             Group.objects.create(name=generate_random_string())
 
         response = self.client.login(
@@ -871,10 +860,9 @@ class ProjectSeriesTest(TestCase):
                     new_series.perms_groups_artifacts_add.add(group)
                 else:
                     new_series.perms_groups_artifacts_del.add(group)
-            else:
-                if i % 4 == 1:
-                    new_series.perms_groups_artifacts_add.add(group)
-                    new_series.perms_groups_artifacts_del.add(group)
+            elif i % 4 == 1:
+                new_series.perms_groups_artifacts_add.add(group)
+                new_series.perms_groups_artifacts_del.add(group)
 
         response = self.client.get(
             reverse("project_series_edit", args=[self.project.id, new_series.id])
@@ -903,14 +891,14 @@ class ProjectSeriesTest(TestCase):
                 name = check.data["name"]
                 status = check.data["selected"]
 
-                if name == "view_groups":
-                    self.assertEqual(status, group in view_groups)
-                elif name == "perms_groups_artifacts_add":
+                if name == "perms_groups_artifacts_add":
                     self.assertEqual(status, group in perm_art_add_groups)
                 elif name == "perms_groups_artifacts_del":
                     self.assertEqual(status, group in perm_art_del_groups)
+                elif name == "view_groups":
+                    self.assertEqual(status, group in view_groups)
                 else:
-                    self.fail("Unknown permission name %s" % name)
+                    self.fail(f"Unknown permission name {name}")
 
     def test_project_series_handle_group_permissions(self):
         """Test creating and modifying the group permissions."""
@@ -1047,6 +1035,5 @@ class ProjectSeriesTest(TestCase):
                 response,
                 "form",
                 m2m_field,
-                "Select a valid choice. %s is not one of the available choices."
-                % test_group.id,
+                f"Select a valid choice. {test_group.id} is not one of the available choices.",
             )

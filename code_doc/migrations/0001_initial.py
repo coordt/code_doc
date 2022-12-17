@@ -6,6 +6,8 @@ from django.conf import settings
 import code_doc.models.artifacts
 
 
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -30,7 +32,8 @@ class Migration(migrations.Migration):
                 (
                     "description",
                     models.TextField(
-                        max_length=1024, verbose_name=b"description of the artifact"
+                        max_length=1024,
+                        verbose_name=b"description of the artifact",
                     ),
                 ),
                 (
@@ -84,7 +87,12 @@ class Migration(migrations.Migration):
                 ("lastname", models.CharField(max_length=50)),
                 ("firstname", models.CharField(max_length=50)),
                 ("gravatar_email", models.CharField(max_length=50)),
-                ("email", models.EmailField(unique=True, max_length=50, db_index=True)),
+                (
+                    "email",
+                    models.EmailField(
+                        unique=True, max_length=50, db_index=True
+                    ),
+                ),
                 ("home_page_url", models.CharField(max_length=250)),
             ],
             options={},
@@ -143,7 +151,10 @@ class Migration(migrations.Migration):
                 (
                     "description",
                     models.TextField(
-                        max_length=2500, null=True, verbose_name=b"hidden", blank=True
+                        max_length=2500,
+                        null=True,
+                        verbose_name=b"hidden",
+                        blank=True,
                     ),
                 ),
                 (
@@ -188,7 +199,9 @@ class Migration(migrations.Migration):
                 ("authors", models.ManyToManyField(to="code_doc.Author")),
                 (
                     "copyright",
-                    models.ForeignKey(blank=True, to="code_doc.Copyright", null=True),
+                    models.ForeignKey(
+                        blank=True, to="code_doc.Copyright", null=True
+                    ),
                 ),
                 (
                     "copyright_holder",
@@ -218,12 +231,16 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("version", models.CharField(max_length=500)),
-                ("release_date", models.DateField(verbose_name=b"Release date")),
+                (
+                    "release_date",
+                    models.DateField(verbose_name=b"Release date"),
+                ),
                 ("is_public", models.BooleanField(default=False)),
                 (
                     "description",
                     models.TextField(
-                        max_length=500, verbose_name=b"Description of the version"
+                        max_length=500,
+                        verbose_name=b"Description of the version",
                     ),
                 ),
                 (
@@ -237,7 +254,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "project",
-                    models.ForeignKey(related_name="versions", to="code_doc.Project"),
+                    models.ForeignKey(
+                        related_name="versions", to="code_doc.Project"
+                    ),
                 ),
                 (
                     "view_artifacts_groups",
@@ -278,7 +297,10 @@ class Migration(migrations.Migration):
             ],
             options={
                 "permissions": (
-                    ("version_view", "User of group has access to this revision"),
+                    (
+                        "version_view",
+                        "User of group has access to this revision",
+                    ),
                     (
                         "version_artifacts_view",
                         "Access to the artifacts of this revision",
@@ -318,12 +340,14 @@ class Migration(migrations.Migration):
             bases=(models.Model,),
         ),
         migrations.AlterUniqueTogether(
-            name="projectversion", unique_together=set([("project", "version")])
+            name="projectversion", unique_together={("project", "version")}
         ),
         migrations.AddField(
             model_name="project",
             name="topics",
-            field=models.ManyToManyField(to="code_doc.Topic", null=True, blank=True),
+            field=models.ManyToManyField(
+                to="code_doc.Topic", null=True, blank=True
+            ),
             preserve_default=True,
         ),
         migrations.AddField(
@@ -335,6 +359,6 @@ class Migration(migrations.Migration):
             preserve_default=True,
         ),
         migrations.AlterUniqueTogether(
-            name="artifact", unique_together=set([("project_version", "md5hash")])
+            name="artifact", unique_together={("project_version", "md5hash")}
         ),
     ]

@@ -4,6 +4,8 @@ from __future__ import unicode_literals
 from django.db import models, migrations
 
 
+
+
 class Migration(migrations.Migration):
 
     dependencies = [("code_doc", "0011_auto_20150521_1617")]
@@ -32,7 +34,9 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "project",
-                    models.ForeignKey(related_name="revisions", to="code_doc.Project"),
+                    models.ForeignKey(
+                        related_name="revisions", to="code_doc.Project"
+                    ),
                 ),
             ],
             options={"get_latest_by": "commit_time"},
@@ -59,23 +63,25 @@ class Migration(migrations.Migration):
                 ),
             ],
         ),
-        migrations.AlterUniqueTogether(name="artifact", unique_together=set([])),
+        migrations.AlterUniqueTogether(
+            name="artifact", unique_together=set([])
+        ),
         migrations.AddField(
             model_name="artifact",
             name="revision",
             field=models.ForeignKey(
-                related_name="artifacts", blank=True, to="code_doc.Revision", null=True
+                related_name="artifacts",
+                blank=True,
+                to="code_doc.Revision",
+                null=True,
             ),
         ),
-        # Storing the project_series as backup so we still know which Project an Artifact belongs to
-        # This field is removed in a later Migration, when we transferred the Project information
-        # into the new project field.
         migrations.RenameField(
             model_name="artifact",
             old_name="project_series",
             new_name="project_series_backup",
         ),
         migrations.AlterUniqueTogether(
-            name="revision", unique_together=set([("project", "revision")])
+            name="revision", unique_together={("project", "revision")}
         ),
     ]

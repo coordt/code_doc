@@ -8,8 +8,7 @@ register = template.Library()
 def project_image(project_id, size=None, class_="media-object"):
     project = Project.objects.get(pk=project_id)
 
-    im = project.icon
-    if im:
+    if im := project.icon:
         if im.width > im.height:
             size_x = size
             size_y = im.height * size_x / im.width

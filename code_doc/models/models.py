@@ -29,7 +29,7 @@ class Copyright(models.Model):
     url = models.CharField(max_length=50)
 
     def __str__(self):
-        return "%s @ %s" % (self.name, self.url)
+        return f"{self.name} @ {self.url}"
 
 
 class Topic(models.Model):
@@ -44,7 +44,7 @@ class Topic(models.Model):
         return reverse("topic", kwargs={"topic_id": self.pk})
 
     def __str__(self):
-        return "%s" % (self.name)
+        return f"{self.name}"
 
 
 def manage_permission_on_object(

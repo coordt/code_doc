@@ -19,10 +19,10 @@ class Command(BaseCommand):
         userName = args[0]
         userPwd = args[1]
         user = authenticate(username=userName, password=userPwd)
-        if user is not None:
-            if user.is_active:
-                print(f"You provided a correct username and password for '{userName}'!")
-            else:
-                print("Account '{userName}' has been disabled!")
-        else:
+        if user is None:
             print("Your username and password were incorrect.")
+
+        elif user.is_active:
+            print(f"You provided a correct username and password for '{userName}'!")
+        else:
+            print("Account '{userName}' has been disabled!")

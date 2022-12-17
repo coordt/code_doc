@@ -21,7 +21,7 @@ class Revision(models.Model):
     )
 
     def __str__(self):
-        return "[%s] %s" % (self.project.name, self.revision)
+        return f"[{self.project.name}] {self.revision}"
 
     def get_all_referencing_series(self):
         list_of_series = []
@@ -46,13 +46,10 @@ class Revision(models.Model):
     def has_user_revision_view_permission(self, userobj):
         """Returns true if the user has view permission on this revision, False otherwise"""
 
-        # Access to one of the series grants access to the revision
-        series_access = False
-        for series in self.get_all_referencing_series():
-            if series.has_user_series_view_permission(userobj):
-                series_access = True
-                break
-
+        series_access = any(
+            series.has_user_series_view_permission(userobj)
+            for series in self.get_all_referencing_series()
+        )
         return series_access or self.project.has_user_project_administrate_permission(
             userobj
         )
